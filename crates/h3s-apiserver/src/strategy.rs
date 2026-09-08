@@ -348,9 +348,18 @@ fn service(spec: &mut Value) -> Result<()> {
     default(spec, "sessionAffinity", json!("None"));
     one_of(
         &spec["sessionAffinity"],
-        &["None", "ClientIP"],
-        "invalid sessionAffinity",
+        &["None"],
+        "ClientIP affinity is not implemented by the native Service proxy",
     )?;
+    if spec["externalIPs"]
+        .as_array()
+        .is_some_and(|v| !v.is_empty())
+        || !spec["trafficDistribution"].is_null()
+    {
+        return Err(invalid(
+            "externalIPs and trafficDistribution are not implemented by the native Service proxy",
+        ));
+    }
     default(spec, "internalTrafficPolicy", json!("Cluster"));
     one_of(
         &spec["internalTrafficPolicy"],
@@ -381,8 +390,8 @@ fn service(spec: &mut Value) -> Result<()> {
         default(port, "protocol", json!("TCP"));
         one_of(
             &port["protocol"],
-            &["TCP", "UDP", "SCTP"],
-            "invalid Service protocol",
+            &["TCP", "UDP"],
+            "native Service forwarding supports TCP and UDP",
         )?;
         let name = port["name"].as_str().unwrap_or("");
         if (multiple && name.is_empty())

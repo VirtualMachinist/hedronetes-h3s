@@ -1,5 +1,7 @@
 //! Native enrollment, Node/Lease lifecycle and assigned-Pod CRI reconciliation.
 mod capacity;
+mod dns;
+pub use dns::ClusterDns;
 mod inputs;
 mod pod;
 mod probe;
@@ -17,6 +19,8 @@ use std::{fs, io::Read, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
 pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error(transparent)]
+    Proxy(#[from] h3s_proxy::Error),
     #[error("agent runtime: {0}")]
     Runtime(#[from] h3s_cri::Error),
     #[error("agent configuration: {0}")]
@@ -40,6 +44,8 @@ pub struct Config {
     pub token: Option<String>,
     pub kubelet_port: u16,
     pub runtime_endpoint: Option<String>,
+    pub service_proxy_nft: Option<PathBuf>,
+    pub cluster_dns: Option<ClusterDns>,
 }
 /// Private on-disk state: no Debug, never included in Node status or log output.
 #[derive(Serialize, Deserialize)]
@@ -67,6 +73,8 @@ pub struct Agent {
     kubelet_port: std::sync::atomic::AtomicU16,
     runtime: Option<runtime::Runtime>,
     ready: Arc<std::sync::atomic::AtomicBool>,
+    service_proxy_nft: Option<PathBuf>,
+    proxy_ready: Arc<std::sync::atomic::AtomicBool>,
 }
 fn invalid(message: &'static str) -> Error {
     Error::Configuration(message)
@@ -110,6 +118,11 @@ async fn body(mut response: reqwest::Response) -> Result<(u16, Value)> {
 }
 impl Agent {
     pub async fn connect(config: Config) -> Result<Self> {
+        if let Some(nft) = &config.service_proxy_nft {
+            if !nft.is_absolute() || !nft.metadata()?.is_file() {
+                return Err(invalid("service proxy requires an absolute nft executable"));
+            }
+        }
         let endpoint = endpoint(&config.server)?;
         if !h3s_api::valid_node_name(&config.node_name) {
             return Err(invalid("invalid node name"));
@@ -216,9 +229,13 @@ impl Agent {
         Ok(Self {
             runtime: config
                 .runtime_endpoint
-                .map(|endpoint| runtime::Runtime::new(endpoint, dir.join("pods")))
+                .map(|endpoint| {
+                    runtime::Runtime::new(endpoint, dir.join("pods"), config.cluster_dns)
+                })
                 .transpose()?,
             ready: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            service_proxy_nft: config.service_proxy_nft,
+            proxy_ready: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             _lock: lock,
             client,
             endpoint,
@@ -247,15 +264,20 @@ impl Agent {
     }
     /// Register and report observed CRI health; heartbeats are independent of Pod pulls.
     pub async fn reconcile(&self) -> Result<()> {
-        let ready = match &self.runtime {
+        let runtime_ready = match &self.runtime {
             Some(runtime) => runtime.healthy().await,
             None => false,
         };
+        let proxy_ready = self.service_proxy_nft.is_none()
+            || self.proxy_ready.load(std::sync::atomic::Ordering::Relaxed);
+        let ready = runtime_ready && proxy_ready;
         self.ready
             .store(ready, std::sync::atomic::Ordering::Relaxed);
         let ready_text = if ready { "True" } else { "False" };
         let reason = if ready {
             "KubeletReady"
+        } else if runtime_ready && !proxy_ready {
+            "ServiceProxyNotReady"
         } else {
             "RuntimeNotReady"
         };
@@ -292,7 +314,7 @@ impl Agent {
             .cloned()
             .collect();
         node["status"] = json!({"addresses":[{"type":"InternalIP","address":self.ip.to_string()},{"type":"Hostname","address":self.name}],
-            "conditions":[{"type":"Ready","status":ready_text,"reason":reason,"message":if ready{"native CRI runtime and network plugin are ready"}else{"CRI runtime is absent or not ready"},
+            "conditions":[{"type":"Ready","status":ready_text,"reason":reason,"message":if ready{"native CRI runtime and configured networking are ready"}else if runtime_ready && !proxy_ready{"native Service proxy has not installed valid rules"}else{"CRI runtime is absent or not ready"},
                 "lastHeartbeatTime":time,"lastTransitionTime":transition}]});
         node["status"]["conditions"]
             .as_array_mut()
@@ -403,6 +425,29 @@ impl Agent {
                 tokio::time::sleep(Duration::from_secs(2)).await;
             }
         };
+        let proxy = async {
+            let Some(nft_binary) = &self.service_proxy_nft else {
+                return std::future::pending::<Result<()>>().await;
+            };
+            use sha2::{Digest, Sha256};
+            let owner = format!(
+                "{:x}",
+                Sha256::digest(format!("{}\n{}", self.ca_pem, self.name).as_bytes())
+            );
+            h3s_proxy::run(
+                h3s_proxy::Config {
+                    nft_binary: nft_binary.clone(),
+                    state_dir: self.agent_dir.join("service-proxy"),
+                    node_name: self.name.clone(),
+                    owner,
+                },
+                self.client.clone(),
+                self.endpoint.clone(),
+                self.proxy_ready.clone(),
+            )
+            .await?;
+            Ok(())
+        };
         let tunnel = async {
             let mut delay = 1;
             loop {
@@ -429,6 +474,7 @@ impl Agent {
             _=heartbeats=>Ok(()),
             _=tunnel=>Ok(()),
             _=workloads=>Ok(()),
+            result=proxy=>result,
         }
     }
 }

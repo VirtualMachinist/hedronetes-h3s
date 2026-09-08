@@ -90,6 +90,15 @@ struct ServerArgs {
     /// Use an operator-configured local CRI v1 runtime for assigned Pods.
     #[arg(long)]
     container_runtime_endpoint: Option<String>,
+    /// Enable the native Service proxy with this absolute nft helper path.
+    #[arg(long)]
+    service_proxy_nft: Option<std::path::PathBuf>,
+    /// IPv4 DNS Service address used by ClusterFirst Pods on this node.
+    #[arg(long)]
+    cluster_dns: Option<std::net::Ipv4Addr>,
+    /// DNS suffix shared by the cluster's DNS server and all nodes.
+    #[arg(long, default_value = "cluster.local")]
+    cluster_domain: String,
     /// Shared enrollment token; prefer --token-file over a command-line value.
     #[arg(
         long,
@@ -105,6 +114,15 @@ struct ServerArgs {
 /// Native worker enrollment and lifecycle; runtime readiness is explicit.
 #[derive(Debug, Args)]
 struct AgentArgs {
+    /// Enable the native Service proxy with this absolute nft helper path.
+    #[arg(long)]
+    service_proxy_nft: Option<std::path::PathBuf>,
+    /// IPv4 DNS Service address used by ClusterFirst Pods on this node.
+    #[arg(long)]
+    cluster_dns: Option<std::net::Ipv4Addr>,
+    /// DNS suffix shared by the cluster's DNS server and all nodes.
+    #[arg(long, default_value = "cluster.local")]
+    cluster_domain: String,
     /// Private loopback kubelet listener; never binds a reachable interface.
     #[arg(long,default_value_t=10250,value_parser=clap::value_parser!(u16).range(1..))]
     kubelet_port: u16,
@@ -206,6 +224,10 @@ fn local_node(
 
 async fn run_server(args: ServerArgs) -> RunResult {
     let node = local_node(&args)?;
+    let cluster_dns = args
+        .cluster_dns
+        .map(|ip| h3s_kubelet::ClusterDns::new(ip, args.cluster_domain.clone()))
+        .transpose()?;
     let server_dir = args.data_dir.join("server");
     let mut sans = vec![
         "localhost".into(),
@@ -216,6 +238,9 @@ async fn run_server(args: ServerArgs) -> RunResult {
         "kubernetes.default.svc.cluster.local".into(),
         "10.43.0.1".into(),
     ];
+    if cluster_dns.is_some() {
+        sans.push(format!("kubernetes.default.svc.{}", args.cluster_domain));
+    }
     if !args.bind_address.is_unspecified() {
         sans.push(args.bind_address.to_string());
     }
@@ -332,6 +357,8 @@ async fn run_server(args: ServerArgs) -> RunResult {
             token: Some(token),
             kubelet_port: args.kubelet_port,
             runtime_endpoint: args.container_runtime_endpoint,
+            service_proxy_nft: args.service_proxy_nft,
+            cluster_dns,
         })
         .await
     };
@@ -419,6 +446,10 @@ fn read_token(
     Ok(text)
 }
 async fn run_agent(args: AgentArgs) -> RunResult {
+    let cluster_dns = args
+        .cluster_dns
+        .map(|ip| h3s_kubelet::ClusterDns::new(ip, args.cluster_domain))
+        .transpose()?;
     let token = read_token(args.token.as_ref(), args.token_file.as_deref(), None)?;
     run_native_agent(h3s_kubelet::Config {
         server: args.server,
@@ -429,6 +460,8 @@ async fn run_agent(args: AgentArgs) -> RunResult {
         token,
         kubelet_port: args.kubelet_port,
         runtime_endpoint: args.container_runtime_endpoint,
+        service_proxy_nft: args.service_proxy_nft,
+        cluster_dns,
     })
     .await
 }

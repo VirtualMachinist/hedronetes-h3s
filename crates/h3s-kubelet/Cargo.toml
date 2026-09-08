@@ -10,6 +10,7 @@ rust-version.workspace = true
 
 [dependencies]
 h3s-cri = { path = "../h3s-cri" }
+h3s-proxy = { path = "../h3s-proxy" }
 base64 = "0.22"
 sha2 = "0.10"
 tokio-rustls = "0.26.5"

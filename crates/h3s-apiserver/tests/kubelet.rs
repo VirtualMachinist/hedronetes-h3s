@@ -25,6 +25,8 @@ fn config(s: &Server, dir: &Path, token: bool) -> Config {
         token: token.then(|| JOIN_TOKEN.into()),
         kubelet_port: 0,
         runtime_endpoint: None,
+        service_proxy_nft: None,
+        cluster_dns: None,
     }
 }
 async fn text(s: &Server, tls: rustls::ClientConfig, path: &str) -> (u16, String) {

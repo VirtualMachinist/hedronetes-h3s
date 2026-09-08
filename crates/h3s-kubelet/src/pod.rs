@@ -96,12 +96,11 @@ pub fn validate(p: &Value, node: &str) -> Result<()> {
     {
         return Err(invalid("private image authentication is not implemented"));
     }
-    if !matches!(s["dnsPolicy"].as_str(), Some("Default") | Some("None")) {
-        return Err(invalid("cluster DNS is not configured"));
-    }
-    fields(&s["dnsConfig"], &["nameservers", "searches", "options"])?;
-    if s["dnsPolicy"] == "Default" && !s["dnsConfig"].is_null() {
-        return Err(invalid("DNS overrides require dnsPolicy None"));
+    if !matches!(
+        s["dnsPolicy"].as_str(),
+        None | Some("Default" | "None" | "ClusterFirst")
+    ) {
+        return Err(invalid("unsupported DNS policy"));
     }
     fields(
         &s["securityContext"],

@@ -1,6 +1,6 @@
 //! Desired Pods are fetched through the node-authorized API; CRI is authoritative
 //! for observed processes. A failed/incomplete LIST never triggers orphan GC.
-use crate::{inputs, invalid, now, pod, probe, volumes, Agent, Error, Result};
+use crate::{dns, inputs, invalid, now, pod, probe, volumes, Agent, Error, Result};
 use h3s_certs::private;
 use h3s_cri::{v1::*, Cri};
 use reqwest::Method;
@@ -18,12 +18,17 @@ macro_rules! rpc {
 }
 pub struct Runtime {
     endpoint: String,
+    cluster_dns: Option<dns::ClusterDns>,
     root: PathBuf,
     probes: tokio::sync::Mutex<probe::State>,
     seen: std::sync::Mutex<HashSet<String>>,
 }
 impl Runtime {
-    pub fn new(endpoint: String, root: PathBuf) -> Result<Self> {
+    pub fn new(
+        endpoint: String,
+        root: PathBuf,
+        cluster_dns: Option<dns::ClusterDns>,
+    ) -> Result<Self> {
         let path = endpoint.strip_prefix("unix://").unwrap_or(&endpoint);
         if !Path::new(path).is_absolute()
             || path.contains('\0')
@@ -36,6 +41,7 @@ impl Runtime {
         private::directory(&root)?;
         Ok(Self {
             endpoint,
+            cluster_dns,
             root,
             probes: tokio::sync::Mutex::new(probe::State::default()),
             seen: std::sync::Mutex::new(HashSet::new()),
@@ -191,6 +197,7 @@ impl Runtime {
         probes: &mut probe::State,
     ) -> Result<Value> {
         pod::validate(p, &agent.name)?;
+        let dns_config = dns::for_pod(p, self.cluster_dns.as_ref())?;
         let uid = pod::text(&p["metadata"], "uid")?;
         let name = pod::text(&p["metadata"], "name")?;
         let ns = pod::text(&p["metadata"], "namespace")?;
@@ -267,7 +274,7 @@ impl Runtime {
                 .to_str()
                 .ok_or_else(|| invalid("non UTF-8 Pod log path"))?
                 .into(),
-            dns_config: Some(dns(p)?),
+            dns_config: Some(dns_config),
             labels: pod::labels(&agent.name, uid),
             linux: Some(LinuxPodSandboxConfig {
                 cgroup_parent: "h3s-pods.slice".into(),
@@ -595,43 +602,6 @@ fn stamp(ns: i64) -> String {
         .format(&time::format_description::well_known::Rfc3339)
         .expect("UTC")
 }
-fn dns(p: &Value) -> Result<DnsConfig> {
-    if p["spec"]["dnsPolicy"] == "None" {
-        let c = &p["spec"]["dnsConfig"];
-        let mut options = vec![];
-        for option in c["options"].as_array().into_iter().flatten() {
-            pod::fields(option, &["name", "value"])?;
-            let name = pod::text(option, "name")?;
-            options.push(if let Some(value) = option["value"].as_str() {
-                format!("{name}:{value}")
-            } else {
-                name.into()
-            });
-        }
-        return Ok(DnsConfig {
-            servers: pod::strings(&c["nameservers"])?,
-            searches: pod::strings(&c["searches"])?,
-            options,
-        });
-    }
-    let text = std::fs::read_to_string("/etc/resolv.conf")?;
-    let mut config = DnsConfig::default();
-    for line in text.lines() {
-        let mut words = line.split('#').next().unwrap_or("").split_whitespace();
-        match words.next() {
-            Some("nameserver") => {
-                if let Some(s) = words.next() {
-                    config.servers.push(s.into());
-                }
-            }
-            Some("search") => config.searches = words.map(str::to_owned).collect(),
-            Some("options") => config.options.extend(words.map(str::to_owned)),
-            _ => {}
-        }
-    }
-    Ok(config)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1027,6 +1027,7 @@ dependencies = [
  "h3s-auth",
  "h3s-certs",
  "h3s-cri",
+ "h3s-proxy",
  "h3s-supervisor",
  "http-body-util",
  "hyper",
@@ -1051,6 +1052,17 @@ version = "0.1.0-dev"
 [[package]]
 name = "h3s-proxy"
 version = "0.1.0-dev"
+dependencies = [
+ "h3s-api",
+ "h3s-certs",
+ "ipnet",
+ "reqwest",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "tokio",
+]
 
 [[package]]
 name = "h3s-scheduler"

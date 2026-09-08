@@ -29,6 +29,8 @@ fn config(s: &Server, root: &Path, token: bool) -> Config {
         server: s.endpoint(),
         kubelet_port: 0,
         runtime_endpoint: None,
+        service_proxy_nft: None,
+        cluster_dns: None,
         ca_file: root.join("ca.pem"),
         node_name: "worker".into(),
         node_ip: "192.0.2.2".parse().unwrap(),

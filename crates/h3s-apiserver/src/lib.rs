@@ -251,6 +251,14 @@ impl Api {
                 ]),
                 json!({"kind":"Group","apiGroup":"rbac.authorization.k8s.io","name":"system:nodes"}),
             ),
+            (
+                "h3s-service-discovery",
+                json!([
+                    {"apiGroups":[""],"resources":["services"],"verbs":["get","list","watch"]},
+                    {"apiGroups":["discovery.k8s.io"],"resources":["endpointslices"],"verbs":["get","list","watch"]}
+                ]),
+                json!({"kind":"Group","apiGroup":"rbac.authorization.k8s.io","name":"system:nodes"}),
+            ),
         ] {
             self.bootstrap(format!("/registry/clusterroles/{name}"),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":name},"rules":rules})).await.map_err(|e| e.to_string())?;
             self.bootstrap(format!("/registry/clusterrolebindings/{name}"),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":name},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":name},"subjects":[subject]})).await.map_err(|e| e.to_string())?;
