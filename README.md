@@ -6,6 +6,8 @@
 
 Status: **0.1.0-draft** · License: Apache-2.0 · API target: Kubernetes **v1.34** · Platform: Linux amd64 / arm64
 
+Repo: [VirtualMachinist/hedronetes-h3s](https://github.com/VirtualMachinist/hedronetes-h3s)
+
 ## What this is
 
 Hedronetes copies k3s’s *product* shape — one binary, `server` / `agent`, SQLite by default, HA when you need it, stock `kubectl` and Helm — and reimplements the control plane as native Rust (Tokio), with a typed kubelet FSM, a pluggable store, **youki** as the default OCI runtime, and **nftables**-first kube-proxy.
