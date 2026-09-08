@@ -529,6 +529,15 @@ async fn node_pod_watch_filters_recreated_foreign_assignment() {
 
 #[tokio::test]
 async fn node_secret_watch_stops_before_delivering_data_after_relationship_revocation() {
+    secret_watch_revocation(false).await;
+}
+
+#[tokio::test]
+async fn node_initial_secret_watch_stops_after_relationship_revocation() {
+    secret_watch_revocation(true).await;
+}
+
+async fn secret_watch_revocation(initial: bool) {
     let dir = tempfile::tempdir().unwrap();
     let s = Server::start(dir.path()).await;
     s.namespace("team-a").await;
@@ -544,7 +553,12 @@ async fn node_secret_watch_stops_before_delivering_data_after_relationship_revoc
     let (_, list) = s.json(s.admin(), "GET", base, json!({})).await;
     let rv = list["metadata"]["resourceVersion"].as_str().unwrap();
     assert_eq!(s.json(s.admin(), "POST", base, json!({"apiVersion":"v1","kind":"Secret","metadata":{"name":"pull"},"data":{"value":"YmVmb3Jl"}})).await.0, 201);
-    let response = s.raw(worker(&s,"a"), "GET", &format!("{base}?watch=true&fieldSelector=metadata.name%3Dpull&resourceVersion={rv}&timeoutSeconds=2"), json!({}), &[]).await;
+    let extra = if initial {
+        "&sendInitialEvents=true&resourceVersionMatch=NotOlderThan"
+    } else {
+        ""
+    };
+    let response = s.raw(worker(&s,"a"), "GET", &format!("{base}?watch=true&fieldSelector=metadata.name%3Dpull&resourceVersion={rv}&timeoutSeconds=2{extra}"), json!({}), &[]).await;
     assert_eq!(response.status(), 200);
     let mut body = response.into_body();
     let first = body.frame().await.unwrap().unwrap().into_data().unwrap();
@@ -574,7 +588,16 @@ async fn node_secret_watch_stops_before_delivering_data_after_relationship_revoc
     let rest = body.collect().await.unwrap().to_bytes();
     let text = String::from_utf8(rest.to_vec()).unwrap();
     assert!(!text.contains("YWZ0ZXI="), "revoked data leaked");
-    let event: Value = serde_json::from_str(text.trim()).unwrap();
+    let events: Vec<Value> = text
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    let errors: Vec<_> = events
+        .iter()
+        .filter(|event| event["type"] != "BOOKMARK")
+        .collect();
+    assert_eq!(errors.len(), 1, "{events:?}");
+    let event = errors[0];
     assert_eq!(event["type"], "ERROR");
     assert_eq!(event["object"]["code"], 403);
 }

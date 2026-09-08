@@ -82,6 +82,36 @@ its Linux ARM64 manifest is
 Image identification alone does not prove DNS works; require actual cross-node
 Pod DNS queries and Service HTTP, EndpointSlice changes and recovery evidence.
 
+The upstream binary carries `cap_net_bind_service=ep`, which conflicts with the
+M1 Pod's empty capability bounding set despite listening on 1053. The project
+image variant preserves the original base layers, configuration and binary
+bytes, replacing only the `/coredns` inode without that file capability. Its
+ARM64 manifest is
+`sha256:e245030a7f772c63d33f2fa392b73e270fbeb77e5c2590d7688cc754c4d38d0a`;
+the executable SHA256 remains
+`e9a0052a67f70f59a88092ce466c1605308b41db2a5e4ddffd171fe670863401`.
+Import the verified project OCI archive before using its local digest reference
+with `imagePullPolicy: Never`; this is not a published registry image.
+
+CoreDNS uses streaming lists to initialize its Service, Namespace and
+EndpointSlice caches. h3s supports `watch=true&sendInitialEvents=true` with
+`resourceVersionMatch=NotOlderThan`: filtered ADDED events describe one fresh
+snapshot, followed by a BOOKMARK annotated `k8s.io/initial-events-end: "true"`,
+then changes strictly after the snapshot revision. The completion bookmark is
+sent even when periodic bookmarks are disabled, including for an empty result.
+Compacted requested revisions can initialize from newer state; future revisions
+are rejected using h3s's existing revision error instead of waiting for writes.
+Explicit `sendInitialEvents=false` also requires `NotOlderThan`, suppresses the
+initial snapshot, and preserves replay from a nonzero revision. Omitting the
+flag retains the legacy watch behavior. Node relationship guards remain active
+through initialization and later events.
+
+Exclude overlay devices and Pod veths from the host DHCP client's discovery.
+For the dedicated NixOS guests the exclusions include `flannel.*`, `h3s-test0`
+and `veth*`. A DHCP-assigned link-local address on `flannel.1` can become the
+route's preferred source and break host-to-remote-Service masquerading. This
+belongs in the declarative host network configuration, not in the proxy.
+
 ## Validation and installation boundaries
 
 Unit tests exercise backend selection, ruleset scoping, pagination failure,
@@ -101,4 +131,6 @@ rules in the kernel until explicitly removed or replaced by a compatible proxy.
 
 References: [Kubernetes v1.34 kubelet DNS implementation](https://github.com/kubernetes/kubernetes/blob/v1.34.11/pkg/kubelet/network/dns/dns.go),
 [CoreDNS Kubernetes plugin](https://coredns.io/plugins/kubernetes/),
+[CoreDNS image configuration](https://github.com/coredns/coredns/blob/v1.14.7/Dockerfile),
+[Kubernetes watch validation](https://github.com/kubernetes/apimachinery/blob/v0.34.1/pkg/apis/meta/internalversion/validation/validation.go),
 and [nftables reference](https://netfilter.org/projects/nftables/manpage.html).

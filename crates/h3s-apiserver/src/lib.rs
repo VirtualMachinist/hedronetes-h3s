@@ -577,6 +577,9 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     if q.contains_key("dryRun") {
         return Err(bad("dryRun is not yet implemented"));
     }
+    if q.contains_key("sendInitialEvents") && verb != "watch" {
+        return Err(bad("sendInitialEvents requires watch=true"));
+    }
     if target.resource.namespaced
         && target.namespace.is_none()
         && (target.name.is_some() || !matches!(verb, "list" | "watch"))
@@ -1129,12 +1132,57 @@ async fn watch_response(
     selection: Selection,
     read_guard: Option<nodes::ReadGuard>,
 ) -> Result<Response> {
+    let initial = match q.get("sendInitialEvents").map(String::as_str) {
+        None => None,
+        Some("true") => Some(true),
+        Some("false") => Some(false),
+        _ => return Err(bad("sendInitialEvents must be true or false")),
+    };
+    let match_revision = q
+        .get("resourceVersionMatch")
+        .map(String::as_str)
+        .unwrap_or("");
+    if initial.is_some() {
+        if match_revision != "NotOlderThan" {
+            return Err(bad(
+                "sendInitialEvents requires resourceVersionMatch=NotOlderThan",
+            ));
+        }
+    } else if !match_revision.is_empty() {
+        return Err(bad("watch resourceVersionMatch requires sendInitialEvents"));
+    }
+    if !match_revision.is_empty() && q.get("continue").is_some_and(|v| !v.is_empty()) {
+        return Err(bad("watch resourceVersionMatch forbids continue"));
+    }
+    let requested = if q.get("resourceVersion").is_some_and(String::is_empty) {
+        None
+    } else {
+        number(q, "resourceVersion")?
+    };
+    let after = match initial {
+        Some(true) => {
+            // NotOlderThan chooses a fresh snapshot even if the requested RV
+            // was compacted. The subsequent watch anchor can only be newer.
+            if let Some(requested) = requested.filter(|r| *r != 0) {
+                let mut selection = ListSelect::new(target.prefix());
+                selection.limit = 1;
+                let current = api.store.list(selection).await?.revision;
+                if requested > current {
+                    return Err(h3s_storage::Error::FutureRevision { requested, current }.into());
+                }
+            }
+            None
+        }
+        Some(false) if requested.is_none_or(|r| r == 0) => {
+            let mut selection = ListSelect::new(target.prefix());
+            selection.limit = 1;
+            Some(api.store.list(selection).await?.revision)
+        }
+        _ => requested,
+    };
     let mut stream = api
         .store
-        .watch(WatchSelect::new(
-            target.prefix(),
-            number(q, "resourceVersion")?,
-        ))
+        .watch(WatchSelect::new(target.prefix(), after))
         .await?;
     let timeout = Duration::from_secs(number(q, "timeoutSeconds")?.unwrap_or(300).clamp(1, 600));
     let deadline = tokio::time::Instant::now() + timeout;
@@ -1143,6 +1191,7 @@ async fn watch_response(
     let bookmarks = q.get("allowWatchBookmarks").is_some_and(|v| v == "true");
     let api = api.clone();
     let out = async_stream::stream! {
+        let mut initial_pending = initial == Some(true);
         while let Ok(Some(event))=tokio::time::timeout_at(deadline,stream.next()).await{
             if let Some(guard) = &read_guard {
                 if let Err(error) = guard.check(&api).await {
@@ -1152,8 +1201,13 @@ async fn watch_response(
             let wire=match event{
                 Err(e)=>{yield Ok::<Bytes,Infallible>(Bytes::from(format!("{}\n",json!({"type":"ERROR","object":Failure::from(e).value()}))));break;},
                 Ok(event)if event.kind==EventKind::Bookmark=>{
-                    if !bookmarks{continue;}
-                    json!({"type":"BOOKMARK","object":{"apiVersion":version,"kind":kind,"metadata":{"resourceVersion":event.revision.to_string()}}})
+                    if !bookmarks && !initial_pending {continue;}
+                    let mut metadata=json!({"resourceVersion":event.revision.to_string()});
+                    if initial_pending {
+                        metadata["annotations"]=json!({"k8s.io/initial-events-end":"true"});
+                        initial_pending=false;
+                    }
+                    json!({"type":"BOOKMARK","object":{"apiVersion":version,"kind":kind,"metadata":metadata}})
                 },
                 Ok(event)=>{
                     let converted=(||->Result<_>{Ok((event.object.map(object).transpose()?,event.previous.map(object).transpose()?))})();
