@@ -2,6 +2,9 @@
 //!
 //! The API supplies an authorization snapshot read through its storage boundary.
 //! This crate neither reads the database nor grants permissions from HTTP headers.
+mod node;
+pub use node::{node_allows, node_label_allowed};
+
 use k8s_openapi::api::rbac::v1::{
     ClusterRole, ClusterRoleBinding, PolicyRule, Role, RoleBinding, Subject,
 };

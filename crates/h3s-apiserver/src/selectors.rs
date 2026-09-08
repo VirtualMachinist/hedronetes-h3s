@@ -50,10 +50,11 @@ impl Selection {
         Ok(Self { labels, fields })
     }
     pub fn exact_name(&self) -> Option<&str> {
+        self.exact_field("metadata.name")
+    }
+    pub fn exact_field(&self, field: &str) -> Option<&str> {
         self.fields.iter().find_map(|r| match &r.op {
-            Op::In(values) if r.key == "metadata.name" && values.len() == 1 => {
-                Some(values[0].as_str())
-            }
+            Op::In(values) if r.key == field && values.len() == 1 => Some(values[0].as_str()),
             _ => None,
         })
     }
@@ -65,6 +66,13 @@ impl Selection {
                 .fields
                 .iter()
                 .all(|r| r.matches(Some(&field_value(value, &r.key))))
+    }
+    pub fn with_field(mut self, field: &str, value: &str) -> Self {
+        self.fields.push(Requirement {
+            key: field.into(),
+            op: Op::In(vec![value.into()]),
+        });
+        self
     }
     pub fn with_name(mut self, name: Option<&str>) -> Self {
         if let Some(name) = name {

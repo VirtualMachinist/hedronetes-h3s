@@ -1,6 +1,7 @@
 //! Authenticated Kubernetes API foundation. All registry access belongs here;
 //! future controllers and nodes must use this API rather than write its store.
 mod admission;
+mod nodes;
 mod patch;
 mod resources;
 mod selectors;
@@ -330,12 +331,13 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             "binding supports create",
         ));
     }
-    let selection = Selection::parse(
+    let mut selection = Selection::parse(
         q.get("labelSelector").map(String::as_str).unwrap_or(""),
         q.get("fieldSelector").map(String::as_str).unwrap_or(""),
         target.resource.kind,
     )?
     .with_name(target.name.as_deref());
+    let selected_name = selection.exact_name().map(str::to_owned);
     let attrs = AuthRequest::Resource(ResourceRequest {
         verb,
         group: target.resource.group,
@@ -344,11 +346,30 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         namespace: target.namespace.as_deref(),
         name: target.name.as_deref().or_else(|| {
             matches!(verb, "list" | "watch")
-                .then(|| selection.exact_name())
+                .then(|| selected_name.as_deref())
                 .flatten()
         }),
     });
-    if !api.rbac().await?.allows(&user, &attrs) {
+    let rbac_allowed = api.rbac().await?.allows(&user, &attrs);
+    let AuthRequest::Resource(ref resource_attrs) = attrs else {
+        unreachable!()
+    };
+    let node_allowed = if !rbac_allowed {
+        if let Some(node) = user.node_name() {
+            let related = nodes::related(&api, node, &target, resource_attrs.name).await?;
+            h3s_auth::node_allows(
+                &user,
+                resource_attrs,
+                selection.exact_field("spec.nodeName"),
+                related,
+            )
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+    if !rbac_allowed && !node_allowed {
         return Err(Failure::new(
             403,
             "Forbidden",
@@ -358,6 +379,25 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             ),
         ));
     }
+    let read_guard = if node_allowed {
+        let node = user.node_name().expect("node grant requires node identity");
+        if target.resource.kind == "Pod" && matches!(verb, "list" | "watch") {
+            // Also constrain name-only watches: a recreated Pod assigned to
+            // another worker must not enter this node's stream.
+            selection = selection.with_field("spec.nodeName", node);
+        }
+        if matches!(target.resource.kind, "Secret" | "ConfigMap") {
+            Some(nodes::ReadGuard::new(
+                node,
+                &target,
+                resource_attrs.name.expect("relationship name"),
+            ))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
     if target.resource.group == "rbac.authorization.k8s.io"
         && ["create", "update", "patch", "delete"].contains(&verb)
         && !user.is_superuser()
@@ -374,10 +414,10 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         return Err(bad("namespaced writes and named reads require a namespace"));
     }
     if verb == "watch" {
-        return watch_response(&api, &target, &q, selection).await;
+        return watch_response(&api, &target, &q, selection, read_guard).await;
     }
     if verb == "list" {
-        return list_response(&api, &target, &q, selection).await;
+        return list_response(&api, &target, &q, selection, read_guard).await;
     }
     if target.resource.namespaced && target.namespace.is_none() {
         return Err(bad("namespaced writes and named reads require a namespace"));
@@ -455,6 +495,9 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         wire::decode(&bytes, &content_type)?
     };
     if target.subresource == Some("binding") {
+        if user.node_name().is_some() {
+            return Err(Failure::new(403, "Forbidden", "nodes may not bind Pods"));
+        }
         return bind(&api, &target, value).await;
     }
     if verb == "delete" {
@@ -465,6 +508,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             .await?
             .ok_or_else(|| Failure::new(404, "NotFound", "object not found"))?;
         let obj = object(current.clone())?;
+        nodes::admit(&user, &target, verb, &obj, Some(&obj))?;
         for (field, actual) in [
             ("uid", obj["metadata"]["uid"].as_str().unwrap_or("")),
             (
@@ -638,6 +682,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     if target.resource.kind == "Service" && target.subresource.is_none() {
         services::assign(&api.store, &mut value, old_value.as_ref()).await?;
     }
+    nodes::admit(&user, &target, verb, &value, old_value.as_ref())?;
     patch::check_size(&value)?;
     let obj = stored(k, &value)?;
     let result = match expected {
@@ -812,6 +857,7 @@ async fn list_response(
     target: &Target,
     q: &BTreeMap<String, String>,
     selection: Selection,
+    read_guard: Option<nodes::ReadGuard>,
 ) -> Result<Response> {
     let mut sel = ListSelect::new(target.prefix());
     sel.at_revision = number(q, "resourceVersion")?;
@@ -851,6 +897,7 @@ async fn list_response(
     );
     // Continuation is known after filtering. Emit metadata after the streamed
     // items; JSON object member order is immaterial to Kubernetes clients.
+    let api = api.clone();
     let stream = async_stream::try_stream! {
         yield Bytes::from(start);
         let mut page=page;let mut returned=0;let mut scanned=0;let mut next=None;
@@ -860,6 +907,7 @@ async fn list_response(
                 scanned+=1;let cursor=obj.key.clone();
                 let value=object(obj).map_err(|_|std::io::Error::other("invalid stored list object"))?;
                 if selection.matches(&value){
+                    if let Some(guard) = &read_guard { guard.check(&api).await.map_err(|_|std::io::Error::other("node object relationship revoked or unavailable"))?; }
                     if returned>0{yield Bytes::from_static(b",");}
                     yield Bytes::from(serde_json::to_vec(&value).map_err(std::io::Error::other)?);returned+=1;
                 }
@@ -886,6 +934,7 @@ async fn watch_response(
     target: &Target,
     q: &BTreeMap<String, String>,
     selection: Selection,
+    read_guard: Option<nodes::ReadGuard>,
 ) -> Result<Response> {
     let mut stream = api
         .store
@@ -899,8 +948,14 @@ async fn watch_response(
     let kind = target.resource.kind;
     let version = target.resource.api_version();
     let bookmarks = q.get("allowWatchBookmarks").is_some_and(|v| v == "true");
+    let api = api.clone();
     let out = async_stream::stream! {
         while let Ok(Some(event))=tokio::time::timeout_at(deadline,stream.next()).await{
+            if let Some(guard) = &read_guard {
+                if let Err(error) = guard.check(&api).await {
+                    yield Ok::<Bytes,Infallible>(Bytes::from(format!("{}\n",json!({"type":"ERROR","object":error.value()}))));break;
+                }
+            }
             let wire=match event{
                 Err(e)=>{yield Ok::<Bytes,Infallible>(Bytes::from(format!("{}\n",json!({"type":"ERROR","object":Failure::from(e).value()}))));break;},
                 Ok(event)if event.kind==EventKind::Bookmark=>{
