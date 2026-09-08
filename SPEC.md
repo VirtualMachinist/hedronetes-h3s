@@ -188,6 +188,8 @@ design-only until those controllers exist. Those CRDs, if added, still
 travel over the stock API. They are not a reason to embed a console or
 a record store.
 
+See also `COMPANION_SPEC.md` (h3s-cp) for the companion overlay (Facet action, HedronDB intent, Herdr habitat, Turso engine). Parent wins on conflict; this section is not amended by the companion.
+
 ---
 
 ## 3. Process model
@@ -1139,6 +1141,20 @@ text.
 
 ---
 
-*End of specification. Companion files: `Cargo.toml` workspace sketch,
-`architecture.mmd`.*
+
+## 22. Companion planes
+
+Adjacent products that sit **beside** Hedronetes are specified in
+[`COMPANION_SPEC.md`](./COMPANION_SPEC.md) (h3s-cp): Facet (action),
+HedronDB (intent), Herdr (habitat), and Turso/libSQL as an engine option
+(not a fifth plane).
+
+The companion is an **overlay**. It does not amend, relax, or override
+§§0–21. If a sentence in the companion conflicts with this document,
+**this document wins.**
+
+---
+
+*End of specification. Companion files: `COMPANION_SPEC.md` (h3s-cp),
+`Cargo.toml` workspace sketch, `architecture.mmd`.*
 
