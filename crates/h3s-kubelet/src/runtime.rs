@@ -20,6 +20,7 @@ pub struct Runtime {
     endpoint: String,
     root: PathBuf,
     probes: tokio::sync::Mutex<probe::State>,
+    seen: std::sync::Mutex<HashSet<String>>,
 }
 impl Runtime {
     pub fn new(endpoint: String, root: PathBuf) -> Result<Self> {
@@ -37,6 +38,7 @@ impl Runtime {
             endpoint,
             root,
             probes: tokio::sync::Mutex::new(probe::State::default()),
+            seen: std::sync::Mutex::new(HashSet::new()),
         })
     }
     pub async fn healthy(&self) -> bool {
@@ -158,6 +160,10 @@ impl Runtime {
             }
         }
         probes.retain(&observed_ids);
+        self.seen
+            .lock()
+            .expect("runtime observation lock")
+            .retain(|id| observed_ids.contains(id));
         Ok(())
     }
     async fn sync(
@@ -388,6 +394,17 @@ impl Runtime {
             let Some(s) = current else {
                 return Err(invalid("runtime omitted container status"));
             };
+            if self
+                .seen
+                .lock()
+                .expect("runtime observation lock")
+                .insert(s.id.clone())
+            {
+                eprintln!(
+                    "h3s Pod {uid}: observed container={} state={}",
+                    s.id, s.state
+                );
+            }
             // Retain the latest observation for recovery/restart counts; reclaim
             // superseded containers only after a replacement is observed.
             for old in matches {

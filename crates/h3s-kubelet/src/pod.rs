@@ -231,6 +231,21 @@ pub fn validate(p: &Value, node: &str) -> Result<()> {
     Ok(())
 }
 pub fn validate_probe(v: &Value) -> Result<()> {
+    for field in [
+        "initialDelaySeconds",
+        "periodSeconds",
+        "timeoutSeconds",
+        "successThreshold",
+        "failureThreshold",
+    ] {
+        if !v[field].is_null()
+            && !v[field]
+                .as_i64()
+                .is_some_and(|n| n >= if field == "initialDelaySeconds" { 0 } else { 1 })
+        {
+            return Err(invalid("invalid readiness timing or threshold"));
+        }
+    }
     fields(
         v,
         &[
