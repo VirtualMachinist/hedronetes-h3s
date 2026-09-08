@@ -24,6 +24,7 @@ fn config(s: &Server, dir: &Path, token: bool) -> Config {
         data_dir: dir.join("state"),
         token: token.then(|| JOIN_TOKEN.into()),
         kubelet_port: 0,
+        runtime_endpoint: None,
     }
 }
 async fn text(s: &Server, tls: rustls::ClientConfig, path: &str) -> (u16, String) {
@@ -131,7 +132,7 @@ async fn actual_kubelet_health_uses_mutual_tls_tunnel_and_authorized_node_proxy(
     );
     let ready = text(&s, s.admin(), "/api/v1/nodes/worker/proxy/readyz").await;
     assert_eq!(ready.0, 503);
-    assert!(ready.1.contains("CRI workload runtime is not implemented"));
+    assert!(ready.1.contains("CRI runtime is absent or not ready"));
     let node = s
         .json(s.admin(), "GET", "/api/v1/nodes/worker", json!({}))
         .await

@@ -90,7 +90,12 @@ pub async fn configuration(agent: &Agent) -> Result<rustls::ServerConfig> {
         &agent.name,
     )?)
 }
-pub async fn serve(listener: TcpListener, tls: rustls::ServerConfig, node: String) -> Result<()> {
+pub async fn serve(
+    listener: TcpListener,
+    tls: rustls::ServerConfig,
+    node: String,
+    ready: Arc<std::sync::atomic::AtomicBool>,
+) -> Result<()> {
     if !listener.local_addr()?.ip().is_loopback() {
         return Err(Error::Configuration("kubelet listener must be loopback"));
     }
@@ -102,12 +107,12 @@ pub async fn serve(listener: TcpListener, tls: rustls::ServerConfig, node: Strin
             accepted=listener.accept()=>{
                 let (stream,_)=accepted?;
                 let Ok(permit)=slots.clone().try_acquire_owned() else {drop(stream);continue;};
-                let acceptor=acceptor.clone();let node=node.clone();
+                let acceptor=acceptor.clone();let node=node.clone();let ready=ready.clone();
                 tasks.spawn(async move {
                     let _permit=permit;
                     let Ok(Ok(tls))=tokio::time::timeout(Duration::from_secs(5),acceptor.accept(stream)).await else {return;};
                     let allowed=tls.get_ref().1.peer_certificates().and_then(|p|p.first()).and_then(|der|h3s_auth::User::from_verified_certificate(der.as_ref()).ok()).is_some_and(|u|u.name==h3s_api::KUBELET_CLIENT_ID);
-                    let handler=service_fn(move |request|health(request,allowed,node.clone()));
+                    let handler=service_fn(move |request|health(request,allowed,node.clone(),ready.clone()));
                     let _=hyper::server::conn::http1::Builder::new().timer(TokioTimer::new()).header_read_timeout(Duration::from_secs(5)).keep_alive(false).serve_connection(TokioIo::new(tls),handler).await;
                 });
             },
@@ -119,6 +124,7 @@ async fn health(
     request: Request<Incoming>,
     allowed: bool,
     node: String,
+    ready: Arc<std::sync::atomic::AtomicBool>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let (status, body) = if !allowed
         || request.headers().contains_key("authorization")
@@ -138,11 +144,15 @@ async fn health(
                 eprintln!("h3s kubelet node={node}: GET /healthz -> 200");
                 (200, "ok\n")
             }
+            "/readyz" if ready.load(std::sync::atomic::Ordering::Relaxed) => {
+                eprintln!("h3s kubelet node={node}: GET /readyz -> 200");
+                (200, "ok\n")
+            }
             "/readyz" => {
                 eprintln!("h3s kubelet node={node}: GET /readyz -> 503");
                 (
                     503,
-                    "runtime not ready: CRI workload runtime is not implemented\n",
+                    "runtime not ready: CRI runtime is absent or not ready\n",
                 )
             }
             _ => (404, "kubelet endpoint is not implemented\n"),

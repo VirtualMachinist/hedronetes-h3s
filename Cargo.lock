@@ -1007,10 +1007,12 @@ version = "0.1.0-dev"
 name = "h3s-kubelet"
 version = "0.1.0-dev"
 dependencies = [
+ "base64 0.22.1",
  "bytes",
  "h3s-api",
  "h3s-auth",
  "h3s-certs",
+ "h3s-cri",
  "h3s-supervisor",
  "http-body-util",
  "hyper",
@@ -1019,6 +1021,7 @@ dependencies = [
  "rustls",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror",
  "time",
  "tokio",

@@ -9,6 +9,9 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+h3s-cri = { path = "../h3s-cri" }
+base64 = "0.22"
+sha2 = "0.10"
 tokio-rustls = "0.26.5"
 hyper = { version = "1", features = ["server", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio"] }

@@ -36,6 +36,7 @@ async fn enrolled(s: &Server, dir: &Path) -> (Agent, Arc<rustls::ClientConfig>) 
     let agent = Agent::connect(Config {
         server: s.endpoint(),
         kubelet_port: 0,
+        runtime_endpoint: None,
         ca_file: dir.join("ca.pem"),
         node_name: "worker".into(),
         node_ip: "192.0.2.2".parse().unwrap(),

@@ -12,7 +12,7 @@ use clap::{Args, Parser, Subcommand};
     about = "Hedronetes (h3s): Kubernetes-compatible cluster distribution in one Rust binary",
     long_about = "k3s, written in Rust, without embedding a Go control plane.\n\n\
          API foundation: use server --disable-agent. \
-         Agents enroll with a supervisor tunnel and report NotReady; workload runtime is not yet implemented.",
+         Agents enroll with a supervisor tunnel; an explicit local CRI endpoint enables Pod reconciliation.",
     multicall = true,
     subcommand_required = true,
     arg_required_else_help = true,
@@ -90,6 +90,9 @@ struct AgentArgs {
     /// Private loopback kubelet listener; never binds a reachable interface.
     #[arg(long,default_value_t=10250,value_parser=clap::value_parser!(u16).range(1..))]
     kubelet_port: u16,
+    /// Use an operator-configured local CRI v1 runtime for assigned Pods.
+    #[arg(long)]
+    container_runtime_endpoint: Option<String>,
     #[arg(long)]
     server: String,
     /// Trusted CA copied through an authenticated operator channel.
@@ -319,10 +322,11 @@ async fn run_agent(args: AgentArgs) -> RunResult {
         data_dir: args.data_dir,
         token,
         kubelet_port: args.kubelet_port,
+        runtime_endpoint: args.container_runtime_endpoint,
     })
     .await?;
     agent.reconcile().await?;
-    eprintln!("h3s agent enrolled; Node is NotReady until workload runtime is available");
+    eprintln!("h3s agent enrolled; Node readiness follows configured runtime health");
     agent.run().await?;
     Ok(())
 }

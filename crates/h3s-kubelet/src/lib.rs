@@ -1,5 +1,8 @@
-//! Native agent enrollment and Node/Lease lifecycle. CRI and Pod execution are
-//! not implemented yet; this agent explicitly reports RuntimeNotReady.
+//! Native enrollment, Node/Lease lifecycle and assigned-Pod CRI reconciliation.
+mod inputs;
+mod pod;
+mod probe;
+mod runtime;
 mod service;
 use h3s_api::{JoinRequest, JoinResponse};
 use h3s_auth::bootstrap::{random_secret, valid_password, valid_token};
@@ -12,6 +15,8 @@ use std::{fs, io::Read, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
 pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("agent runtime: {0}")]
+    Runtime(#[from] h3s_cri::Error),
     #[error("agent configuration: {0}")]
     Configuration(&'static str),
     #[error("agent credential operation failed: {0}")]
@@ -32,6 +37,7 @@ pub struct Config {
     pub data_dir: PathBuf,
     pub token: Option<String>,
     pub kubelet_port: u16,
+    pub runtime_endpoint: Option<String>,
 }
 /// Private on-disk state: no Debug, never included in Node status or log output.
 #[derive(Serialize, Deserialize)]
@@ -57,6 +63,8 @@ pub struct Agent {
     ca_pem: String,
     agent_dir: PathBuf,
     kubelet_port: std::sync::atomic::AtomicU16,
+    runtime: Option<runtime::Runtime>,
+    ready: Arc<std::sync::atomic::AtomicBool>,
 }
 fn invalid(message: &'static str) -> Error {
     Error::Configuration(message)
@@ -204,6 +212,11 @@ impl Agent {
             .set_scheme("wss")
             .map_err(|_| invalid("tunnel URL scheme"))?;
         Ok(Self {
+            runtime: config
+                .runtime_endpoint
+                .map(|endpoint| runtime::Runtime::new(endpoint, dir.join("pods")))
+                .transpose()?,
+            ready: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             _lock: lock,
             client,
             endpoint,
@@ -230,8 +243,20 @@ impl Agent {
         }
         body(request.send().await?).await
     }
-    /// Register and report a real running agent without claiming CRI readiness.
+    /// Register and report observed CRI health; heartbeats are independent of Pod pulls.
     pub async fn reconcile(&self) -> Result<()> {
+        let ready = match &self.runtime {
+            Some(runtime) => runtime.healthy().await,
+            None => false,
+        };
+        self.ready
+            .store(ready, std::sync::atomic::Ordering::Relaxed);
+        let ready_text = if ready { "True" } else { "False" };
+        let reason = if ready {
+            "KubeletReady"
+        } else {
+            "RuntimeNotReady"
+        };
         let path = format!("api/v1/nodes/{}", self.name);
         let (code, mut node) = self.request(Method::GET, &path, None).await?;
         if code == 404 {
@@ -251,14 +276,12 @@ impl Agent {
             .as_array()
             .into_iter()
             .flatten()
-            .find(|v| {
-                v["type"] == "Ready" && v["status"] == "False" && v["reason"] == "RuntimeNotReady"
-            })
+            .find(|v| v["type"] == "Ready" && v["status"] == ready_text && v["reason"] == reason)
             .and_then(|v| v["lastTransitionTime"].as_str())
             .unwrap_or(&time)
             .to_owned();
         node["status"] = json!({"addresses":[{"type":"InternalIP","address":self.ip.to_string()},{"type":"Hostname","address":self.name}],
-            "conditions":[{"type":"Ready","status":"False","reason":"RuntimeNotReady","message":"agent enrolled; CRI workload runtime is not implemented",
+            "conditions":[{"type":"Ready","status":ready_text,"reason":reason,"message":if ready{"native CRI runtime and network plugin are ready"}else{"CRI runtime is absent or not ready"},
                 "lastHeartbeatTime":time,"lastTransitionTime":transition}]});
         let port = self.kubelet_port.load(std::sync::atomic::Ordering::Relaxed);
         if port != 0 {
@@ -317,8 +340,10 @@ impl Agent {
         let target = listener.local_addr()?;
         self.kubelet_port
             .store(target.port(), std::sync::atomic::Ordering::Relaxed);
-        eprintln!("h3s kubelet listening on https://{target}; runtime remains NotReady");
-        let serving = service::serve(listener, tls, self.name.clone());
+        eprintln!(
+            "h3s kubelet listening on https://{target}; readiness follows configured CRI health"
+        );
+        let serving = service::serve(listener, tls, self.name.clone(), self.ready.clone());
         let heartbeats = async {
             let mut interval = tokio::time::interval(Duration::from_secs(10));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -327,6 +352,17 @@ impl Agent {
                 if let Err(error) = self.reconcile().await {
                     eprintln!("h3s agent {}: {error}; retrying", self.name);
                 }
+            }
+        };
+        let workloads = async {
+            let Some(runtime) = &self.runtime else {
+                return std::future::pending::<()>().await;
+            };
+            loop {
+                if let Err(error) = runtime.sweep(self).await {
+                    eprintln!("h3s Pod reconciliation: {error}; retrying");
+                }
+                tokio::time::sleep(Duration::from_secs(2)).await;
             }
         };
         let tunnel = async {
@@ -354,6 +390,7 @@ impl Agent {
             result=serving=>result,
             _=heartbeats=>Ok(()),
             _=tunnel=>Ok(()),
+            _=workloads=>Ok(()),
         }
     }
 }
