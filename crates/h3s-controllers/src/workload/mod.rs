@@ -1,9 +1,13 @@
 //! API-only workload ownership, rollout and background collection.
 mod deployment;
+mod endpoints;
 mod replicaset;
 use crate::Error;
 use chrono::{DateTime, Utc};
 pub use deployment::{deployment_once, run_deployment_controller};
+pub use endpoints::{
+    endpoint_gc_once, endpoints_once, run_endpoint_controller, ENDPOINT_CONTROLLER_ID,
+};
 use k8s_openapi::api::{
     apps::v1::{Deployment, ReplicaSet},
     core::v1::Pod,

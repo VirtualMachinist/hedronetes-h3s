@@ -161,6 +161,15 @@ impl Api {
         api.bootstrap("/registry/clusterrolebindings/h3s-scheduler".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-scheduler"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-scheduler"},"subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"system:h3s:scheduler"}]})).await?;
         for (name, identity, rules) in [
             (
+                "h3s-endpointslice-controller",
+                "system:h3s:endpointslice-controller",
+                json!([
+                    {"apiGroups":[""],"resources":["services"],"verbs":["get","list","watch"]},
+                    {"apiGroups":[""],"resources":["pods"],"verbs":["list"]},
+                    {"apiGroups":["discovery.k8s.io"],"resources":["endpointslices"],"verbs":["get","list","watch","create","update","delete"]}
+                ]),
+            ),
+            (
                 "h3s-deployment-controller",
                 "system:h3s:deployment-controller",
                 json!([

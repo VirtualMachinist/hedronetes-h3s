@@ -241,11 +241,13 @@ async fn run_server(args: ServerArgs) -> RunResult {
         h3s_controllers::DEPLOYMENT_CONTROLLER_ID,
         h3s_controllers::REPLICASET_CONTROLLER_ID,
         h3s_controllers::WORKLOAD_GC_ID,
+        h3s_controllers::ENDPOINT_CONTROLLER_ID,
     ] {
         let identity = pki.issue_client(identity, None)?;
         let config = pki.kubeconfig(&endpoint, &identity)?;
         workload_clients.push(h3s_controllers::client_from_kubeconfig(&config).await?);
     }
+    let endpoint_client = workload_clients.pop().unwrap();
     let gc_client = workload_clients.pop().unwrap();
     let rs_client = workload_clients.pop().unwrap();
     let deployment_client = workload_clients.pop().unwrap();
@@ -254,6 +256,7 @@ async fn run_server(args: ServerArgs) -> RunResult {
     });
     tokio::select! {
         result = server => result?,
+        result = h3s_controllers::run_endpoint_controller(endpoint_client) => result?,
         result = h3s_controllers::run_deployment_controller(deployment_client) => result?,
         result = h3s_controllers::run_replicaset_controller(rs_client) => result?,
         result = h3s_controllers::run_workload_gc(gc_client) => result?,

@@ -10,9 +10,9 @@ use kube::{
 };
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 pub use workload::{
-    deployment_once, gc_once, replicaset_once, run_deployment_controller,
-    run_replicaset_controller, run_workload_gc, DEPLOYMENT_CONTROLLER_ID, REPLICASET_CONTROLLER_ID,
-    WORKLOAD_GC_ID,
+    deployment_once, endpoint_gc_once, endpoints_once, gc_once, replicaset_once,
+    run_deployment_controller, run_endpoint_controller, run_replicaset_controller, run_workload_gc,
+    DEPLOYMENT_CONTROLLER_ID, ENDPOINT_CONTROLLER_ID, REPLICASET_CONTROLLER_ID, WORKLOAD_GC_ID,
 };
 
 pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
