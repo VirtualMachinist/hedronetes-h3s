@@ -639,6 +639,67 @@ async fn publish(agent: &Agent, p: &Value, status: Value) -> Result<()> {
     }
     Ok(())
 }
+/// Convert CRI log lines (`timestamp stream P|F message`) or raw bytes into
+/// kubectl log output. Partial (`P`) lines are concatenated until a full (`F`).
+pub fn format_container_log(bytes: &[u8], timestamps: bool, tail_lines: Option<usize>) -> Vec<u8> {
+    let mut lines = Vec::new();
+    let mut partial = String::new();
+    for raw in bytes.split_inclusive(|b| *b == b'\n') {
+        let line = std::str::from_utf8(raw)
+            .unwrap_or("")
+            .trim_end_matches(['\n', '\r']);
+        match parse_cri(line) {
+            Some((ts, tag, content)) => {
+                if tag == "P" {
+                    partial.push_str(content);
+                } else {
+                    let mut body = std::mem::take(&mut partial);
+                    body.push_str(content);
+                    lines.push(if timestamps {
+                        format!("{ts} {body}")
+                    } else {
+                        body
+                    });
+                }
+            }
+            None => {
+                if !partial.is_empty() {
+                    lines.push(std::mem::take(&mut partial));
+                }
+                if !line.is_empty() {
+                    lines.push(line.to_string());
+                }
+            }
+        }
+    }
+    if !partial.is_empty() {
+        lines.push(partial);
+    }
+    if let Some(n) = tail_lines {
+        let start = lines.len().saturating_sub(n);
+        lines = lines.split_off(start);
+    }
+    let mut out = lines.join("\n").into_bytes();
+    if !out.is_empty() {
+        out.push(b'\n');
+    }
+    out
+}
+fn parse_cri(line: &str) -> Option<(&str, &str, &str)> {
+    let (ts, rest) = line.split_once(' ')?;
+    if !ts.contains('T') {
+        return None;
+    }
+    let (stream, rest) = rest.split_once(' ')?;
+    if stream != "stdout" && stream != "stderr" {
+        return None;
+    }
+    let (tag, content) = rest.split_once(' ').unwrap_or((rest, ""));
+    if tag != "P" && tag != "F" {
+        return None;
+    }
+    Some((ts, tag, content))
+}
 fn stamp(ns: i64) -> String {
     time::OffsetDateTime::from_unix_timestamp_nanos(i128::from(ns))
         .unwrap_or(time::OffsetDateTime::UNIX_EPOCH)
@@ -670,6 +731,24 @@ mod tests {
             b"ready\n"
         );
         assert!(runtime.read_container_log("pod-uid", "missing", 0).is_err());
+    }
+    #[test]
+    fn format_container_log_strips_cri_prefix_and_honors_tail() {
+        let raw = concat!(
+            "2026-01-01T00:00:00.000000000Z stdout F hello\n",
+            "2026-01-01T00:00:01.000000000Z stdout P wo\n",
+            "2026-01-01T00:00:01.100000000Z stdout F rld\n",
+        );
+        assert_eq!(
+            format_container_log(raw.as_bytes(), false, None),
+            b"hello\nworld\n"
+        );
+        assert_eq!(
+            format_container_log(raw.as_bytes(), true, Some(1)),
+            b"2026-01-01T00:00:01.100000000Z world\n"
+        );
+        assert_eq!(format_container_log(b"ready\n", false, None), b"ready\n");
+        assert_eq!(format_container_log(b"", false, None), b"");
     }
     #[test]
     fn restart_policy_adopts_created_running_and_terminal_containers() {

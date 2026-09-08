@@ -6,6 +6,7 @@ mod kubelet;
 mod node_cidrs;
 mod nodes;
 mod patch;
+mod pod_io;
 mod resources;
 mod selectors;
 mod serviceaccounts;
@@ -401,7 +402,12 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         serde_urlencoded::from_str(request.uri().query().unwrap_or(""))
             .map_err(|_| bad("invalid query"))?;
     let mut q = BTreeMap::new();
+    let mut commands = Vec::new();
     for (k, v) in query {
+        if k == "command" {
+            commands.push(v);
+            continue;
+        }
         if q.insert(k, v).is_some() {
             return Err(bad("duplicate query parameter"));
         }
@@ -470,21 +476,29 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         )
     })?;
     let watch = q.get("watch").is_some_and(|v| v == "true" || v == "1");
-    let verb = match (method.as_str(), target.name.is_some(), watch) {
-        ("GET", _, true) => "watch",
-        ("GET", true, _) => "get",
-        ("GET", false, _) => "list",
-        ("POST", true, _) if target.subresource == Some("binding") => "create",
-        ("POST", false, _) => "create",
-        ("PUT", true, _) => "update",
-        ("PATCH", true, _) => "patch",
-        ("DELETE", true, _) => "delete",
-        _ => {
-            return Err(Failure::new(
-                405,
-                "MethodNotAllowed",
-                "verb is not implemented for this resource",
-            ))
+    let verb = if target.subresource == Some("exec")
+        && matches!(method.as_str(), "GET" | "POST")
+        && target.name.is_some()
+        && !watch
+    {
+        "create"
+    } else {
+        match (method.as_str(), target.name.is_some(), watch) {
+            ("GET", _, true) => "watch",
+            ("GET", true, _) => "get",
+            ("GET", false, _) => "list",
+            ("POST", true, _) if target.subresource == Some("binding") => "create",
+            ("POST", false, _) => "create",
+            ("PUT", true, _) => "update",
+            ("PATCH", true, _) => "patch",
+            ("DELETE", true, _) => "delete",
+            _ => {
+                return Err(Failure::new(
+                    405,
+                    "MethodNotAllowed",
+                    "verb is not implemented for this resource",
+                ))
+            }
         }
     };
     if target.subresource == Some("status") && !matches!(verb, "get" | "update" | "patch") {
@@ -499,6 +513,16 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             405,
             "MethodNotAllowed",
             "binding supports create",
+        ));
+    }
+    if target.subresource == Some("log") && verb != "get" {
+        return Err(Failure::new(405, "MethodNotAllowed", "log supports get"));
+    }
+    if target.subresource == Some("exec") && verb != "create" {
+        return Err(Failure::new(
+            405,
+            "MethodNotAllowed",
+            "exec supports create",
         ));
     }
     let mut selection = Selection::parse(
@@ -585,6 +609,12 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         && (target.name.is_some() || !matches!(verb, "list" | "watch"))
     {
         return Err(bad("namespaced writes and named reads require a namespace"));
+    }
+    if target.subresource == Some("log") {
+        return pod_io::logs(&api, &target, &q).await;
+    }
+    if target.subresource == Some("exec") {
+        return pod_io::exec(&api, &target, &q, &commands, request).await;
     }
     if verb == "watch" {
         return watch_response(&api, &target, &q, selection, read_guard).await;
@@ -1028,6 +1058,8 @@ fn discovery(path: &str) -> Option<Value> {
         entries.push(json!({"name":resource.plural,"singularName":resource.kind.to_ascii_lowercase(),"namespaced":resource.namespaced,"kind":resource.kind,"verbs":verbs}));
         if resource.kind == "Pod" {
             entries.push(json!({"name":"pods/binding","singularName":"","namespaced":true,"kind":"Binding","verbs":["create"]}));
+            entries.push(json!({"name":"pods/log","singularName":"","namespaced":true,"kind":"Pod","verbs":["get"]}));
+            entries.push(json!({"name":"pods/exec","singularName":"","namespaced":true,"kind":"Pod","verbs":["create"]}));
         }
         if resource.has_status() {
             entries.push(json!({"name":format!("{}/status",resource.plural),"singularName":"","namespaced":resource.namespaced,"kind":resource.kind,"verbs":["get","update","patch"]}));
