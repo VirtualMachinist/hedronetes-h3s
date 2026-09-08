@@ -165,14 +165,54 @@ async fn exercise(cri: &Cri, id: &str, root: &std::path::Path, image: &str) -> R
         .runtime()
         .container_status(ContainerStatusRequest {
             container_id: container.clone(),
-            verbose: false,
+            verbose: true,
         })
-        .await)?
-    .status
-    .ok_or("missing container status")?;
+        .await)?;
     require(
-        observed.state == ContainerState::ContainerRunning as i32,
+        observed
+            .status
+            .as_ref()
+            .is_some_and(|s| s.state == ContainerState::ContainerRunning as i32),
         "container not running",
+    )?;
+    // This fixture deliberately targets containerd. Its verbose CRI info supplies
+    // the real task PID; kernel files verify applied limits, not merely OCI input.
+    let info: serde_json::Value = serde_json::from_str(
+        observed
+            .info
+            .get("info")
+            .ok_or("missing containerd task info")?,
+    )?;
+    let pid = info["pid"]
+        .as_u64()
+        .filter(|p| *p > 1)
+        .ok_or("missing runtime task PID")?;
+    let proc_status = std::fs::read_to_string(format!("/proc/{pid}/status"))?;
+    let groups = std::fs::read_to_string(format!("/proc/{pid}/cgroup"))?;
+    let group = groups
+        .lines()
+        .find_map(|line| line.strip_prefix("0::/"))
+        .ok_or("container is not in cgroup v2")?;
+    require(
+        group.split('/').any(|part| part == "h3s-m1.slice")
+            && group.contains(&container)
+            && !group.split('/').any(|p| p == ".."),
+        "container was not placed in its project cgroup",
+    )?;
+    let cgroup = std::path::Path::new("/sys/fs/cgroup").join(group);
+    let memory = std::fs::read_to_string(cgroup.join("memory.max"))?;
+    let cpu = std::fs::read_to_string(cgroup.join("cpu.max"))?;
+    println!(
+        "{}",
+        json!({"run_id":id,"container":container,"pid":pid,"cgroup":group,"memory_max":memory.trim(),"cpu_max":cpu.trim()})
+    );
+    require(memory.trim() == "67108864", "memory limit was not applied")?;
+    require(cpu.trim() == "10000 100000", "CPU quota was not applied")?;
+    require(
+        proc_status
+            .lines()
+            .any(|s| s.starts_with("Seccomp:") && s.ends_with('2')),
+        "init process seccomp filter missing",
     )?;
     let executed = rpc(cri
         .runtime()

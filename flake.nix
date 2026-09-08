@@ -42,6 +42,7 @@
         pname = "hedronetes-youki";
         version = "0.7.0";
         src = pkgs.fetchurl {
+          name = "youki-0.7.0.tar.gz";
           url = "https://codeload.github.com/youki-dev/youki/tar.gz/refs/tags/v0.7.0";
           hash = "sha256-9eoB2jvwwx857t6mwPYXb9RjRjFEO8a/xnZUXsEKRhc=";
         };

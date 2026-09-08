@@ -80,7 +80,8 @@ client. It requires an explicit socket, private log root and digest-pinned image
 It creates its own uniquely labelled sandbox/container, expects the configured
 CNI address, runs with a non-root UID, dropped capabilities, no-new-privileges,
 read-only root filesystem and runtime-default seccomp, verifies exec and log
-output, and cleans only resources carrying its invocation label. Image cache
+output, and reads the actual task PID's kernel cgroup files to verify memory/CPU
+limits and init-process seccomp. It cleans only its invocation's labelled resources. Image cache
 and sanitized log files remain. A failed RPC may have committed; cleanup uses
 labelled runtime queries to find those resources as well.
 
