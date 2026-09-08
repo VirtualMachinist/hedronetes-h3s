@@ -122,9 +122,11 @@
         name = "hedronetes-runtime-tools";
         paths = [ containerd youki pkgs.iproute2 pkgs.nftables
           pkgs.util-linux pkgs.kmod pkgs.bash pkgs.coreutils pkgs.jq ];
+        pathsToLink = [ "/bin" "/share/licenses" ];
         postBuild = ''
           mkdir -p "$out/share/hedronetes"
           ln -s ${cni-plugins}/bin "$out/share/hedronetes/cni-bin"
+          ln -s ${youki}/share/hedronetes "$out/share/hedronetes/youki"
         '';
       };
       h3s = rustPlatform.buildRustPackage {
