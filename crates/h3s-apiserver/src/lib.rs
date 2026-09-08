@@ -152,6 +152,13 @@ impl Api {
             {"apiGroups":[""],"resources":["serviceaccounts","configmaps"],"verbs":["create"]}
         ]})).await?;
         api.bootstrap("/registry/clusterrolebindings/h3s-namespace-controller".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-namespace-controller"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-namespace-controller"},"subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"system:h3s:namespace-controller"}]})).await?;
+        api.bootstrap("/registry/clusterroles/h3s-scheduler".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-scheduler"},"rules":[
+            {"apiGroups":[""],"resources":["nodes","pods"],"verbs":["get","list"]},
+            {"apiGroups":[""],"resources":["pods/binding"],"verbs":["create"]},
+            {"apiGroups":[""],"resources":["pods/status"],"verbs":["update"]},
+            {"apiGroups":["coordination.k8s.io"],"resources":["leases"],"verbs":["list"]}
+        ]})).await?;
+        api.bootstrap("/registry/clusterrolebindings/h3s-scheduler".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-scheduler"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-scheduler"},"subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"system:h3s:scheduler"}]})).await?;
         Ok(api)
     }
     async fn bootstrap(

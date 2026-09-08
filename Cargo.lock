@@ -874,6 +874,7 @@ dependencies = [
  "h3s-controllers",
  "h3s-cri",
  "h3s-kubelet",
+ "h3s-scheduler",
  "h3s-storage",
  "rustls",
  "serde_json",
@@ -901,6 +902,7 @@ dependencies = [
  "h3s-certs",
  "h3s-controllers",
  "h3s-kubelet",
+ "h3s-scheduler",
  "h3s-storage",
  "h3s-supervisor",
  "http-body-util",
@@ -1039,6 +1041,15 @@ version = "0.1.0-dev"
 [[package]]
 name = "h3s-scheduler"
 version = "0.1.0-dev"
+dependencies = [
+ "chrono",
+ "h3s-api",
+ "k8s-openapi",
+ "kube",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
 
 [[package]]
 name = "h3s-storage"

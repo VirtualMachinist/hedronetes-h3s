@@ -233,11 +233,15 @@ async fn run_server(args: ServerArgs) -> RunResult {
     let identity = pki.issue_client(h3s_controllers::NAMESPACE_CONTROLLER_ID, None)?;
     let controller_config = pki.kubeconfig(&endpoint, &identity)?;
     let client = h3s_controllers::client_from_kubeconfig(&controller_config).await?;
+    let scheduler_identity = pki.issue_client(h3s_scheduler::SCHEDULER_ID, None)?;
+    let scheduler_config = pki.kubeconfig(&endpoint, &scheduler_identity)?;
+    let scheduler_client = h3s_controllers::client_from_kubeconfig(&scheduler_config).await?;
     let server = h3s_apiserver::serve(listener, pki.server_config()?, api.router(), async {
         let _ = tokio::signal::ctrl_c().await;
     });
     tokio::select! {
         result = server => result?,
+        result = h3s_scheduler::run(scheduler_client) => result?,
         result = h3s_controllers::run_namespace_controller(client, pki.ca_pem().to_owned()) => result?,
     }
     Ok(())

@@ -1,4 +1,5 @@
 //! Native enrollment, Node/Lease lifecycle and assigned-Pod CRI reconciliation.
+mod capacity;
 mod inputs;
 mod pod;
 mod probe;
@@ -283,6 +284,10 @@ impl Agent {
         node["status"] = json!({"addresses":[{"type":"InternalIP","address":self.ip.to_string()},{"type":"Hostname","address":self.name}],
             "conditions":[{"type":"Ready","status":ready_text,"reason":reason,"message":if ready{"native CRI runtime and network plugin are ready"}else{"CRI runtime is absent or not ready"},
                 "lastHeartbeatTime":time,"lastTransitionTime":transition}]});
+        if let Some((capacity, allocatable)) = capacity::observe() {
+            node["status"]["capacity"] = capacity;
+            node["status"]["allocatable"] = allocatable;
+        }
         let port = self.kubelet_port.load(std::sync::atomic::Ordering::Relaxed);
         if port != 0 {
             node["status"]["daemonEndpoints"] = json!({"kubeletEndpoint":{"Port":port}});
