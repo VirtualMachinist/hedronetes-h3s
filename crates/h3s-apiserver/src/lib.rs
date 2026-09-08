@@ -3,6 +3,8 @@
 mod patch;
 mod resources;
 mod selectors;
+mod services;
+mod strategy;
 mod transport;
 mod wire;
 use axum::{
@@ -28,6 +30,7 @@ pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 #[derive(Clone)]
 pub struct Api {
     store: Arc<dyn Storage>,
+    service_writes: Arc<tokio::sync::Mutex<()>>,
 }
 #[derive(Debug)]
 struct Failure {
@@ -114,7 +117,10 @@ fn now() -> String {
 
 impl Api {
     pub async fn new(store: Arc<dyn Storage>) -> std::result::Result<Self, h3s_storage::Error> {
-        let api = Self { store };
+        let api = Self {
+            store,
+            service_writes: Arc::new(tokio::sync::Mutex::new(())),
+        };
         for namespace in ["default", "kube-system", "kube-public", "kube-node-lease"] {
             api.bootstrap(format!("/registry/namespaces/{namespace}"),json!({"apiVersion":"v1","kind":"Namespace","metadata":{"name":namespace},"status":{"phase":"Active"}})).await?;
         }
@@ -263,6 +269,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         ("GET", _, true) => "watch",
         ("GET", true, _) => "get",
         ("GET", false, _) => "list",
+        ("POST", true, _) if target.subresource == Some("binding") => "create",
         ("POST", false, _) => "create",
         ("PUT", true, _) => "update",
         ("PATCH", true, _) => "patch",
@@ -275,6 +282,20 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             ))
         }
     };
+    if target.subresource == Some("status") && !matches!(verb, "get" | "update" | "patch") {
+        return Err(Failure::new(
+            405,
+            "MethodNotAllowed",
+            "status supports get, update and patch",
+        ));
+    }
+    if target.subresource == Some("binding") && verb != "create" {
+        return Err(Failure::new(
+            405,
+            "MethodNotAllowed",
+            "binding supports create",
+        ));
+    }
     let selection = Selection::parse(
         q.get("labelSelector").map(String::as_str).unwrap_or(""),
         q.get("fieldSelector").map(String::as_str).unwrap_or(""),
@@ -285,7 +306,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         verb,
         group: target.resource.group,
         resource: target.resource.plural,
-        subresource: None,
+        subresource: target.subresource,
         namespace: target.namespace.as_deref(),
         name: target.name.as_deref().or_else(|| {
             matches!(verb, "list" | "watch")
@@ -311,6 +332,12 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     }
     if q.contains_key("dryRun") {
         return Err(bad("dryRun is not yet implemented"));
+    }
+    if target.resource.namespaced
+        && target.namespace.is_none()
+        && (target.name.is_some() || !matches!(verb, "list" | "watch"))
+    {
+        return Err(bad("namespaced writes and named reads require a namespace"));
     }
     if verb == "watch" {
         return watch_response(&api, &target, &q, selection).await;
@@ -350,6 +377,11 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             "request body exceeds limit or failed to read",
         )
     })?;
+    let _service_guard = if target.resource.kind == "Service" {
+        Some(api.service_writes.lock().await)
+    } else {
+        None
+    };
     let mut value = if verb == "patch" {
         let k = key(format!("{prefix}{}", target.name.as_ref().unwrap()))?;
         let current = api
@@ -390,6 +422,9 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     } else {
         wire::decode(&bytes, &content_type)?
     };
+    if target.subresource == Some("binding") {
+        return bind(&api, &target, value).await;
+    }
     if verb == "delete" {
         let k = key(format!("{prefix}{}", target.name.as_ref().unwrap()))?;
         let current = api
@@ -440,11 +475,18 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     {
         return Err(bad("apiVersion/kind does not match the endpoint"));
     }
+    if verb == "create" && value["metadata"]["name"].as_str().is_none_or(str::is_empty) {
+        if let Some(prefix) = value["metadata"]["generateName"].as_str() {
+            let suffix = uuid::Uuid::new_v4().simple().to_string();
+            let generated = format!("{prefix}{}", &suffix[..8]);
+            value["metadata"]["name"] = generated.into();
+        }
+    }
     let name = value["metadata"]["name"]
         .as_str()
         .ok_or_else(|| bad("metadata.name is required"))?
         .to_owned();
-    if !resources::valid_name(&name) || target.name.as_ref().is_some_and(|n| n != &name) {
+    if !target.resource.valid_name(&name) || target.name.as_ref().is_some_and(|n| n != &name) {
         return Err(bad("invalid or mismatched metadata.name"));
     }
     match &target.namespace {
@@ -475,6 +517,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         }
     }
     let k = key(format!("{prefix}{name}"))?;
+    let mut old_value = None;
     let expected = if matches!(verb, "update" | "patch") {
         let rv = value["metadata"]["resourceVersion"]
             .as_str()
@@ -496,9 +539,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         for f in ["uid", "creationTimestamp"] {
             value["metadata"][f] = old["metadata"][f].clone();
         }
-        if target.resource.kind == "Namespace" {
-            value["status"] = old["status"].clone();
-        }
+        old_value = Some(old);
         Some(rv)
     } else {
         if value["metadata"]["resourceVersion"]
@@ -535,7 +576,15 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             }
         }
     }
-    let value = target.resource.normalize(value)?;
+    let mut value = strategy::prepare(
+        target.resource,
+        value,
+        old_value.as_ref(),
+        target.subresource.is_some(),
+    )?;
+    if target.resource.kind == "Service" && target.subresource.is_none() {
+        services::assign(&api.store, &mut value, old_value.as_ref()).await?;
+    }
     patch::check_size(&value)?;
     let obj = stored(k, &value)?;
     let result = match expected {
@@ -552,30 +601,145 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     )
         .into_response())
 }
+async fn bind(api: &Api, target: &Target, value: Value) -> Result<Response> {
+    if value["kind"] != "Binding" || value["apiVersion"] != "v1" {
+        return Err(bad("binding requires v1 Binding"));
+    }
+    let binding: k8s_openapi::api::core::v1::Binding = serde_json::from_value(value)?;
+    if binding.metadata.name.as_ref() != target.name.as_ref()
+        || binding
+            .metadata
+            .namespace
+            .as_ref()
+            .is_some_and(|ns| Some(ns) != target.namespace.as_ref())
+    {
+        return Err(bad("binding metadata does not match endpoint"));
+    }
+    if binding.target.kind.as_deref() != Some("Node")
+        || binding
+            .target
+            .api_version
+            .as_deref()
+            .is_some_and(|v| v != "v1")
+    {
+        return Err(bad("binding target must be a v1 Node"));
+    }
+    let node = binding
+        .target
+        .name
+        .as_deref()
+        .filter(|n| resources::valid_name(n))
+        .ok_or_else(|| bad("binding target node name is required"))?;
+    if api
+        .store
+        .get(&key(format!("/registry/nodes/{node}"))?)
+        .await?
+        .is_none()
+    {
+        return Err(Failure::new(
+            404,
+            "NotFound",
+            "binding target node not found",
+        ));
+    }
+    let k = key(format!(
+        "{}{}",
+        target.prefix(),
+        target.name.as_ref().unwrap()
+    ))?;
+    let stored_pod = api
+        .store
+        .get(&k)
+        .await?
+        .ok_or_else(|| Failure::new(404, "NotFound", "Pod not found"))?;
+    let revision = stored_pod.revision;
+    let mut pod = object(stored_pod)?;
+    if pod["spec"]["nodeName"]
+        .as_str()
+        .is_some_and(|n| !n.is_empty())
+        || !pod["metadata"]["deletionTimestamp"].is_null()
+    {
+        return Err(Failure::new(
+            409,
+            "Conflict",
+            "Pod is already bound or terminating",
+        ));
+    }
+    if binding
+        .metadata
+        .uid
+        .as_deref()
+        .is_some_and(|uid| Some(uid) != pod["metadata"]["uid"].as_str())
+        || binding
+            .metadata
+            .resource_version
+            .as_deref()
+            .is_some_and(|rv| rv != revision.to_string())
+    {
+        return Err(Failure::new(409, "Conflict", "binding precondition failed"));
+    }
+    pod["spec"]["nodeName"] = node.into();
+    let generation = pod["metadata"]["generation"].as_i64().unwrap_or(1);
+    pod["metadata"]["generation"] = generation
+        .checked_add(1)
+        .ok_or_else(|| Failure::new(422, "Invalid", "generation overflow"))?
+        .into();
+    api.store.update(stored(k, &pod)?, revision).await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({"apiVersion":"v1","kind":"Status","status":"Success","code":201})),
+    )
+        .into_response())
+}
 fn discovery(path: &str) -> Option<Value> {
     if path == "/api" {
         return Some(
             json!({"apiVersion":"v1","kind":"APIVersions","versions":["v1"],"serverAddressByClientCIDRs":[]}),
         );
     }
-    let group = json!({"name":"rbac.authorization.k8s.io","versions":[{"groupVersion":"rbac.authorization.k8s.io/v1","version":"v1"}],"preferredVersion":{"groupVersion":"rbac.authorization.k8s.io/v1","version":"v1"}});
+    let groups: std::collections::BTreeSet<_> = RESOURCES
+        .iter()
+        .map(|r| r.group)
+        .filter(|g| !g.is_empty())
+        .collect();
+    let group = |name: &str| json!({"name":name,"versions":[{"groupVersion":format!("{name}/v1"),"version":"v1"}],"preferredVersion":{"groupVersion":format!("{name}/v1"),"version":"v1"}});
     if path == "/apis" {
-        return Some(json!({"apiVersion":"v1","kind":"APIGroupList","groups":[group]}));
+        return Some(
+            json!({"apiVersion":"v1","kind":"APIGroupList","groups":groups.iter().map(|g| group(g)).collect::<Vec<_>>()}),
+        );
     }
-    if path == "/apis/rbac.authorization.k8s.io" {
-        let mut group = group;
-        group["apiVersion"] = "v1".into();
-        group["kind"] = "APIGroup".into();
-        return Some(group);
+    for name in &groups {
+        if path == format!("/apis/{name}") {
+            let mut result = group(name);
+            result["apiVersion"] = "v1".into();
+            result["kind"] = "APIGroup".into();
+            return Some(result);
+        }
     }
-    let gv = match path {
-        "/api/v1" => "v1",
-        "/apis/rbac.authorization.k8s.io/v1" => "rbac.authorization.k8s.io/v1",
-        _ => return None,
+    let gv = if path == "/api/v1" {
+        "v1"
+    } else {
+        path.strip_prefix("/apis/")?
     };
-    Some(
-        json!({"apiVersion":"v1","kind":"APIResourceList","groupVersion":gv,"resources":RESOURCES.iter().filter(|r|r.api_version()==gv).map(|r|json!({"name":r.plural,"singularName":r.kind.to_ascii_lowercase(),"namespaced":r.namespaced,"kind":r.kind,"verbs":if r.kind=="Namespace"{vec!["get","list","watch","create","update","patch"]}else{vec!["get","list","watch","create","update","patch","delete"]}})).collect::<Vec<_>>()}),
-    )
+    let resources: Vec<_> = RESOURCES.iter().filter(|r| r.api_version() == gv).collect();
+    if resources.is_empty() {
+        return None;
+    }
+    let mut entries = vec![];
+    for resource in resources {
+        let mut verbs = vec!["get", "list", "watch", "create", "update", "patch"];
+        if resource.kind != "Namespace" {
+            verbs.push("delete");
+        }
+        entries.push(json!({"name":resource.plural,"singularName":resource.kind.to_ascii_lowercase(),"namespaced":resource.namespaced,"kind":resource.kind,"verbs":verbs}));
+        if resource.kind == "Pod" {
+            entries.push(json!({"name":"pods/binding","singularName":"","namespaced":true,"kind":"Binding","verbs":["create"]}));
+        }
+        if resource.has_status() {
+            entries.push(json!({"name":format!("{}/status",resource.plural),"singularName":"","namespaced":resource.namespaced,"kind":resource.kind,"verbs":["get","update","patch"]}));
+        }
+    }
+    Some(json!({"apiVersion":"v1","kind":"APIResourceList","groupVersion":gv,"resources":entries}))
 }
 #[derive(Serialize, Deserialize)]
 struct Continue {

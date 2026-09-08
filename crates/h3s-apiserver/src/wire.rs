@@ -61,11 +61,15 @@ pub(crate) fn decode(raw: &[u8], content_type: &str) -> Result<Value> {
                     let group = match version.as_str() {
                         "v1" => "core",
                         "rbac.authorization.k8s.io/v1" => "rbac",
+                        "apps/v1" => "apps",
+                        "discovery.k8s.io/v1" => "discovery",
+                        "coordination.k8s.io/v1" => "coordination",
                         _ => return Err(bad("unsupported protobuf API version")),
                     };
-                    if !super::resources::RESOURCES
-                        .iter()
-                        .any(|r| r.kind == kind && r.api_version() == version)
+                    if !(kind == "Binding" && version == "v1")
+                        && !super::resources::RESOURCES
+                            .iter()
+                            .any(|r| r.kind == kind && r.api_version() == version)
                     {
                         return Err(bad("unsupported protobuf kind"));
                     }

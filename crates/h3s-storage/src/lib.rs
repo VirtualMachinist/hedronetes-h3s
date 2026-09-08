@@ -86,7 +86,7 @@ fn valid_segment(s: &str) -> bool {
         && s != "."
         && s != ".."
         && s.bytes()
-            .all(|b| b.is_ascii_alphanumeric() || b"-._".contains(&b))
+            .all(|b| b.is_ascii_alphanumeric() || b"-._:".contains(&b))
 }
 
 fn validate_prefix(prefix: &str) -> Result<()> {

@@ -41,7 +41,13 @@
       h3s = rustPlatform.buildRustPackage {
         pname = "h3s";
         version = "0.1.0-dev";
-        src = pkgs.lib.cleanSource self;
+        src = pkgs.lib.cleanSourceWith {
+          src = self;
+          filter = path: type:
+            let name = baseNameOf path; in
+            pkgs.lib.cleanSourceFilter path type
+              && name != "target" && !(pkgs.lib.hasPrefix "._" name);
+        };
         cargoLock.lockFile = ./Cargo.lock;
         nativeBuildInputs = [ pkgs.cmake pkgs.pkg-config ];
         cargoBuildFlags = [ "--workspace" ];
