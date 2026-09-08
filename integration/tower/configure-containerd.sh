@@ -12,16 +12,21 @@ done
 [[ -x "$runtime_tools/share/hedronetes/cni-bin/bridge" ]]
 [[ -x "$runtime_tools/share/hedronetes/cni-bin/host-local" ]]
 [[ -x "$runtime_tools/share/hedronetes/cni-bin/loopback" ]]
+"$runtime_tools/bin/youki" features | "$runtime_tools/bin/jq" -e '.linux.cgroup.v2 == true and .linux.cgroup.systemd == true and .linux.seccomp.enabled == true'
 install -d -m 0700 /var/lib/hedronetes-m1/containerd /var/lib/hedronetes-m1/cni/net.d /var/lib/hedronetes-m1/cni/ipam
 umask 077
 cat > /var/lib/hedronetes-m1/containerd/config.toml <<EOF
-version = 3
+version = 4
 root = "/var/lib/hedronetes-m1/containerd/root"
 state = "/run/hedronetes-m1/containerd/state"
 [grpc]
   address = "/run/hedronetes-m1/containerd/containerd.sock"
   uid = 0
   gid = 0
+[plugins."io.containerd.grpc.v1.cri"]
+  disable_tcp_service = true
+  stream_server_address = "127.0.0.1"
+  stream_server_port = "0"
 [plugins."io.containerd.cri.v1.images"]
   snapshotter = "overlayfs"
   [plugins."io.containerd.cri.v1.images".pinned_images]
@@ -29,8 +34,6 @@ state = "/run/hedronetes-m1/containerd/state"
 [plugins."io.containerd.cri.v1.runtime"]
   enable_cdi = false
   unset_seccomp_profile = "runtime/default"
-  stream_server_address = "127.0.0.1"
-  stream_server_port = "0"
   [plugins."io.containerd.cri.v1.runtime".containerd]
     default_runtime_name = "youki"
     [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.youki]

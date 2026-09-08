@@ -38,24 +38,26 @@
         '';
         meta = { platforms = [ system ]; license = pkgs.lib.licenses.mit; };
       };
-      youki = pkgs.stdenvNoCC.mkDerivation {
+      youki = rustPlatform.buildRustPackage {
         pname = "hedronetes-youki";
         version = "0.7.0";
         src = pkgs.fetchurl {
-          url = "https://github.com/youki-dev/youki/releases/download/v0.7.0/youki-0.7.0-aarch64-musl.tar.gz";
-          hash = "sha256-uWwFwsgvHSCnS2ERiPoSCJTFCmEo9zhWuzcWBOy2m9A=";
+          url = "https://codeload.github.com/youki-dev/youki/tar.gz/refs/tags/v0.7.0";
+          hash = "sha256-9eoB2jvwwx857t6mwPYXb9RjRjFEO8a/xnZUXsEKRhc=";
         };
-        sourceRoot = ".";
-        dontBuild = true;
-        installPhase = ''
-          runHook preInstall
-          install -Dm755 youki "$out/bin/youki"
+        cargoLock.lockFile = ./integration/tower/youki-Cargo.lock;
+        nativeBuildInputs = [ pkgs.pkg-config pkgs.getconf ];
+        buildInputs = [ pkgs.libseccomp pkgs.elfutils pkgs.zlib ];
+        nativeCheckInputs = [ pkgs.jq ];
+        cargoBuildFlags = [ "-p" "youki" "--features" "v2,systemd,seccomp,cgroupsv2_devices" ];
+        cargoTestFlags = [ "-p" "youki" "--features" "v2,systemd,seccomp,cgroupsv2_devices" ];
+        postInstall = ''
           install -Dm644 LICENSE "$out/share/licenses/youki/LICENSE"
-          runHook postInstall
         '';
         doInstallCheck = true;
         installCheckPhase = ''
           "$out/bin/youki" --version
+          "$out/bin/youki" features | jq -e '.linux.cgroup.v2 == true and .linux.cgroup.systemd == true and .linux.seccomp.enabled == true'
         '';
         meta = { platforms = [ system ]; license = pkgs.lib.licenses.asl20; };
       };
@@ -110,7 +112,7 @@
       runtime-tools = pkgs.buildEnv {
         name = "hedronetes-runtime-tools";
         paths = [ containerd youki pkgs.iproute2 pkgs.nftables
-          pkgs.util-linux pkgs.kmod pkgs.bash pkgs.coreutils ];
+          pkgs.util-linux pkgs.kmod pkgs.bash pkgs.coreutils pkgs.jq ];
         postBuild = ''
           mkdir -p "$out/share/hedronetes"
           ln -s ${cni-plugins}/bin "$out/share/hedronetes/cni-bin"

@@ -28,10 +28,16 @@ Ready or claim the kubelet can yet reconcile Pods.
 
 ## Pinned NixOS runtime tools
 
-The flake supplies `containerd`, `youki`, and `runtime-tools` outputs. These use
-hash-verified upstream static ARM64 release archives for containerd 2.3.5 and
-youki 0.7.0 and CNI plugins 1.9.1, newer than the current pinned Nixpkgs entries.
-Install checks launch each runtime and the CNI bridge VERSION operation on Linux.
+The flake supplies `containerd`, `youki`, and `runtime-tools` outputs. Containerd 2.3.5 and CNI plugins 1.9.1 use hash-verified upstream static ARM64
+release archives. Youki 0.7.0 is built from its hash-pinned upstream source with
+its unchanged Cargo.lock and explicit `v2,systemd,seccomp,cgroupsv2_devices`
+features. It links the pinned Nix libseccomp/ELF/zlib libraries. The upstream
+musl release launched containers but reported no cgroup support and no seccomp;
+the direct fixture caught its missing filter. That artifact is not accepted as
+the runtime. Both package installation and guest configuration now reject a
+youki binary unless its OCI feature report enables v2, systemd and seccomp.
+These versions are newer than the pinned Nixpkgs entries. Install checks launch
+each runtime and the CNI bridge VERSION operation on Linux.
 No global tool or protected lab configuration is changed.
 
 The runtime-tools environment puts runtime/system utilities in `bin`, but keeps
@@ -53,7 +59,8 @@ node CIDR allocation, cross-node routes, Service/DNS and final CNI integration
 remain required. Do not apply the same fixed subnet to both nodes.
 
 The service uses project paths under `/var/lib/hedronetes-m1` and
-`/run/hedronetes-m1`. Its unit is transient under `/run/systemd/system`; reboot
+`/run/hedronetes-m1`. Containerd uses its native version 4 configuration; streaming fields belong to
+the `io.containerd.grpc.v1.cri` plugin. The unit is transient under `/run/systemd/system`; reboot
 persistence and native h3s supervision/NixOS module integration remain unfinished.
 `KillMode=process` allows containerd shims to survive a daemon restart. Stopping
 the daemon alone is not workload cleanup. Remove only identified project

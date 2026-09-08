@@ -187,6 +187,10 @@ async fn exercise(cri: &Cri, id: &str, root: &std::path::Path, image: &str) -> R
         })
         .await)?;
     let stdout = String::from_utf8(executed.stdout)?;
+    println!(
+        "{}",
+        json!({"run_id":id,"container":container,"exec_stdout":stdout,"exec_exit_code":executed.exit_code})
+    );
     require(
         executed.exit_code == 0 && stdout.starts_with("65534\n"),
         "exec did not run with configured non-root UID",
