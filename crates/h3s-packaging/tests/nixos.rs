@@ -20,3 +20,11 @@ fn shipped_nixos_module_encodes_persistence_contract() {
     }
     assert!(!NIXOS_MODULE.contains("builder"));
 }
+
+#[test]
+fn portable_install_layout_is_explicit() {
+    let paths = h3s_packaging::portable_install_paths();
+    assert!(paths.contains(&"bin/h3s"));
+    assert!(paths.contains(&"share/hedronetes/cni-bin"));
+    assert_eq!(h3s_packaging::persistent_unit_dir(), "/etc/systemd/system");
+}

@@ -51,3 +51,18 @@ pub fn nixos_module_encodes_persistence() -> bool {
             .all(|name| NIXOS_MODULE.contains(name))
         && !NIXOS_MODULE.contains("builder")
 }
+
+/// On-disk destinations that survive reboot (not `/run/systemd/system`).
+pub fn persistent_unit_dir() -> &'static str {
+    "/etc/systemd/system"
+}
+
+/// Portable (non-Nix) layout for Debian/Fedora: binary plus CNI/runtime bits.
+pub fn portable_install_paths() -> &'static [&'static str] {
+    &[
+        "bin/h3s",
+        "share/hedronetes/cni-bin",
+        "share/hedronetes/youki",
+        "share/licenses",
+    ]
+}

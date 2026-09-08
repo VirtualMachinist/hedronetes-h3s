@@ -16,6 +16,12 @@ macro_rules! rpc {
         $e.await.map_err(h3s_cri::Error::from)?.into_inner()
     };
 }
+/// CRI log file name under the Pod log directory. Keep in lockstep with
+/// containerd's log_path assignment so kubectl logs can find the file.
+pub fn container_log_relpath(container_name: &str, attempt: u32) -> String {
+    format!("{container_name}-{attempt}.log")
+}
+
 pub struct Runtime {
     endpoint: String,
     cluster_dns: Option<dns::ClusterDns>,
@@ -46,6 +52,43 @@ impl Runtime {
             probes: tokio::sync::Mutex::new(probe::State::default()),
             seen: std::sync::Mutex::new(HashSet::new()),
         })
+    }
+    /// Absolute log file for a container attempt under this runtime root.
+    pub fn container_log_file(&self, pod_uid: &str, container_name: &str, attempt: u32) -> PathBuf {
+        self.root
+            .join(pod_uid)
+            .join("logs")
+            .join(container_log_relpath(container_name, attempt))
+    }
+    pub fn read_container_log(
+        &self,
+        pod_uid: &str,
+        container_name: &str,
+        attempt: u32,
+    ) -> Result<Vec<u8>> {
+        let path = self.container_log_file(pod_uid, container_name, attempt);
+        std::fs::read(&path).map_err(Error::from)
+    }
+    pub async fn exec_sync(
+        &self,
+        container_id: &str,
+        cmd: Vec<String>,
+        timeout: i64,
+    ) -> Result<ExecSyncResponse> {
+        if container_id.is_empty() || cmd.is_empty() {
+            return Err(invalid("exec requires a container id and command"));
+        }
+        let cri = Cri::connect(&self.endpoint).await?;
+        Ok(cri
+            .runtime()
+            .exec_sync(ExecSyncRequest {
+                container_id: container_id.into(),
+                cmd,
+                timeout,
+            })
+            .await
+            .map_err(h3s_cri::Error::from)?
+            .into_inner())
     }
     pub async fn healthy(&self) -> bool {
         tokio::time::timeout(Duration::from_secs(5), async {
@@ -374,7 +417,7 @@ impl Runtime {
                     .map(|m| m.attempt.saturating_add(1))
                     .unwrap_or(old_restart);
                 config.metadata.as_mut().expect("metadata").attempt = attempt;
-                config.log_path = format!("{container_name}-{attempt}.log");
+                config.log_path = container_log_relpath(container_name, attempt);
                 let env = inputs::env(agent, p, c).await?;
                 let vars: BTreeMap<_, _> = env
                     .iter()
@@ -605,6 +648,29 @@ fn stamp(ns: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn container_log_relpath_matches_cri_log_path() {
+        assert_eq!(container_log_relpath("coredns", 0), "coredns-0.log");
+        assert_eq!(container_log_relpath("web", 2), "web-2.log");
+    }
+    #[test]
+    fn read_container_log_returns_bytes_from_runtime_root() {
+        let dir = tempfile::tempdir().unwrap();
+        let runtime = Runtime::new(
+            "unix:///run/hedronetes/containerd/containerd.sock".into(),
+            dir.path().join("pods"),
+            None,
+        )
+        .unwrap();
+        let path = runtime.container_log_file("pod-uid", "web", 1);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"ready\n").unwrap();
+        assert_eq!(
+            runtime.read_container_log("pod-uid", "web", 1).unwrap(),
+            b"ready\n"
+        );
+        assert!(runtime.read_container_log("pod-uid", "missing", 0).is_err());
+    }
     #[test]
     fn restart_policy_adopts_created_running_and_terminal_containers() {
         for state in [
