@@ -236,11 +236,27 @@ async fn run_server(args: ServerArgs) -> RunResult {
     let scheduler_identity = pki.issue_client(h3s_scheduler::SCHEDULER_ID, None)?;
     let scheduler_config = pki.kubeconfig(&endpoint, &scheduler_identity)?;
     let scheduler_client = h3s_controllers::client_from_kubeconfig(&scheduler_config).await?;
+    let mut workload_clients = Vec::new();
+    for identity in [
+        h3s_controllers::DEPLOYMENT_CONTROLLER_ID,
+        h3s_controllers::REPLICASET_CONTROLLER_ID,
+        h3s_controllers::WORKLOAD_GC_ID,
+    ] {
+        let identity = pki.issue_client(identity, None)?;
+        let config = pki.kubeconfig(&endpoint, &identity)?;
+        workload_clients.push(h3s_controllers::client_from_kubeconfig(&config).await?);
+    }
+    let gc_client = workload_clients.pop().unwrap();
+    let rs_client = workload_clients.pop().unwrap();
+    let deployment_client = workload_clients.pop().unwrap();
     let server = h3s_apiserver::serve(listener, pki.server_config()?, api.router(), async {
         let _ = tokio::signal::ctrl_c().await;
     });
     tokio::select! {
         result = server => result?,
+        result = h3s_controllers::run_deployment_controller(deployment_client) => result?,
+        result = h3s_controllers::run_replicaset_controller(rs_client) => result?,
+        result = h3s_controllers::run_workload_gc(gc_client) => result?,
         result = h3s_scheduler::run(scheduler_client) => result?,
         result = h3s_controllers::run_namespace_controller(client, pki.ca_pem().to_owned()) => result?,
     }

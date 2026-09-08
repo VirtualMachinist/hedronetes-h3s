@@ -1,4 +1,5 @@
 //! In-tree kube-rs reconciliation. This crate has no registry storage dependency.
+mod workload;
 use futures_util::StreamExt;
 use k8s_openapi::api::core::v1::{ConfigMap, Namespace, ServiceAccount};
 use kube::{
@@ -8,6 +9,11 @@ use kube::{
     Api, Client, Config, ResourceExt,
 };
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
+pub use workload::{
+    deployment_once, gc_once, replicaset_once, run_deployment_controller,
+    run_replicaset_controller, run_workload_gc, DEPLOYMENT_CONTROLLER_ID, REPLICASET_CONTROLLER_ID,
+    WORKLOAD_GC_ID,
+};
 
 pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const NAMESPACE_CONTROLLER_ID: &str = "system:h3s:namespace-controller";
@@ -16,7 +22,11 @@ pub const NAMESPACE_CONTROLLER_ID: &str = "system:h3s:namespace-controller";
 pub enum Error {
     #[error("controller API request: {0}")]
     Api(#[from] kube::Error),
-    #[error("namespace controller stream ended unexpectedly")]
+    #[error("controller serialization: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("{0}")]
+    Invalid(&'static str),
+    #[error("controller stream ended unexpectedly")]
     Stopped,
 }
 

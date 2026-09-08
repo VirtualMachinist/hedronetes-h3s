@@ -159,6 +159,39 @@ impl Api {
             {"apiGroups":["coordination.k8s.io"],"resources":["leases"],"verbs":["list"]}
         ]})).await?;
         api.bootstrap("/registry/clusterrolebindings/h3s-scheduler".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-scheduler"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-scheduler"},"subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"system:h3s:scheduler"}]})).await?;
+        for (name, identity, rules) in [
+            (
+                "h3s-deployment-controller",
+                "system:h3s:deployment-controller",
+                json!([
+                    {"apiGroups":["apps"],"resources":["deployments"],"verbs":["get","list","watch"]},
+                    {"apiGroups":["apps"],"resources":["deployments/status"],"verbs":["update"]},
+                    {"apiGroups":["apps"],"resources":["replicasets"],"verbs":["get","list","watch","create","update","delete"]},
+                    {"apiGroups":[""],"resources":["pods"],"verbs":["list"]}
+                ]),
+            ),
+            (
+                "h3s-replicaset-controller",
+                "system:h3s:replicaset-controller",
+                json!([
+                    {"apiGroups":["apps"],"resources":["replicasets"],"verbs":["get","list","watch"]},
+                    {"apiGroups":["apps"],"resources":["replicasets/status"],"verbs":["update"]},
+                    {"apiGroups":[""],"resources":["pods"],"verbs":["get","list","watch","create","update","delete"]}
+                ]),
+            ),
+            (
+                "h3s-workload-gc",
+                "system:h3s:workload-gc",
+                json!([
+                    {"apiGroups":["apps"],"resources":["deployments","replicasets"],"verbs":["get","list"]},
+                    {"apiGroups":["apps"],"resources":["replicasets"],"verbs":["delete"]},
+                    {"apiGroups":[""],"resources":["pods"],"verbs":["list","delete"]}
+                ]),
+            ),
+        ] {
+            api.bootstrap(format!("/registry/clusterroles/{name}"),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":name},"rules":rules})).await?;
+            api.bootstrap(format!("/registry/clusterrolebindings/{name}"),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":name},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":name},"subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":identity}]})).await?;
+        }
         Ok(api)
     }
     async fn bootstrap(
@@ -583,6 +616,13 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
                 "MethodNotAllowed",
                 "namespace deletion controller is not implemented",
             ));
+        }
+        if value["propagationPolicy"]
+            .as_str()
+            .is_some_and(|p| p != "Background")
+            || value["orphanDependents"] == true
+        {
+            return Err(Failure::new(422,"Invalid","only background deletion is implemented; foreground and orphan propagation are unsupported"));
         }
         api.store.delete(&k, current.revision).await?;
         return Ok(

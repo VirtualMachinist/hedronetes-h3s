@@ -975,9 +975,13 @@ version = "0.1.0-dev"
 name = "h3s-controllers"
 version = "0.1.0-dev"
 dependencies = [
+ "chrono",
  "futures-util",
  "k8s-openapi",
  "kube",
+ "serde",
+ "serde_json",
+ "sha2",
  "thiserror",
  "tokio",
 ]
