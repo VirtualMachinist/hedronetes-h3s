@@ -5,7 +5,7 @@ use crate::{bad, key, kubelet, object, Api, Failure, Result, Target};
 use axum::{
     body::{to_bytes, Body},
     extract::{
-        ws::{Message, WebSocketUpgrade},
+        ws::{close_code, CloseFrame, Message, WebSocketUpgrade},
         FromRequest,
     },
     http::Request,
@@ -164,8 +164,19 @@ async fn websocket_exec(
                     break;
                 }
             }
+            // kubectl's error stream treats a 1005 (no status) close as failure
+            // even when stdout already arrived. Close normally after the v4
+            // status frame.
+            let _ = socket.send(exec_websocket_close()).await;
             let _ = socket.close().await;
         }))
+}
+
+fn exec_websocket_close() -> Message {
+    Message::Close(Some(CloseFrame {
+        code: close_code::NORMAL,
+        reason: "".into(),
+    }))
 }
 
 async fn exec_frames(response: axum::response::Response) -> Result<Vec<Message>> {
@@ -280,5 +291,21 @@ fn flag(q: &BTreeMap<String, String>, name: &str) -> Result<bool> {
         Some("true") | Some("1") => Ok(true),
         Some("false") | Some("0") => Ok(false),
         Some(_) => Err(bad(&format!("invalid {name} parameter"))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exec_websocket_closes_with_normal_code() {
+        match exec_websocket_close() {
+            Message::Close(Some(frame)) => {
+                assert_eq!(frame.code, close_code::NORMAL);
+                assert!(frame.reason.is_empty());
+            }
+            other => panic!("expected Close 1000, got {other:?}"),
+        }
     }
 }
