@@ -9,3 +9,13 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+async-stream = "0.3.6"
+async-trait = "0.1.92"
+futures-core = "0.3.34"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+thiserror = "2.0.20"
+tokio = { workspace = true, features = ["rt", "sync", "time", "macros"] }
+
+[dev-dependencies]
+futures-util = "0.3.34"
+tempfile = "3.27.0"
