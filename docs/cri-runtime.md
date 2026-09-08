@@ -62,8 +62,15 @@ node CIDR allocation, cross-node routes, Service/DNS and final CNI integration
 remain required. Do not apply the same fixed subnet to both nodes.
 
 The service uses project paths under `/var/lib/hedronetes-m1` and
-`/run/hedronetes-m1`. Containerd uses its native version 4 configuration; streaming fields belong to
-the `io.containerd.grpc.v1.cri` plugin. The unit is transient under `/run/systemd/system`; reboot
+`/run/hedronetes-m1`. Containerd uses its native version 4 configuration: gRPC
+and ttrpc addresses belong to `io.containerd.server.v1.grpc` and
+`io.containerd.server.v1.ttrpc`; the obsolete top-level `[grpc]` setting was
+ignored during a real run and the CRI probe could not connect. Streaming fields
+belong to `io.containerd.grpc.v1.cri`. Global config imports and NRI are disabled,
+CDI has no external spec directories, and network namespaces remain under the
+project runtime state. Provisioning requires an actual version RPC at the
+project socket plus root ownership and a private parent directory.
+The unit is transient under `/run/systemd/system`; reboot
 persistence and native h3s supervision/NixOS module integration remain unfinished.
 `KillMode=process` allows containerd shims to survive a daemon restart. Stopping
 the daemon alone is not workload cleanup. Remove only identified project

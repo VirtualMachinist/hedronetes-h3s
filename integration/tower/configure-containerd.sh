@@ -20,10 +20,21 @@ cat > /var/lib/hedronetes-m1/containerd/config.toml <<EOF
 version = 4
 root = "/var/lib/hedronetes-m1/containerd/root"
 state = "/run/hedronetes-m1/containerd/state"
-[grpc]
+imports = []
+[plugins."io.containerd.server.v1.grpc"]
   address = "/run/hedronetes-m1/containerd/containerd.sock"
   uid = 0
   gid = 0
+[plugins."io.containerd.server.v1.ttrpc"]
+  address = "/run/hedronetes-m1/containerd/containerd.sock.ttrpc"
+  uid = 0
+  gid = 0
+[plugins."io.containerd.server.v1.grpc-tcp"]
+  address = ""
+[plugins."io.containerd.internal.v1.opt"]
+  path = "/var/lib/hedronetes-m1/containerd/opt"
+[plugins."io.containerd.nri.v1.nri"]
+  disable = true
 [plugins."io.containerd.grpc.v1.cri"]
   disable_tcp_service = true
   stream_server_address = "127.0.0.1"
@@ -33,7 +44,8 @@ state = "/run/hedronetes-m1/containerd/state"
   [plugins."io.containerd.cri.v1.images".pinned_images]
     sandbox = "registry.k8s.io/pause@sha256:f548e0e8e3dc1896ca956272154dde3314e8cc4fde0a57577ee9fa1c63f5baf4"
 [plugins."io.containerd.cri.v1.runtime"]
-  enable_cdi = false
+  cdi_spec_dirs = []
+  netns_mounts_under_state_dir = true
   unset_seccomp_profile = "runtime/default"
   [plugins."io.containerd.cri.v1.runtime".containerd]
     default_runtime_name = "youki"
@@ -87,3 +99,16 @@ EOF
 systemctl daemon-reload
 systemctl restart h3s-containerd-runtime.service
 systemctl is-active h3s-containerd-runtime.service
+# A running daemon can still ignore an obsolete socket setting. Require the
+# configured private socket and a successful RPC before reporting provisioned.
+runtime_socket=/run/hedronetes-m1/containerd/containerd.sock
+for ((runtime_attempt=0; runtime_attempt<30; runtime_attempt++)); do
+  if [[ -S "$runtime_socket" ]] && "$runtime_tools/bin/ctr" --address "$runtime_socket" --timeout 1s version; then
+    [[ $(stat -c '%u:%g' "$runtime_socket") == 0:0 ]]
+    [[ $(stat -c '%a' "$(dirname "$runtime_socket")") == 700 ]]
+    exit 0
+  fi
+  sleep 0.5
+done
+echo 'Project containerd socket failed readiness verification' >&2
+exit 1
