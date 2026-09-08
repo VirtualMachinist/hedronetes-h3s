@@ -70,7 +70,7 @@ pub(crate) async fn assign(
             };
             selection.start_after = Some(cursor);
         }
-        // Matches the parent single-stack default. .1 is reserved for the API
+        // Initial M1 single-stack range; a configurable CIDR remains follow-up work. .1 is reserved for the API
         // Service; .0 and .255.255 are the /16 network and broadcast addresses.
         let base = u32::from(Ipv4Addr::new(10, 43, 0, 0));
         if requested.is_empty() {
