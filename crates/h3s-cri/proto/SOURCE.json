@@ -1,0 +1,7 @@
+{
+  "url": "https://raw.githubusercontent.com/kubernetes/cri-api/v0.34.0/pkg/apis/runtime/v1/api.proto",
+  "tag": "v0.34.0",
+  "sha256": "a1ac3e1b238569cee4f5e65cbd826c6fe316fe4721d1d45a8b6c1fbe435de7aa",
+  "license": "Apache-2.0",
+  "modifications": false
+}

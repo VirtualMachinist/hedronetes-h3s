@@ -27,6 +27,8 @@ enum Multicall {
     Server(ServerArgs),
     /// Enroll a worker and maintain Node/Lease status (workload runtime incomplete).
     Agent(AgentArgs),
+    /// Inspect the configured local CRI v1 runtime without changing workloads.
+    RuntimeInfo(RuntimeArgs),
 }
 
 #[derive(Debug, Parser)]
@@ -50,6 +52,8 @@ enum Command {
     Server(ServerArgs),
     /// Enroll a worker and maintain Node/Lease status (workload runtime incomplete).
     Agent(AgentArgs),
+    /// Inspect the configured local CRI v1 runtime without changing workloads.
+    RuntimeInfo(RuntimeArgs),
 }
 
 /// Server configuration; runtime data is isolated from companion stores.
@@ -106,6 +110,32 @@ struct AgentArgs {
     token: Option<h3s_auth::bootstrap::Token>,
     #[arg(long)]
     token_file: Option<std::path::PathBuf>,
+}
+
+#[derive(Debug, Args)]
+struct RuntimeArgs {
+    #[arg(
+        long,
+        default_value = "unix:///run/hedronetes/containerd/containerd.sock"
+    )]
+    container_runtime_endpoint: String,
+}
+async fn runtime_info(args: RuntimeArgs) -> RunResult {
+    let cri = h3s_cri::Cri::connect(&args.container_runtime_endpoint).await?;
+    let status = cri
+        .runtime()
+        .status(h3s_cri::v1::StatusRequest { verbose: false })
+        .await
+        .map_err(h3s_cri::Error::from)?
+        .into_inner();
+    let conditions: Vec<_> = status.status.ok_or("CRI returned no runtime status")?.conditions.into_iter()
+        .map(|c| serde_json::json!({"type":c.r#type,"status":c.status,"reason":c.reason,"message":c.message})).collect();
+    let v = cri.version();
+    println!(
+        "{}",
+        serde_json::json!({"runtime_name":v.runtime_name,"runtime_version":v.runtime_version,"runtime_api_version":v.runtime_api_version,"conditions":conditions})
+    );
+    Ok(())
 }
 
 fn install_rustls_provider() {
@@ -300,6 +330,7 @@ async fn run_command(command: Command) -> RunResult {
     match command {
         Command::Server(args) => run_server(args).await,
         Command::Agent(args) => run_agent(args).await,
+        Command::RuntimeInfo(args) => runtime_info(args).await,
     }
 }
 #[tokio::main]
@@ -309,6 +340,7 @@ async fn main() {
         Multicall::H3s(cli) => run_command(cli.command).await,
         Multicall::Server(args) => run_server(args).await,
         Multicall::Agent(args) => run_agent(args).await,
+        Multicall::RuntimeInfo(args) => runtime_info(args).await,
     };
     if let Err(error) = result {
         eprintln!("h3s: {error}");

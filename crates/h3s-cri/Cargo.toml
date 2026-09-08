@@ -9,3 +9,21 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+tonic = { version = "0.14.6", default-features = false, features = ["channel", "codegen"] }
+tonic-prost = "0.14.6"
+prost = "0.14"
+tokio.workspace = true
+hyper-util = { version = "0.1", features = ["tokio"] }
+tower = { version = "0.5", features = ["util"] }
+thiserror = "2"
+
+[build-dependencies]
+tonic-prost-build = "0.14.6"
+protoc-bin-vendored = "=3.2.0"
+
+[dev-dependencies]
+tonic = { version = "0.14.6", default-features = false, features = ["server", "router"] }
+tokio-stream = { version = "0.1", features = ["net"] }
+tempfile = "3"
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
