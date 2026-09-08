@@ -150,6 +150,7 @@
       };
     in {
       packages.${system} = { inherit h3s bun youki containerd cni-plugins runtime-tools flannel flannel-cni; default = h3s; };
+      nixosModules.h3s = import ./integration/tower/nixos/h3s.nix;
       devShells.${system}.default = pkgs.mkShell {
         packages = [ rust bun pkgs.cmake pkgs.pkg-config pkgs.protobuf
           pkgs.git pkgs.python3 pkgs.openssl pkgs.nftables pkgs.iproute2 ];
