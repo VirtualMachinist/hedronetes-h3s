@@ -32,7 +32,9 @@ kubectl get --raw /api/v1/nodes/hedronetes-worker/proxy/healthz
 kubectl get --raw /api/v1/nodes/hedronetes-worker/proxy/readyz
 ```
 
-Only GET without query parameters is supported. The API constructs a fresh
+Only GET is supported. The API accepts the single `timeout` client hint added
+by stock kubectl, while retaining its own 15-second cap; other or duplicate
+query parameters are rejected. No query is sent to the worker. It constructs a fresh
 fixed-path request and never forwards caller headers, credentials, cookies or
 Host. An absent Node returns 404, an unavailable or untrusted backend returns
 502, and the complete proxied operation has a 15-second budget (504 on timeout).

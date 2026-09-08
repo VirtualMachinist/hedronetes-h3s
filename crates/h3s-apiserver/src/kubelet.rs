@@ -49,11 +49,16 @@ pub async fn proxy(
             "kubelet health proxy supports GET",
         ));
     }
-    if request.uri().query().is_some() {
+    let query: Vec<(String, String)> =
+        serde_urlencoded::from_str(request.uri().query().unwrap_or(""))
+            .map_err(|_| Failure::new(400, "BadRequest", "invalid proxy query"))?;
+    // Stock kubectl adds its request timeout even to --raw requests. Accept
+    // that client hint, but keep our own 15-second cap and never forward it.
+    if query.len() > 1 || query.iter().any(|(key, _)| key != "timeout") {
         return Err(Failure::new(
             400,
             "BadRequest",
-            "kubelet health proxy does not accept query parameters",
+            "kubelet health proxy accepts only the client timeout hint",
         ));
     }
     if !matches!(route, "healthz" | "readyz") {

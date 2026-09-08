@@ -110,6 +110,25 @@ async fn actual_kubelet_health_uses_mutual_tls_tunnel_and_authorized_node_proxy(
         agent.run().await.unwrap();
     }));
     assert_eq!(healthy(&s).await, (200, "ok\n".into()));
+    assert_eq!(
+        text(
+            &s,
+            s.admin(),
+            "/api/v1/nodes/worker/proxy/healthz?timeout=5s"
+        )
+        .await,
+        (200, "ok\n".into())
+    );
+    assert_eq!(
+        text(
+            &s,
+            s.admin(),
+            "/api/v1/nodes/worker/proxy/healthz?timeout=5s&timeout=8s"
+        )
+        .await
+        .0,
+        400
+    );
     let ready = text(&s, s.admin(), "/api/v1/nodes/worker/proxy/readyz").await;
     assert_eq!(ready.0, 503);
     assert!(ready.1.contains("CRI workload runtime is not implemented"));
