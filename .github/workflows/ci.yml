@@ -15,8 +15,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check workspace warnings
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
       - name: Build workspace
         run: cargo build --workspace --locked
       - name: Test workspace
         run: cargo test --workspace --locked
+
+  minimum-rust:
+    name: Rust 1.88 minimum support
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: msrv-1.88
+      - name: Test minimum Rust
+        run: cargo +1.88.0 test --workspace --locked

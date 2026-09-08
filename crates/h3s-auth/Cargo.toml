@@ -9,3 +9,11 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+k8s-openapi.workspace = true
+x509-parser = "0.18.1"
+thiserror = "2"
+
+[dev-dependencies]
+h3s-certs = { path = "../h3s-certs" }
+tempfile = "3"
+serde_json = "1"

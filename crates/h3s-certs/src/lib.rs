@@ -1,7 +1,350 @@
-//! Cluster PKI.
-//!
-//! P0 stub: compile-only placeholder. Do not add API-server, kubelet,
-//! watch/SSE, skip-auth, or rusternetes/Krustlet vendor code here.
+//! Persistent cluster PKI. TLS validates certificate chains before the HTTP
+//! layer extracts identities. Issuance is an administrative operation.
+use base64::{engine::general_purpose::STANDARD, Engine};
+use rcgen::{
+    BasicConstraints, CertificateParams, DnType, ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair,
+    KeyUsagePurpose,
+};
+use rustls::{
+    pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer, ServerName, UnixTime},
+    server::WebPkiClientVerifier,
+    RootCertStore,
+};
+use serde::{Deserialize, Serialize};
+use std::{fs, io::Write, path::Path, sync::Arc};
+use time::{Duration, OffsetDateTime};
+use x509_parser::prelude::{FromDer, X509Certificate};
 
-/// Package name, for workspace inventory and later `h3s --version` assembly.
 pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("PKI I/O: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("invalid PKI bundle: {0}")]
+    Invalid(String),
+    #[error("certificate generation: {0}")]
+    Generate(#[from] rcgen::Error),
+    #[error("TLS configuration: {0}")]
+    Tls(#[from] rustls::Error),
+    #[error("PKI serialization: {0}")]
+    Json(#[from] serde_json::Error),
+}
+
+/// Contains a private key; deliberately does not implement Debug.
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Identity {
+    certificate_pem: String,
+    private_key_pem: String,
+}
+impl Identity {
+    pub fn certificate_pem(&self) -> &str {
+        &self.certificate_pem
+    }
+    pub fn certificate_der(&self) -> Result<CertificateDer<'static>> {
+        CertificateDer::from_pem_slice(self.certificate_pem.as_bytes())
+            .map_err(|_| Error::Invalid("certificate PEM".into()))
+    }
+    fn private_key_der(&self) -> Result<PrivateKeyDer<'static>> {
+        PrivateKeyDer::from_pem_slice(self.private_key_pem.as_bytes())
+            .map_err(|_| Error::Invalid("private key PEM".into()))
+    }
+    fn validate_key_pair(&self) -> Result<()> {
+        rustls::sign::CertifiedKey::from_der(
+            vec![self.certificate_der()?],
+            self.private_key_der()?,
+            &provider(),
+        )?;
+        Ok(())
+    }
+}
+
+/// Atomically persisted in the runtime data directory, never in the Nix store.
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClusterPki {
+    version: u32,
+    ca: Identity,
+    server: Identity,
+    admin: Identity,
+}
+fn provider() -> Arc<rustls::crypto::CryptoProvider> {
+    Arc::new(rustls::crypto::aws_lc_rs::default_provider())
+}
+impl ClusterPki {
+    /// Corrupt, expired, insecure or incompatible existing material fails closed;
+    /// it is never overwritten. Concurrent bootstrap uses create-if-absent.
+    pub fn open_or_create(directory: &Path, server_names: &[String]) -> Result<Self> {
+        private_directory(directory)?;
+        let path = directory.join("cluster-pki.json");
+        if path.try_exists()? {
+            return Self::load(&path, server_names);
+        }
+        let pki = Self::generate(server_names)?;
+        let mut tmp = tempfile::NamedTempFile::new_in(directory)?;
+        serde_json::to_writer(tmp.as_file_mut(), &pki)?;
+        tmp.as_file_mut().write_all(b"\n")?;
+        tmp.as_file().sync_all()?;
+        match tmp.persist_noclobber(&path) {
+            Ok(_) => {
+                fs::File::open(directory)?.sync_all()?;
+            }
+            Err(e) if e.error.kind() == std::io::ErrorKind::AlreadyExists => {
+                return Self::load(&path, server_names)
+            }
+            Err(e) => return Err(Error::Io(e.error)),
+        }
+        Ok(pki)
+    }
+    fn load(path: &Path, server_names: &[String]) -> Result<Self> {
+        let mut opts = fs::OpenOptions::new();
+        opts.read(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            opts.custom_flags(libc::O_NOFOLLOW);
+        }
+        let file = opts.open(path)?;
+        let metadata = file.metadata()?;
+        if !metadata.is_file() || metadata.len() > 1024 * 1024 {
+            return Err(Error::Invalid(
+                "bundle must be a regular file under 1 MiB".into(),
+            ));
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if metadata.permissions().mode() & 0o077 != 0 {
+                return Err(Error::Invalid("bundle requires mode 0600".into()));
+            }
+        }
+        let pki: Self = serde_json::from_reader(file)?;
+        if pki.version != 1 {
+            return Err(Error::Invalid("unsupported bundle version".into()));
+        }
+        pki.validate(server_names)?;
+        Ok(pki)
+    }
+    fn generate(server_names: &[String]) -> Result<Self> {
+        if server_names.is_empty() {
+            return Err(Error::Invalid("serving SAN required".into()));
+        }
+        let mut params = parameters("h3s-cluster-ca", None, &[], Duration::days(3650))?;
+        params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+        params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+        let key = KeyPair::generate()?;
+        let cert = params.self_signed(&key)?;
+        let issuer = Issuer::from_params(&params, &key);
+        let server = issue(
+            &issuer,
+            "h3s-apiserver",
+            None,
+            server_names,
+            ExtendedKeyUsagePurpose::ServerAuth,
+        )?;
+        let admin = issue(
+            &issuer,
+            "h3s-admin",
+            Some("system:masters"),
+            &[],
+            ExtendedKeyUsagePurpose::ClientAuth,
+        )?;
+        let pki = Self {
+            version: 1,
+            ca: Identity {
+                certificate_pem: cert.pem(),
+                private_key_pem: key.serialize_pem(),
+            },
+            server,
+            admin,
+        };
+        pki.validate(server_names)?;
+        Ok(pki)
+    }
+    fn issuer(&self) -> Result<Issuer<'static, KeyPair>> {
+        Ok(Issuer::from_ca_cert_pem(
+            &self.ca.certificate_pem,
+            KeyPair::from_pem(&self.ca.private_key_pem)?,
+        )?)
+    }
+    fn validate(&self, server_names: &[String]) -> Result<()> {
+        self.ca.validate_key_pair()?;
+        self.server.validate_key_pair()?;
+        self.admin.validate_key_pair()?;
+        let ca_der = self.ca.certificate_der()?;
+        let (_, ca) = X509Certificate::from_der(ca_der.as_ref())
+            .map_err(|_| Error::Invalid("CA DER".into()))?;
+        if !ca.is_ca() || !ca.validity().is_valid() {
+            return Err(Error::Invalid("CA constraint or validity".into()));
+        }
+        ca.verify_signature(None)
+            .map_err(|_| Error::Invalid("CA self-signature".into()))?;
+        let roots = Arc::new(self.roots()?);
+        let verifier = WebPkiClientVerifier::builder_with_provider(roots.clone(), provider())
+            .build()
+            .map_err(|e| Error::Invalid(e.to_string()))?;
+        verifier.verify_client_cert(&self.admin.certificate_der()?, &[], UnixTime::now())?;
+        let verifier =
+            rustls::client::WebPkiServerVerifier::builder_with_provider(roots, provider())
+                .build()
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+        use rustls::client::danger::ServerCertVerifier;
+        if server_names.is_empty() {
+            return Err(Error::Invalid("serving SAN required".into()));
+        }
+        for name in server_names {
+            let name = ServerName::try_from(name.as_str())
+                .map_err(|_| Error::Invalid("serving SAN".into()))?;
+            verifier.verify_server_cert(
+                &self.server.certificate_der()?,
+                &[],
+                &name,
+                &[],
+                UnixTime::now(),
+            )?;
+        }
+        Ok(())
+    }
+    pub fn ca_pem(&self) -> &str {
+        self.ca.certificate_pem()
+    }
+    pub fn admin(&self) -> &Identity {
+        &self.admin
+    }
+    pub fn roots(&self) -> Result<RootCertStore> {
+        let mut roots = RootCertStore::empty();
+        roots.add(self.ca.certificate_der()?)?;
+        Ok(roots)
+    }
+    /// The authorized join handler chooses node subjects; joining clients cannot
+    /// supply arbitrary usernames/groups.
+    pub fn issue_client(&self, username: &str, group: Option<&str>) -> Result<Identity> {
+        issue(
+            &self.issuer()?,
+            username,
+            group,
+            &[],
+            ExtendedKeyUsagePurpose::ClientAuth,
+        )
+    }
+    pub fn issue_serving(&self, name: &str, sans: &[String]) -> Result<Identity> {
+        if sans.is_empty() {
+            return Err(Error::Invalid("serving SAN required".into()));
+        }
+        issue(
+            &self.issuer()?,
+            name,
+            None,
+            sans,
+            ExtendedKeyUsagePurpose::ServerAuth,
+        )
+    }
+    /// Missing certificates are allowed for health/version and bearer auth.
+    /// Invalid presented certificates still fail TLS. HTTP must authorize requests.
+    pub fn server_config(&self) -> Result<rustls::ServerConfig> {
+        let verifier =
+            WebPkiClientVerifier::builder_with_provider(Arc::new(self.roots()?), provider())
+                .allow_unauthenticated()
+                .build()
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+        let mut config = rustls::ServerConfig::builder_with_provider(provider())
+            .with_safe_default_protocol_versions()?
+            .with_client_cert_verifier(verifier)
+            .with_single_cert(
+                vec![self.server.certificate_der()?],
+                self.server.private_key_der()?,
+            )?;
+        config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+        Ok(config)
+    }
+    pub fn client_config(&self, identity: Option<&Identity>) -> Result<rustls::ClientConfig> {
+        let builder = rustls::ClientConfig::builder_with_provider(provider())
+            .with_safe_default_protocol_versions()?
+            .with_root_certificates(self.roots()?);
+        Ok(match identity {
+            Some(id) => {
+                builder.with_client_auth_cert(vec![id.certificate_der()?], id.private_key_der()?)?
+            }
+            None => builder.with_no_client_auth(),
+        })
+    }
+    /// JSON is valid kubeconfig YAML. Caller must install this secret with 0600.
+    pub fn kubeconfig(&self, endpoint: &str, identity: &Identity) -> Result<String> {
+        if !endpoint.starts_with("https://") || endpoint.contains(['\n', '\r', '#', '@']) {
+            return Err(Error::Invalid(
+                "kubeconfig requires HTTPS without userinfo/fragment".into(),
+            ));
+        }
+        Ok(serde_json::to_string_pretty(&serde_json::json!({
+            "apiVersion":"v1", "kind":"Config",
+            "clusters":[{"name":"h3s","cluster":{"server":endpoint,"certificate-authority-data":STANDARD.encode(self.ca_pem())}}],
+            "users":[{"name":"h3s-user","user":{"client-certificate-data":STANDARD.encode(identity.certificate_pem()),"client-key-data":STANDARD.encode(&identity.private_key_pem)}}],
+            "contexts":[{"name":"h3s","context":{"cluster":"h3s","user":"h3s-user","namespace":"default"}}],
+            "current-context":"h3s"
+        }))?)
+    }
+}
+fn parameters(
+    name: &str,
+    group: Option<&str>,
+    sans: &[String],
+    lifetime: Duration,
+) -> Result<CertificateParams> {
+    if name.is_empty()
+        || name.len() > 253
+        || name.chars().any(char::is_control)
+        || group.is_some_and(|g| g.is_empty() || g.len() > 253 || g.chars().any(char::is_control))
+    {
+        return Err(Error::Invalid("certificate subject".into()));
+    }
+    let mut p = CertificateParams::new(sans.to_vec())?;
+    p.distinguished_name = rcgen::DistinguishedName::new();
+    p.distinguished_name.push(DnType::CommonName, name);
+    if let Some(group) = group {
+        p.distinguished_name.push(DnType::OrganizationName, group);
+    }
+    p.not_before = OffsetDateTime::now_utc() - Duration::minutes(5);
+    p.not_after = OffsetDateTime::now_utc() + lifetime;
+    p.key_usages = vec![KeyUsagePurpose::DigitalSignature];
+    Ok(p)
+}
+fn issue(
+    issuer: &Issuer<impl rcgen::SigningKey>,
+    name: &str,
+    group: Option<&str>,
+    sans: &[String],
+    usage: ExtendedKeyUsagePurpose,
+) -> Result<Identity> {
+    let mut params = parameters(name, group, sans, Duration::days(365))?;
+    params.extended_key_usages = vec![usage];
+    let key = KeyPair::generate()?;
+    let cert = params.signed_by(&key, issuer)?;
+    Ok(Identity {
+        certificate_pem: cert.pem(),
+        private_key_pem: key.serialize_pem(),
+    })
+}
+fn private_directory(path: &Path) -> Result<()> {
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        builder.mode(0o700);
+    }
+    builder.create(path)?;
+    let m = fs::symlink_metadata(path)?;
+    if !m.is_dir() || m.file_type().is_symlink() {
+        return Err(Error::Invalid("PKI directory must not be a symlink".into()));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if m.permissions().mode() & 0o077 != 0 {
+            return Err(Error::Invalid("PKI directory requires mode 0700".into()));
+        }
+    }
+    Ok(())
+}

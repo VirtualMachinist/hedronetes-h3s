@@ -23,7 +23,7 @@ edition = "2021"
 homepage = "https://github.com/VirtualMachinist/hedronetes-h3s"
 license = "Apache-2.0"
 repository = "https://github.com/VirtualMachinist/hedronetes-h3s"
-rust-version = "1.85"
+rust-version = "1.88"
 version = "0.1.0-dev"
 
 [workspace.dependencies]
@@ -32,6 +32,4 @@ tokio = { version = "1", features = ["full"] }
 rustls = "0.23"
 clap = { version = "4", features = ["derive", "env"] }
 
-# Reserved: Kubernetes v1.34 types when API crates start using them.
-# Do not uncomment until a crate actually imports k8s-openapi (P0: unused).
-# k8s-openapi = { version = "0.26", features = ["v1_34"] }
+k8s-openapi = { version = "0.26", features = ["v1_34"] }
