@@ -1,6 +1,6 @@
 //! Desired Pods are fetched through the node-authorized API; CRI is authoritative
 //! for observed processes. A failed/incomplete LIST never triggers orphan GC.
-use crate::{inputs, invalid, now, pod, probe, Agent, Error, Result};
+use crate::{inputs, invalid, now, pod, probe, volumes, Agent, Error, Result};
 use h3s_certs::private;
 use h3s_cri::{v1::*, Cri};
 use reqwest::Method;
@@ -116,6 +116,12 @@ impl Runtime {
                 for s in own {
                     remove(&cri, &s, &agent.name).await?;
                 }
+                let dir = self.root.join(uid);
+                if dir.try_exists()? {
+                    private::directory(&dir)?;
+                    volumes::cleanup(&dir)?;
+                    std::fs::remove_dir_all(dir)?;
+                }
                 continue;
             }
             match self.sync(&cri, agent, p, own, &mut probes).await {
@@ -152,11 +158,21 @@ impl Runtime {
         for s in &sandboxes {
             if pod::owned(&s.labels, &agent.name) && !desired.contains(&s.labels[pod::UID]) {
                 remove(&cri, s, &agent.name).await?;
-                let dir = self.root.join(&s.labels[pod::UID]);
-                if dir.try_exists()? {
-                    private::directory(&dir)?;
-                    std::fs::remove_dir_all(dir)?;
-                }
+            }
+        }
+        // Include directories left by a failed sync before sandbox creation.
+        // This runs only after successful CRI removal of all orphan sandboxes.
+        for entry in std::fs::read_dir(&self.root)? {
+            let entry = entry?;
+            let name = entry.file_name();
+            let uid = name
+                .to_str()
+                .filter(|s| pod::safe_component(s))
+                .ok_or_else(|| invalid("invalid local Pod directory identity"))?;
+            if !desired.contains(uid) {
+                private::directory(&entry.path())?;
+                volumes::cleanup(&entry.path())?;
+                std::fs::remove_dir_all(entry.path())?;
             }
         }
         probes.retain(&observed_ids);
@@ -182,14 +198,22 @@ impl Runtime {
         private::directory(&root)?;
         let logs = root.join("logs");
         private::directory(&logs)?;
+        volumes::prepare(agent, p, &root).await?;
         let mut prepared = vec![];
         for c in p["spec"]["containers"]
             .as_array()
             .expect("validated containers")
         {
+            let mut identity = json!({"container":c,"podSecurityContext":p["spec"]["securityContext"],"runtimeProfile":"restricted-v1"});
+            if p["spec"]["volumes"]
+                .as_array()
+                .is_some_and(|v| !v.is_empty())
+            {
+                identity["volumes"] = p["spec"]["volumes"].clone();
+            }
             let hash = format!(
                 "{:x}",
-                Sha256::digest(serde_json::to_vec(&json!({"container":c,"podSecurityContext":p["spec"]["securityContext"],"runtimeProfile":"restricted-v1"})).expect("container JSON"))
+                Sha256::digest(serde_json::to_vec(&identity).expect("container JSON"))
             );
             let mut labels = pod::labels(&agent.name, uid);
             labels.insert(pod::HASH.into(), hash);
@@ -205,6 +229,7 @@ impl Runtime {
                 command: pod::strings(&c["command"])?,
                 args: pod::strings(&c["args"])?,
                 working_dir: c["workingDir"].as_str().unwrap_or("").into(),
+                mounts: volumes::mounts(c, &root)?,
                 labels,
                 linux: Some(LinuxContainerConfig {
                     resources: Some(pod::resources(c)?),

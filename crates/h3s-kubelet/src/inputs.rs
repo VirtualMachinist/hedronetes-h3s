@@ -5,12 +5,13 @@ use h3s_cri::v1::KeyValue;
 use reqwest::Method;
 use serde_json::Value;
 use std::collections::BTreeMap;
-async fn data(
+pub(super) async fn data(
     agent: &Agent,
     ns: &str,
     kind: &str,
     name: &str,
     optional: bool,
+    binary: bool,
 ) -> Result<BTreeMap<String, Vec<u8>>> {
     if !pod::safe_component(name) {
         return Err(invalid("invalid referenced object name"));
@@ -28,12 +29,15 @@ async fn data(
     if code != 200 {
         return Err(crate::Error::Status(code));
     }
+    decode_data(&v, kind == "secrets", binary)
+}
+fn decode_data(v: &Value, secret: bool, binary: bool) -> Result<BTreeMap<String, Vec<u8>>> {
     let mut out = BTreeMap::new();
     for (key, value) in v["data"].as_object().into_iter().flatten() {
         let value = value
             .as_str()
             .ok_or_else(|| invalid("invalid referenced data"))?;
-        let bytes = if kind == "secrets" {
+        let bytes = if secret {
             STANDARD
                 .decode(value)
                 .map_err(|_| invalid("invalid secret encoding"))?
@@ -41,6 +45,20 @@ async fn data(
             value.as_bytes().to_vec()
         };
         out.insert(key.clone(), bytes);
+    }
+    if binary && !secret {
+        for (key, value) in v["binaryData"].as_object().into_iter().flatten() {
+            let bytes = STANDARD
+                .decode(
+                    value
+                        .as_str()
+                        .ok_or_else(|| invalid("invalid binary data"))?,
+                )
+                .map_err(|_| invalid("invalid binary encoding"))?;
+            if out.insert(key.clone(), bytes).is_some() {
+                return Err(invalid("duplicate ConfigMap data key"));
+            }
+        }
     }
     Ok(out)
 }
@@ -75,6 +93,7 @@ pub async fn env(agent: &Agent, p: &Value, c: &Value) -> Result<Vec<KeyValue>> {
             kind,
             pod::text(&source[key], "name")?,
             source[key]["optional"] == true,
+            false,
         )
         .await?
         {
@@ -128,6 +147,7 @@ pub async fn env(agent: &Agent, p: &Value, c: &Value) -> Result<Vec<KeyValue>> {
                     kind,
                     pod::text(source, "name")?,
                     source["optional"] == true,
+                    false,
                 )
                 .await?;
                 match values.remove(pod::text(source, "key")?) {
@@ -190,6 +210,28 @@ pub fn expand(value: &str, vars: &BTreeMap<String, String>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn config_binary_data_is_for_files_and_secret_data_is_decoded() {
+        let v = serde_json::json!({"data":{"text":"value"},"binaryData":{"bytes":"AP8="}});
+        let env = decode_data(&v, false, false).unwrap();
+        assert_eq!(env.len(), 1);
+        let files = decode_data(&v, false, true).unwrap();
+        assert_eq!(files["bytes"], [0, 255]);
+        let v = serde_json::json!({"data":{"bytes":"AP8="}});
+        assert_eq!(decode_data(&v, true, true).unwrap()["bytes"], [0, 255]);
+        assert!(decode_data(
+            &serde_json::json!({"data":{"bytes":"invalid base64"}}),
+            true,
+            true
+        )
+        .is_err());
+        assert!(decode_data(
+            &serde_json::json!({"data":{"same":"text"},"binaryData":{"same":"AP8="}}),
+            false,
+            true
+        )
+        .is_err());
+    }
     #[test]
     fn environment_expansion_preserves_unknown_and_escaped_values() {
         let vars = BTreeMap::from([

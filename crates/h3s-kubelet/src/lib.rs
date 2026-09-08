@@ -5,6 +5,7 @@ mod pod;
 mod probe;
 mod runtime;
 mod service;
+mod volumes;
 use h3s_api::{JoinRequest, JoinResponse};
 use h3s_auth::bootstrap::{random_secret, valid_password, valid_token};
 use h3s_certs::{private, Identity};

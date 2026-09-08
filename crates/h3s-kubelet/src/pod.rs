@@ -49,9 +49,7 @@ pub fn validate(p: &Value, node: &str) -> Result<()> {
     {
         return Err(invalid("invalid restart policy"));
     }
-    if s["volumes"].as_array().is_some_and(|v| !v.is_empty()) {
-        return Err(invalid("Pod volumes are not implemented yet"));
-    }
+    crate::volumes::validate(p)?;
     if s["terminationGracePeriodSeconds"]
         .as_i64()
         .is_some_and(|v| !(0..=30).contains(&v))
@@ -120,9 +118,6 @@ pub fn validate(p: &Value, node: &str) -> Result<()> {
         .filter(|v| !v.is_empty() && v.len() <= 32)
         .ok_or_else(|| invalid("invalid container count"))?;
     for c in containers {
-        if c["volumeMounts"].as_array().is_some_and(|v| !v.is_empty()) {
-            return Err(invalid("Pod volumes are not implemented yet"));
-        }
         fields(
             c,
             &[

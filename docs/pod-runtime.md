@@ -47,14 +47,15 @@ redirect destination or ambient proxy.
 ## Current limits
 
 This is an implementation checkpoint toward the full M1 workload contract.
-Scheduling, Deployment/ReplicaSet reconciliation, cross-node networking,
-ClusterFirst DNS and the server's embedded agent remain unfinished. A Ready Node
+Native [scheduling](scheduler.md) and [Deployment/ReplicaSet reconciliation](workload-controllers.md)
+now drive the supported fixture. Cross-node networking, ClusterFirst DNS and
+the server's embedded agent remain unfinished. A Ready Node
 means its configured CRI runtime and CNI plugin report ready; it does not certify
 cross-node Service/DNS or the complete Kubernetes behavior.
 
 The initial workload path requires `automountServiceAccountToken: false`,
 `enableServiceLinks: false`, and DNS policy Default or None. Service-account
-projection, service environment injection, volumes, init/ephemeral containers,
+projection, service environment injection, unsupported volume types, init/ephemeral containers,
 private image credentials, liveness/startup probes, host networking/ports,
 custom security profiles and other unimplemented execution fields return a
 PodSyncError instead of being silently ignored. Termination grace is currently
@@ -62,9 +63,12 @@ bounded to 0–30 seconds. Termination-message files and full Kubernetes status/
 backoff conventions remain to be completed. These limits do not waive any M1
 acceptance requirement or change M2's full-conformance scope.
 
+[ConfigMap and Secret directory volumes](configuration-volumes.md) now provide
+read-only CRI mounts, RAM-backed payloads, modes and eventual atomic updates.
+
 The current API deletes Pods immediately; the reconciler removes the orphan's
 runtime resources on its next complete list. General graceful API deletion,
-finalizers/garbage collection, volume cleanup and hard power-loss behavior still
+finalizers/general garbage collection and hard power-loss behavior still
 need their own implementation and verification.
 
 ## Verification
