@@ -38,7 +38,8 @@ supported recovery procedure.
 
 The controller reads `GET /v1-h3s/network/node-cidrs` using its dedicated
 `system:h3s:node-cidr-controller` client identity. This read-only endpoint exposes
-configuration and reservations, accepts no query parameters, and requires an
+configuration and reservations, accepts only client-go's advisory `timeout`
+query parameter, and requires an
 exact non-resource RBAC grant. It is not part of Kubernetes discovery. Node and
 ordinary authenticated identities do not receive access. The controller can
 get/list/patch Nodes but cannot delete them, write their status or read Secrets.

@@ -267,6 +267,28 @@ async fn topology_reads_do_not_grant_network_assignment_or_foreign_writes() {
         .0,
         400
     );
+    assert_eq!(
+        s.json(
+            s.admin(),
+            "GET",
+            &format!("{NODE_CIDR_PATH}?timeout=10s"),
+            json!({})
+        )
+        .await
+        .0,
+        200
+    );
+    assert_eq!(
+        s.json(
+            worker(),
+            "GET",
+            &format!("{NODE_CIDR_PATH}?timeout=10s"),
+            json!({})
+        )
+        .await
+        .0,
+        403
+    );
     let id = s.pki.issue_client(NODE_CIDR_CONTROLLER_ID, None).unwrap();
     let config = || s.pki.client_config(Some(&id)).unwrap();
     assert_eq!(

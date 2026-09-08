@@ -406,8 +406,12 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
                 "node CIDR ledger is read-only",
             ));
         }
-        if !q.is_empty() {
-            return Err(bad("node CIDR snapshot does not accept query parameters"));
+        // client-go appends its transport deadline as `timeout`, including to
+        // kubectl --raw requests. It does not change snapshot semantics.
+        if q.keys().any(|key| key != "timeout") {
+            return Err(bad(
+                "node CIDR snapshot accepts only the client timeout parameter",
+            ));
         }
         if !api.rbac().await?.allows(
             &user,
