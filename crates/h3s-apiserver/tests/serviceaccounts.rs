@@ -360,3 +360,44 @@ async fn mountable_secret_policy_covers_volumes_environment_and_pull_secrets() {
     value["spec"]["volumes"] = json!([{"name":"s","secret":{"secretName":"allowed"}}]);
     assert_eq!(create(&s, value).await.0, 201);
 }
+
+#[tokio::test]
+async fn controller_repairs_legacy_namespace_with_empty_namespace_metadata() {
+    use h3s_storage::{SqliteStore, Storage, StoreKey, StoredObject};
+    let dir = tempfile::tempdir().unwrap();
+    // Reproduce persisted metadata emitted by a previous Protobuf API version,
+    // before starting the actual API/controller. This is migration fixture data.
+    let store = SqliteStore::open(dir.path().join("registry.db"))
+        .await
+        .unwrap();
+    store.create(StoredObject {
+        key: StoreKey::new("/registry/namespaces/legacy").unwrap(), revision: 0,
+        value: serde_json::to_vec(&json!({"apiVersion":"v1","kind":"Namespace","metadata":{"name":"legacy","namespace":"","uid":"12345678-1234-1234-1234-123456789012"},"status":{"phase":"Active"}})).unwrap(),
+    }).await.unwrap();
+    drop(store);
+    let s = Server::start_with_controllers(dir.path()).await;
+    let ns = "/api/v1/namespaces/legacy";
+    let (_, namespace) = s.json(s.admin(), "GET", ns, json!({})).await;
+    assert!(namespace["metadata"].get("namespace").is_none());
+    let sa = format!("{ns}/serviceaccounts/default");
+    let original = wait_object(&s, &sa, |_| true).await;
+    assert_eq!(
+        s.json(
+            s.admin(),
+            "DELETE",
+            &sa,
+            json!({"preconditions":{"uid":original["metadata"]["uid"]}})
+        )
+        .await
+        .0,
+        200
+    );
+    let repaired = wait_object(&s, &sa, |v| {
+        v["metadata"]["uid"] != original["metadata"]["uid"]
+    })
+    .await;
+    assert_ne!(repaired["metadata"]["uid"], original["metadata"]["uid"]);
+    let (code,created)=s.json(s.admin(),"POST","/api/v1/namespaces",json!({"apiVersion":"v1","kind":"Namespace","metadata":{"name":"empty","namespace":""}})).await;
+    assert_eq!(code, 201, "{created}");
+    assert!(created["metadata"].get("namespace").is_none());
+}

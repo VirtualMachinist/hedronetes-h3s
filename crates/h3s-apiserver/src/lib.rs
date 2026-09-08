@@ -98,6 +98,15 @@ fn object(stored: StoredObject) -> Result<Value> {
             "invalid stored metadata",
         ));
     }
+    // Older Protobuf writes retained namespace="" on cluster-scoped objects.
+    // kube-rs ObjectRef distinguishes Some("") from None; canonicalize reads as
+    // well as new writes so existing registry entries work with controllers.
+    if value["metadata"]["namespace"].as_str() == Some("") {
+        value["metadata"]
+            .as_object_mut()
+            .expect("checked metadata")
+            .remove("namespace");
+    }
     value["metadata"]["resourceVersion"] = stored.revision.to_string().into();
     Ok(value)
 }
@@ -538,6 +547,10 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             {
                 return Err(bad("cluster-scoped resource cannot set namespace"));
             }
+            value["metadata"]
+                .as_object_mut()
+                .expect("named object metadata")
+                .remove("namespace");
         }
     }
     let k = key(format!("{prefix}{name}"))?;

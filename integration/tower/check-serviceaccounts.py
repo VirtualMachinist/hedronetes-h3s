@@ -116,16 +116,28 @@ def main():
                           "public_ca_repaired": True, "serviceaccount_admission": "passed",
                           "token_issuance_verified": False, "containers_executed": False}))
     finally:
+        cleanup_errors = []
         for path, uid in reversed(created):
-            remove(path, uid)
+            try:
+                remove(path, uid)
+            except Exception as error:
+                cleanup_errors.append(str(error))
+        # Always attempt CA restoration, even if removing a separate fixture
+        # failed. Never report successful cleanup when a required action failed.
         if ca_original is not None:
-            current = run("get", "--raw", ca_path)
-            if current["data"]["ca.crt"] != ca_original["data"]["ca.crt"]:
-                require(current["metadata"]["uid"] == ca_original["metadata"]["uid"], "CA object changed identity; do not overwrite")
-                current["data"]["ca.crt"] = ca_original["data"]["ca.crt"]
-                run("replace", "--raw", ca_path, "-f", "-", value=current)
+            try:
+                current = run("get", "--raw", ca_path)
+                if current["data"]["ca.crt"] != ca_original["data"]["ca.crt"]:
+                    require(current["metadata"]["uid"] == ca_original["metadata"]["uid"], "CA object changed identity; do not overwrite")
+                    current["data"]["ca.crt"] = ca_original["data"]["ca.crt"]
+                    run("replace", "--raw", ca_path, "-f", "-", value=current)
+            except Exception as error:
+                cleanup_errors.append(str(error))
+        if cleanup_errors:
+            raise RuntimeError("cleanup failed: " + "; ".join(cleanup_errors))
         print(json.dumps({"run_id": prefix, "cleanup": "passed", "removed": len(created),
                           "controller_default_account_and_ca_retained": True}))
+
 
 
 if __name__ == "__main__":
