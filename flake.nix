@@ -40,20 +40,27 @@
       };
       youki = rustPlatform.buildRustPackage {
         pname = "hedronetes-youki";
-        version = "0.7.0";
+        version = "0.7.0-h3s.1";
         src = pkgs.fetchurl {
           name = "youki-0.7.0.tar.gz";
           url = "https://codeload.github.com/youki-dev/youki/tar.gz/refs/tags/v0.7.0";
           hash = "sha256-9eoB2jvwwx857t6mwPYXb9RjRjFEO8a/xnZUXsEKRhc=";
         };
         cargoLock.lockFile = ./integration/tower/youki-Cargo.lock;
+        patches = [ ./integration/tower/patches/youki-0.7.0-exec-seccomp.patch ];
         nativeBuildInputs = [ pkgs.pkg-config pkgs.getconf ];
         buildInputs = [ pkgs.libseccomp pkgs.elfutils pkgs.zlib ];
         nativeCheckInputs = [ pkgs.jq ];
         cargoBuildFlags = [ "-p" "youki" "--features" "v2,systemd,seccomp,cgroupsv2_devices" ];
         cargoTestFlags = [ "-p" "youki" "--features" "v2,systemd,seccomp,cgroupsv2_devices" ];
+        postCheck = ''
+          cargo test --release --locked --offline -p libcontainer --no-default-features \
+            --features v2,systemd,libseccomp,cgroupsv2_devices container::tenant_builder::tests
+        '';
         postInstall = ''
           install -Dm644 LICENSE "$out/share/licenses/youki/LICENSE"
+          install -Dm644 ${./integration/tower/patches/youki-0.7.0-exec-seccomp.patch} "$out/share/hedronetes/youki-exec-seccomp.patch"
+          install -Dm644 ${./integration/tower/patches/README.md} "$out/share/hedronetes/youki-patches.md"
         '';
         doInstallCheck = true;
         installCheckPhase = ''
