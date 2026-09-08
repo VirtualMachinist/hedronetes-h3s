@@ -916,7 +916,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     };
     if target.resource.kind == "Namespace" && expected.is_some() {
         let stored = object(result.clone())?;
-        if namespace_terminating(&stored) && !namespace_finalizers_pending(&stored) {
+        if namespace_deletion_requested(&stored) && !namespace_finalizers_pending(&stored) {
             api.store.delete(&k, result.revision).await?;
             return Ok(Json(
                 json!({"apiVersion":"v1","kind":"Status","status":"Success","code":200}),
@@ -934,11 +934,10 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     )
         .into_response())
 }
-fn namespace_terminating(obj: &Value) -> bool {
+fn namespace_deletion_requested(obj: &Value) -> bool {
     obj["metadata"]["deletionTimestamp"]
         .as_str()
         .is_some_and(|s| !s.is_empty())
-        || obj["status"]["phase"].as_str() == Some("Terminating")
 }
 fn namespace_finalizers_pending(obj: &Value) -> bool {
     obj["metadata"]["finalizers"]
@@ -961,14 +960,14 @@ async fn delete_namespace(
             "this namespace cannot be deleted",
         ));
     }
-    if namespace_terminating(&obj) && !namespace_finalizers_pending(&obj) {
+    if namespace_deletion_requested(&obj) && !namespace_finalizers_pending(&obj) {
         api.store.delete(&k, current.revision).await?;
         return Ok(
             Json(json!({"apiVersion":"v1","kind":"Status","status":"Success","code":200}))
                 .into_response(),
         );
     }
-    if namespace_terminating(&obj) {
+    if namespace_deletion_requested(&obj) {
         return Ok((StatusCode::OK, Json(obj)).into_response());
     }
     obj["metadata"]["deletionTimestamp"] = now().into();
