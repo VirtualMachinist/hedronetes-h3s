@@ -58,7 +58,8 @@
         doInstallCheck = true;
         installCheckPhase = ''
           "$out/bin/youki" --version
-          "$out/bin/youki" features | jq -e '.linux.cgroup.v2 == true and .linux.cgroup.systemd == true and .linux.seccomp.enabled == true'
+          "$out/bin/youki" features | jq -e '.linux.cgroup.v2 == true and .linux.cgroup.systemd == true'
+          "$out/bin/youki" --version | jq -R -s -e 'test("(?m)^libseccomp: [0-9]+[.][0-9]+[.][0-9]+$")'
         '';
         meta = { platforms = [ system ]; license = pkgs.lib.licenses.asl20; };
       };

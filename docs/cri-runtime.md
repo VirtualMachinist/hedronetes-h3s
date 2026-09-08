@@ -34,8 +34,11 @@ its unchanged Cargo.lock and explicit `v2,systemd,seccomp,cgroupsv2_devices`
 features. It links the pinned Nix libseccomp/ELF/zlib libraries. The upstream
 musl release launched containers but reported no cgroup support and no seccomp;
 the direct fixture caught its missing filter. That artifact is not accepted as
-the runtime. Both package installation and guest configuration now reject a
-youki binary unless its OCI feature report enables v2, systemd and seccomp.
+the runtime. Package installation and guest configuration require OCI-reported
+v2/systemd plus the compile-time libseccomp version banner. Upstream youki 0.7.0
+leaves the OCI seccomp feature field unimplemented, so null there is not evidence
+of absence or presence. The init/exec kernel filter checks remain mandatory;
+a banner alone cannot pass runtime acceptance.
 These versions are newer than the pinned Nixpkgs entries. Install checks launch
 each runtime and the CNI bridge VERSION operation on Linux.
 No global tool or protected lab configuration is changed.

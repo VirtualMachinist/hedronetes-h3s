@@ -12,7 +12,8 @@ done
 [[ -x "$runtime_tools/share/hedronetes/cni-bin/bridge" ]]
 [[ -x "$runtime_tools/share/hedronetes/cni-bin/host-local" ]]
 [[ -x "$runtime_tools/share/hedronetes/cni-bin/loopback" ]]
-"$runtime_tools/bin/youki" features | "$runtime_tools/bin/jq" -e '.linux.cgroup.v2 == true and .linux.cgroup.systemd == true and .linux.seccomp.enabled == true'
+"$runtime_tools/bin/youki" features | "$runtime_tools/bin/jq" -e '.linux.cgroup.v2 == true and .linux.cgroup.systemd == true'
+"$runtime_tools/bin/youki" --version | "$runtime_tools/bin/jq" -R -s -e 'test("(?m)^libseccomp: [0-9]+[.][0-9]+[.][0-9]+$")'
 install -d -m 0700 /var/lib/hedronetes-m1/containerd /var/lib/hedronetes-m1/cni/net.d /var/lib/hedronetes-m1/cni/ipam
 umask 077
 cat > /var/lib/hedronetes-m1/containerd/config.toml <<EOF
