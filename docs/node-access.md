@@ -7,8 +7,9 @@ required. TLS validation and ordinary RBAC still apply; HTTP headers cannot
 supply a node identity.
 
 The [native agent](worker-bootstrap.md) now uses these permissions for token/CSR
-enrollment, Node registration and Lease renewal. The supervisor WebSocket
-tunnel and CRI workload runtime remain unfinished. The agent reports NotReady;
+enrollment, Node registration and Lease renewal. The [supervisor WebSocket transport](supervisor-tunnel.md) uses the same
+node certificate. Kubelet request integration and CRI workload runtime remain
+unfinished. The agent reports NotReady;
 a Node registration or status test does not demonstrate container execution.
 
 ## Supported permissions

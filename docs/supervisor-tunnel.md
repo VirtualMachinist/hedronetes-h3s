@@ -1,0 +1,88 @@
+# Supervisor WebSocket transport
+
+The native worker maintains a rustls WebSocket connection to
+`wss://<server>:6443/v1-h3s/connect`, negotiating `h3s.tunnel.v1`. Its certificate
+comes from native enrollment. No join token, administrator kubeconfig, browser
+Origin or user-selected node-name header is used for this connection.
+
+The transport multiplexes server-initiated byte streams for the worker's local
+kubelet service. The production destination is fixed at `127.0.0.1:10250`; it
+cannot select a different host, arbitrary port, Unix socket or CRI endpoint.
+A one-byte service discriminator and success/refusal acknowledgement precede
+each stream. This transport preserves byte content and TCP-style half-close;
+application TLS and kubelet request authentication remain the responsibility of
+the kubelet/API integration.
+
+**Current boundary:** transport and automatic connection/reconnect are
+implemented. The API's internal `Hub::open_kubelet` is ready for authorized
+kubelet requests, but public node proxy/log/exec integration and the real kubelet
+serving API are not implemented yet. There is no diagnostic HTTP endpoint that
+bypasses those missing authorization checks. With no kubelet listening locally,
+stream opening returns connection refused while the WebSocket stays connected.
+The worker continues to report RuntimeNotReady; an echo fixture in a transport
+test does not qualify as a functioning kubelet or workload.
+
+## Authentication and lifecycle
+
+The API requires a verified certificate identifying `system:node:<name>` in
+`system:nodes`, a persisted native enrollment record, and a registered Node.
+Ordinary clients, administrators and valid but unenrolled node certificates
+cannot attach. Query parameters, Origin, unsupported/missing protocol headers,
+impersonation and bearer headers are rejected. Only one connection/reservation
+per node is permitted: duplicates get 409 until the earlier connection releases.
+
+TLS connection permits remain held across HTTP upgrade. API shutdown cancels
+upgraded sockets as well as ordinary HTTP connections. Failed upgrades,
+disconnects, malformed transport traffic and cancellation release the node
+reservation and its streams. The worker keeps its node identity, retries failed
+connections with 1–30 second exponential backoff, and resets the delay after a
+connection lasts at least a minute. Node/Lease heartbeats and tunnel I/O are
+polled independently so either path can recover without starving the other.
+
+Both peers send WebSocket pings every ten seconds. Only a matching pong refreshes
+the liveness deadline; a stale or silent peer is disconnected after the
+30-second limit is observed by the next tick. Individual blocked transport writes
+are limited to ten seconds. This permits recovery from a dead connection without
+silently replacing an active node session.
+
+## Resource and protocol limits
+
+Yamux 0.14.0 provides stream multiplexing and flow control. Each connection allows
+16 wire streams and at most 4 MiB total receive window (256 KiB initial credit
+per stream). An admission semaphore permits only eight simultaneous caller-held
+streams, leaving headroom for closing streams. Excess opens return WouldBlock
+without opening another wire stream. Cancelled requests are dropped before
+opening a stream. The supervisor holds at most 64 node reservations, within the transport's
+256 TLS connection limit. Pending server opens use a bounded queue. Opening a
+stream, its fixed-service handshake and acknowledgement have a five-second
+budget; the worker's initial request and local TCP connect each have three seconds.
+
+Only binary application WebSocket messages are accepted, with a 64 KiB maximum
+message/frame. The byte bridge buffers 64 KiB per direction and emits 16 KiB
+chunks; the WebSocket write-buffer limit is 128 KiB. Text and oversized messages
+close the connection. Worker-initiated Yamux streams toward the server are a
+protocol error. Transport errors contain no credential or stream payload data.
+There is no compression, redirect-following or ambient proxy configuration.
+The client uses its explicit pinned-CA rustls configuration.
+
+## Verification and remaining work
+
+`cargo test -p h3s-apiserver --test supervisor --locked` uses actual TCP, rustls,
+WebSocket upgrades, the persisted API, native enrollment and real agent logic.
+It verifies authentication/negotiation/duplicate denials; four concurrent streams
+each larger than their receive window; full duplex and half-close; no cross-talk;
+unknown-node and unavailable-target failures; admission capacity, stream churn
+and continued existing traffic; malformed-frame cleanup; and API
+restart with automatic agent reconnect and preserved Node identity. The local
+byte endpoint is explicitly an echo fixture, not a kubelet substitute.
+
+`cargo test -p h3s-supervisor --locked` verifies the stalled-peer deadline with
+controlled time and stale pong rejection. Separate installed two-VM evidence
+must verify the actual connection and recovery, and the later kubelet/workload
+suite must prove its intended API/log/exec traffic. Those requirements remain in
+M1; this transport checkpoint alone does not pass H3S-04.
+
+Primary implementation references: [Yamux connection API](https://docs.rs/yamux/0.14.0/yamux/struct.Connection.html),
+[Yamux window configuration](https://docs.rs/yamux/0.14.0/yamux/struct.Config.html),
+[Axum WebSocket upgrade](https://docs.rs/axum/0.8.9/axum/extract/struct.WebSocketUpgrade.html),
+and [explicit rustls WebSocket connector](https://docs.rs/tokio-tungstenite/0.29.0/tokio_tungstenite/fn.connect_async_tls_with_config.html).

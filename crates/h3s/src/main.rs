@@ -12,7 +12,7 @@ use clap::{Args, Parser, Subcommand};
     about = "Hedronetes (h3s): Kubernetes-compatible cluster distribution in one Rust binary",
     long_about = "k3s, written in Rust, without embedding a Go control plane.\n\n\
          API foundation: use server --disable-agent. \
-         Agents enroll and report NotReady; workload runtime and tunnel are not yet implemented.",
+         Agents enroll with a supervisor tunnel and report NotReady; workload runtime is not yet implemented.",
     multicall = true,
     subcommand_required = true,
     arg_required_else_help = true,

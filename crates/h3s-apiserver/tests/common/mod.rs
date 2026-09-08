@@ -19,6 +19,7 @@ pub struct Server {
     address: std::net::SocketAddr,
     task: tokio::task::JoinHandle<std::io::Result<()>>,
     pub pki: Arc<ClusterPki>,
+    pub supervisor: Arc<h3s_supervisor::Hub>,
 }
 impl Drop for Server {
     fn drop(&mut self) {
@@ -64,6 +65,7 @@ impl Server {
             .unwrap()
             .with_bootstrap(pki.clone(), JOIN_TOKEN)
             .unwrap();
+        let supervisor = api.supervisor();
         let listener = TcpListener::bind(address.unwrap_or_else(|| "127.0.0.1:0".parse().unwrap()))
             .await
             .unwrap();
@@ -96,6 +98,7 @@ impl Server {
             task,
             pki,
             controller,
+            supervisor,
         };
         for ns in ["default", "kube-system", "kube-public", "kube-node-lease"] {
             server.prepare_account(ns).await;

@@ -9,9 +9,11 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+h3s-supervisor = { path = "../h3s-supervisor" }
+tokio-util = { version = "0.7", features = ["rt"] }
 h3s-api = { path = "../h3s-api" }
 h3s-certs = { path = "../h3s-certs" }
-axum = { version = "0.8.9", features = ["http2"] }
+axum = { version = "0.8.9", features = ["http2", "ws"] }
 tokio.workspace = true
 rustls.workspace = true
 tokio-rustls = "0.26.5"
@@ -37,6 +39,7 @@ ipnet = "2"
 percent-encoding = "2.3.2"
 
 [dev-dependencies]
+tokio-tungstenite = { version = "0.29.0", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
 h3s-kubelet = { path = "../h3s-kubelet" }
 rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "x509-parser"] }
 hyper = { version = "1", features = ["client", "http1"] }

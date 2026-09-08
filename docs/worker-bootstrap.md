@@ -5,8 +5,9 @@ registers its own Node, and renews its own Lease every ten seconds. The worker
 creates and retains its private key locally. The server signs a verified CSR;
 neither the CA key nor an administrator credential is sent to the worker.
 
-This implements enrollment and identity persistence. The supervisor tunnel,
-CRI/Pod execution, CNI, service networking and DNS remain unfinished. The agent
+This implements enrollment and identity persistence. The [supervisor transport](supervisor-tunnel.md) now connects automatically;
+its kubelet request integration, CRI/Pod execution, CNI, service networking and
+DNS remain unfinished. The agent
 reports `Ready=False`, reason `RuntimeNotReady`; enrollment does not demonstrate
 running workloads. The server still requires `--disable-agent`.
 

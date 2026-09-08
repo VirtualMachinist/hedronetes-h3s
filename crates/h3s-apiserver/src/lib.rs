@@ -9,6 +9,7 @@ mod selectors;
 mod serviceaccounts;
 mod services;
 mod strategy;
+mod supervisor;
 mod transport;
 mod wire;
 use axum::{
@@ -35,6 +36,7 @@ pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub struct Api {
     store: Arc<dyn Storage>,
     bootstrap: Option<Arc<bootstrap::Bootstrap>>,
+    supervisor: Arc<h3s_supervisor::Hub>,
     admission_writes: Arc<tokio::sync::Mutex<()>>,
 }
 #[derive(Debug)]
@@ -134,6 +136,7 @@ impl Api {
         let api = Self {
             store,
             bootstrap: None,
+            supervisor: Arc::new(h3s_supervisor::Hub::default()),
             admission_writes: Arc::new(tokio::sync::Mutex::new(())),
         };
         for namespace in ["default", "kube-system", "kube-public", "kube-node-lease"] {
@@ -177,6 +180,10 @@ impl Api {
         }
         self.bootstrap = Some(Arc::new(bootstrap::Bootstrap::new(pki, token)));
         Ok(self)
+    }
+    /// Internal handle for authorized kubelet requests and transport verification.
+    pub fn supervisor(&self) -> Arc<h3s_supervisor::Hub> {
+        self.supervisor.clone()
     }
     pub fn router(self) -> Router {
         Router::new().fallback(handle).with_state(Arc::new(self))
@@ -280,6 +287,9 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             "Unauthorized",
             "bearer authentication is not yet implemented",
         ));
+    }
+    if path == "/v1-h3s/connect" {
+        return supervisor::connect(&api, &user, request).await;
     }
     let query: Vec<(String, String)> =
         serde_urlencoded::from_str(request.uri().query().unwrap_or(""))

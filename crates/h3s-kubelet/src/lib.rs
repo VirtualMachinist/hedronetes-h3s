@@ -6,7 +6,7 @@ use h3s_certs::{private, Identity};
 use reqwest::{Client, Method, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::{fs, io::Read, net::IpAddr, path::PathBuf, time::Duration};
+use std::{fs, io::Read, net::IpAddr, path::PathBuf, sync::Arc, time::Duration};
 
 pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 #[derive(Debug, thiserror::Error)]
@@ -50,6 +50,8 @@ pub struct Agent {
     endpoint: Url,
     name: String,
     ip: IpAddr,
+    tunnel_tls: Arc<rustls::ClientConfig>,
+    tunnel_url: String,
 }
 fn invalid(message: &'static str) -> Error {
     Error::Configuration(message)
@@ -191,13 +193,19 @@ impl Agent {
             enrollment.private_key_pem,
         )?;
         let tls = h3s_certs::node_client_config(&ca, &identity, &config.node_name)?;
-        let client = builder().tls_backend_preconfigured(tls).build()?;
+        let client = builder().tls_backend_preconfigured(tls.clone()).build()?;
+        let mut tunnel_endpoint = endpoint.join("v1-h3s/connect").expect("fixed tunnel path");
+        tunnel_endpoint
+            .set_scheme("wss")
+            .map_err(|_| invalid("tunnel URL scheme"))?;
         Ok(Self {
             _lock: lock,
             client,
             endpoint,
             name: config.node_name,
             ip: config.node_ip,
+            tunnel_tls: Arc::new(tls),
+            tunnel_url: tunnel_endpoint.to_string(),
         })
     }
     async fn request(
@@ -287,15 +295,43 @@ impl Agent {
         Ok(())
     }
     pub async fn run(&self) -> Result<()> {
-        let mut interval = tokio::time::interval(Duration::from_secs(10));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-        loop {
-            tokio::select! {
-                _=tokio::signal::ctrl_c()=>return Ok(()),
-                _=interval.tick()=>{
-                    if let Err(error)=self.reconcile().await { eprintln!("h3s agent {}: {error}; retrying",self.name); }
+        let heartbeats = async {
+            let mut interval = tokio::time::interval(Duration::from_secs(10));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            loop {
+                interval.tick().await;
+                if let Err(error) = self.reconcile().await {
+                    eprintln!("h3s agent {}: {error}; retrying", self.name);
                 }
             }
+        };
+        let tunnel = async {
+            let mut delay = 1;
+            loop {
+                let started = tokio::time::Instant::now();
+                let result = h3s_supervisor::run_worker(
+                    &self.tunnel_url,
+                    self.tunnel_tls.clone(),
+                    "127.0.0.1:10250".parse().expect("fixed loopback endpoint"),
+                )
+                .await;
+                if started.elapsed() > Duration::from_secs(60) {
+                    delay = 1;
+                }
+                match result {
+                    Ok(()) => eprintln!("h3s supervisor disconnected; reconnecting in {delay}s"),
+                    Err(error) => eprintln!("h3s supervisor: {error}; reconnecting in {delay}s"),
+                }
+                tokio::time::sleep(Duration::from_secs(delay)).await;
+                delay = (delay * 2).min(30);
+            }
+        };
+        // Network stalls on heartbeats must not stop polling the tunnel, and
+        // a tunnel outage must not stop direct authenticated Node/Lease updates.
+        tokio::select! {
+            _=tokio::signal::ctrl_c()=>Ok(()),
+            _=heartbeats=>Ok(()),
+            _=tunnel=>Ok(()),
         }
     }
 }
