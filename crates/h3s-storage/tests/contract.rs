@@ -315,3 +315,40 @@ async fn unpolled_watch_reads_multiple_durable_batches_without_loss() {
     }
     assert_eq!(store.get(&current.key).await.unwrap(), Some(current));
 }
+
+#[tokio::test]
+async fn replay_retains_previous_live_values_after_compaction_and_reopen() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("db");
+    let store = SqliteStore::open(&path).await.unwrap();
+    let first = store.create(object("a", "before")).await.unwrap();
+    let floor = store
+        .create(object("other", "anchor"))
+        .await
+        .unwrap()
+        .revision;
+    let updated = store
+        .update(object("a", "after"), first.revision)
+        .await
+        .unwrap();
+    store.delete(&updated.key, updated.revision).await.unwrap();
+    let recreated = store.create(object("a", "recreated")).await.unwrap();
+    store.compact(floor).await.unwrap();
+    drop(store);
+    let store = SqliteStore::open(&path).await.unwrap();
+    let mut watch = store
+        .watch(WatchSelect::new("/registry/pods/test/", Some(floor)))
+        .await
+        .unwrap();
+    let modified = next(&mut watch).await;
+    assert_eq!(modified.kind, EventKind::Modified);
+    assert_eq!(modified.previous, Some(first));
+    assert_eq!(modified.object, Some(updated.clone()));
+    let deleted = next(&mut watch).await;
+    assert_eq!(deleted.kind, EventKind::Deleted);
+    assert_eq!(deleted.previous, Some(updated));
+    let added = next(&mut watch).await;
+    assert_eq!(added.kind, EventKind::Added);
+    assert_eq!(added.previous, None);
+    assert_eq!(added.object, Some(recreated));
+}

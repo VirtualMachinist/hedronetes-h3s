@@ -1,6 +1,7 @@
 //! Authenticated Kubernetes API foundation. All registry access belongs here;
 //! future controllers and nodes must use this API rather than write its store.
 mod resources;
+mod selectors;
 mod transport;
 mod wire;
 use axum::{
@@ -15,6 +16,7 @@ use futures_util::StreamExt;
 use h3s_auth::{Rbac, Request as AuthRequest, ResourceRequest};
 use h3s_storage::{EventKind, ListSelect, Storage, StoreKey, StoredObject, WatchSelect};
 use resources::{Target, RESOURCES};
+use selectors::Selection;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{collections::BTreeMap, convert::Infallible, sync::Arc, time::Duration};
@@ -271,13 +273,23 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             ))
         }
     };
+    let selection = Selection::parse(
+        q.get("labelSelector").map(String::as_str).unwrap_or(""),
+        q.get("fieldSelector").map(String::as_str).unwrap_or(""),
+        target.resource.kind,
+    )?
+    .with_name(target.name.as_deref());
     let attrs = AuthRequest::Resource(ResourceRequest {
         verb,
         group: target.resource.group,
         resource: target.resource.plural,
         subresource: None,
         namespace: target.namespace.as_deref(),
-        name: target.name.as_deref(),
+        name: target.name.as_deref().or_else(|| {
+            matches!(verb, "list" | "watch")
+                .then(|| selection.exact_name())
+                .flatten()
+        }),
     });
     if !api.rbac().await?.allows(&user, &attrs) {
         return Err(Failure::new(
@@ -295,20 +307,14 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     {
         return Err(Failure::new(403,"Forbidden","RBAC mutations require the bootstrap administrator until escalation checks are implemented"));
     }
-    // Reject unsupported selection instead of returning an unfiltered result.
-    for field in ["labelSelector", "fieldSelector"] {
-        if q.get(field).is_some_and(|s| !s.is_empty()) {
-            return Err(bad("selectors are not yet implemented"));
-        }
-    }
     if q.contains_key("dryRun") {
         return Err(bad("dryRun is not yet implemented"));
     }
     if verb == "watch" {
-        return watch_response(&api, &target, &q).await;
+        return watch_response(&api, &target, &q, selection).await;
     }
     if verb == "list" {
-        return list_response(&api, &target, &q).await;
+        return list_response(&api, &target, &q, selection).await;
     }
     if target.resource.namespaced && target.namespace.is_none() {
         return Err(bad("namespaced writes and named reads require a namespace"));
@@ -534,6 +540,8 @@ struct Continue {
     revision: u64,
     key: String,
     prefix: String,
+    labels: String,
+    fields: String,
 }
 fn number(q: &BTreeMap<String, String>, name: &str) -> Result<Option<u64>> {
     q.get(name)
@@ -544,53 +552,70 @@ async fn list_response(
     api: &Api,
     target: &Target,
     q: &BTreeMap<String, String>,
+    selection: Selection,
 ) -> Result<Response> {
     let mut sel = ListSelect::new(target.prefix());
     sel.at_revision = number(q, "resourceVersion")?;
-    sel.limit = number(q, "limit")?
+    let limit = number(q, "limit")?
         .filter(|l| *l > 0)
         .unwrap_or(256)
         .min(4096) as usize;
+    let labels = q.get("labelSelector").cloned().unwrap_or_default();
+    let fields = q.get("fieldSelector").cloned().unwrap_or_default();
     if let Some(token) = q.get("continue").filter(|s| !s.is_empty()) {
         let c: Continue = serde_json::from_slice(
             &URL_SAFE_NO_PAD
                 .decode(token)
                 .map_err(|_| bad("invalid continue token"))?,
         )?;
-        if c.prefix != target.prefix() {
-            return Err(bad("continue token scope mismatch"));
+        if c.prefix != target.prefix() || c.labels != labels || c.fields != fields {
+            return Err(bad("continue token scope or selector mismatch"));
+        }
+        if sel
+            .at_revision
+            .is_some_and(|rv| rv != 0 && rv != c.revision)
+        {
+            return Err(bad("continue token resourceVersion mismatch"));
         }
         sel.at_revision = Some(c.revision);
         sel.start_after = Some(key(c.key)?);
     }
-    let page = api.store.list(sel).await?;
-    let next = page
-        .next_after
-        .map(|k| {
-            URL_SAFE_NO_PAD.encode(
-                serde_json::to_vec(&Continue {
-                    revision: page.revision,
-                    key: k.as_str().into(),
-                    prefix: target.prefix(),
-                })
-                .unwrap(),
-            )
-        })
-        .unwrap_or_default();
+    let page = api.store.list(sel.clone()).await?;
+    let revision = page.revision;
+    sel.at_revision = Some(revision);
+    let store = api.store.clone();
+    let prefix = target.prefix();
     let start = format!(
-        "{{\"apiVersion\":{},\"kind\":{},\"metadata\":{},\"items\":[",
+        "{{\"apiVersion\":{},\"kind\":{},\"items\":[",
         json!(target.resource.api_version()),
-        json!(format!("{}List", target.resource.kind)),
-        json!({"resourceVersion":page.revision.to_string(),"continue":next})
+        json!(format!("{}List", target.resource.kind))
     );
-    let stream = async_stream::stream! {
-        yield Ok::<Bytes,Infallible>(Bytes::from(start));
-        for(i,obj)in page.items.into_iter().enumerate(){
-            if i>0{yield Ok(Bytes::from_static(b","));}
-            match object(obj){Ok(value)=>yield Ok(Bytes::from(serde_json::to_vec(&value).unwrap())),Err(_)=>return,}
+    // Continuation is known after filtering. Emit metadata after the streamed
+    // items; JSON object member order is immaterial to Kubernetes clients.
+    let stream = async_stream::try_stream! {
+        yield Bytes::from(start);
+        let mut page=page;let mut returned=0;let mut scanned=0;let mut next=None;
+        'scan: loop {
+            let count=page.items.len();
+            for(i,obj)in page.items.into_iter().enumerate(){
+                scanned+=1;let cursor=obj.key.clone();
+                let value=object(obj).map_err(|_|std::io::Error::other("invalid stored list object"))?;
+                if selection.matches(&value){
+                    if returned>0{yield Bytes::from_static(b",");}
+                    yield Bytes::from(serde_json::to_vec(&value).map_err(std::io::Error::other)?);returned+=1;
+                }
+                if returned>=limit||scanned>=4096{
+                    if i+1<count||page.next_after.is_some(){next=Some(cursor);}break 'scan;
+                }
+            }
+            let Some(cursor)=page.next_after else{break;};sel.start_after=Some(cursor);
+            page=store.list(sel.clone()).await.map_err(|_|std::io::Error::other("registry snapshot unavailable during list"))?;
         }
-        yield Ok(Bytes::from_static(b"]}"));
+        let token=next.map(|k|URL_SAFE_NO_PAD.encode(serde_json::to_vec(&Continue{revision,key:k.as_str().into(),prefix,labels,fields}).expect("continuation JSON"))).unwrap_or_default();
+        yield Bytes::from(format!("],\"metadata\":{}}}",json!({"resourceVersion":revision.to_string(),"continue":token})));
     };
+    let stream: std::pin::Pin<Box<dyn futures_util::Stream<Item = std::io::Result<Bytes>> + Send>> =
+        Box::pin(stream);
     Ok((
         [("content-type", "application/json")],
         Body::from_stream(stream),
@@ -601,10 +626,8 @@ async fn watch_response(
     api: &Api,
     target: &Target,
     q: &BTreeMap<String, String>,
+    selection: Selection,
 ) -> Result<Response> {
-    if target.name.is_some() {
-        return Err(bad("named watches are not yet implemented"));
-    }
     let mut stream = api
         .store
         .watch(WatchSelect::new(
@@ -618,15 +641,27 @@ async fn watch_response(
     let version = target.resource.api_version();
     let bookmarks = q.get("allowWatchBookmarks").is_some_and(|v| v == "true");
     let out = async_stream::stream! {
-        while let Ok(Some(event))=tokio::time::timeout_at(deadline,stream.next()).await {
-            let (wire,done)=match event{
+        while let Ok(Some(event))=tokio::time::timeout_at(deadline,stream.next()).await{
+            let wire=match event{
+                Err(e)=>{yield Ok::<Bytes,Infallible>(Bytes::from(format!("{}\n",json!({"type":"ERROR","object":Failure::from(e).value()}))));break;},
+                Ok(event)if event.kind==EventKind::Bookmark=>{
+                    if !bookmarks{continue;}
+                    json!({"type":"BOOKMARK","object":{"apiVersion":version,"kind":kind,"metadata":{"resourceVersion":event.revision.to_string()}}})
+                },
                 Ok(event)=>{
-                    let typ=match event.kind{EventKind::Added=>"ADDED",EventKind::Modified=>"MODIFIED",EventKind::Deleted=>"DELETED",EventKind::Bookmark=>{if !bookmarks{continue;}"BOOKMARK"}};
-                    let value=match event.object{Some(obj)=>match object(obj){Ok(v)=>v,Err(e)=>{yield Ok::<Bytes,Infallible>(Bytes::from(format!("{}\n",json!({"type":"ERROR","object":e.value()}))));break;}},None=>json!({"apiVersion":version,"kind":kind,"metadata":{"resourceVersion":event.revision.to_string()}})};
-                    (json!({"type":typ,"object":value}),false)
-                },Err(e)=>(json!({"type":"ERROR","object":Failure::from(e).value()}),true),
+                    let converted=(||->Result<_>{Ok((event.object.map(object).transpose()?,event.previous.map(object).transpose()?))})();
+                    let (current,previous)=match converted{Ok(pair)=>pair,Err(e)=>{yield Ok(Bytes::from(format!("{}\n",json!({"type":"ERROR","object":e.value()}))));break;}};
+                    let before=previous.as_ref().is_some_and(|v|selection.matches(v));
+                    let after=event.kind!=EventKind::Deleted&&current.as_ref().is_some_and(|v|selection.matches(v));
+                    let (typ,mut value)=match(before,after){
+                        (false,true)=>("ADDED",current.unwrap()),(true,true)=>("MODIFIED",current.unwrap()),
+                        (true,false)=>("DELETED",previous.unwrap()),(false,false)=>continue,
+                    };
+                    value["metadata"]["resourceVersion"]=event.revision.to_string().into();
+                    json!({"type":typ,"object":value})
+                }
             };
-            yield Ok::<Bytes,Infallible>(Bytes::from(format!("{wire}\n")));if done{break;}
+            yield Ok::<Bytes,Infallible>(Bytes::from(format!("{wire}\n")));
         }
     };
     Ok((

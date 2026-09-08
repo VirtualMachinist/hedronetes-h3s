@@ -140,8 +140,11 @@ impl SqliteStore {
             let (current, floor) = head(&tx)?;
             validate_revision(after, current, floor)?;
             let mut statement = tx.prepare(
-                "SELECT key,revision,value,kind FROM registry_versions
-                WHERE revision>?1 AND substr(key,1,length(?2))=?2 ORDER BY revision LIMIT 256",
+                "SELECT v.key,v.revision,v.value,v.kind,p.revision,p.value,p.kind
+                FROM registry_versions v LEFT JOIN registry_versions p
+                ON p.key=v.key AND p.revision=(SELECT MAX(prior.revision) FROM registry_versions prior
+                    WHERE prior.key=v.key AND prior.revision<v.revision)
+                WHERE v.revision>?1 AND substr(v.key,1,length(?2))=?2 ORDER BY v.revision LIMIT 256",
             )?;
             let rows = statement.query_map(params![revision_i64(after)?, prefix], |r| {
                 let revision = read_revision(r, 1)?;
@@ -150,7 +153,12 @@ impl SqliteStore {
                     1 => EventKind::Modified,
                     _ => EventKind::Deleted,
                 };
+                let previous = match r.get::<_, Option<i64>>(6)? {
+                    Some(0 | 1) => Some(StoredObject { key: StoreKey(r.get(0)?), revision: read_revision(r,4)?, value:r.get(5)? }),
+                    _ => None,
+                };
                 Ok(WatchEvent {
+                    previous,
                     kind,
                     revision,
                     object: Some(StoredObject {
@@ -318,12 +326,12 @@ impl Storage for SqliteStore {
                 if anchor > 0 { loop {
                     let page=store.list(ListSelect { prefix:sel.prefix.clone(),at_revision:Some(anchor),start_after:next,limit:256 }).await?;
                     for object in page.items {
-                        yield WatchEvent { kind:EventKind::Added,revision:object.revision,object:Some(object) };
+                        yield WatchEvent { previous:None,kind:EventKind::Added,revision:object.revision,object:Some(object) };
                     }
                     next=page.next_after;
                     if next.is_none() { break; }
                 }}
-                yield WatchEvent { kind:EventKind::Bookmark,revision:anchor,object:None };
+                yield WatchEvent { previous:None,kind:EventKind::Bookmark,revision:anchor,object:None };
             }
             let mut cursor=anchor;
             let mut bookmark=tokio::time::Instant::now();
@@ -333,7 +341,7 @@ impl Storage for SqliteStore {
                 for event in events { yield event; }
                 cursor=next;
                 if bookmark.elapsed()>=sel.bookmark_interval {
-                    yield WatchEvent { kind:EventKind::Bookmark,revision:cursor,object:None };
+                    yield WatchEvent { previous:None,kind:EventKind::Bookmark,revision:cursor,object:None };
                     bookmark=tokio::time::Instant::now();
                 }
                 if !full { tokio::time::sleep(Duration::from_millis(50)).await; }
