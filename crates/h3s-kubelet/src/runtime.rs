@@ -16,6 +16,12 @@ macro_rules! rpc {
         $e.await.map_err(h3s_cri::Error::from)?.into_inner()
     };
 }
+/// CRI log file name under the Pod log directory. Keep in lockstep with
+/// containerd's log_path assignment so kubectl logs can find the file.
+pub fn container_log_relpath(container_name: &str, attempt: u32) -> String {
+    format!("{container_name}-{attempt}.log")
+}
+
 pub struct Runtime {
     endpoint: String,
     cluster_dns: Option<dns::ClusterDns>,
@@ -46,6 +52,43 @@ impl Runtime {
             probes: tokio::sync::Mutex::new(probe::State::default()),
             seen: std::sync::Mutex::new(HashSet::new()),
         })
+    }
+    /// Absolute log file for a container attempt under this runtime root.
+    pub fn container_log_file(&self, pod_uid: &str, container_name: &str, attempt: u32) -> PathBuf {
+        self.root
+            .join(pod_uid)
+            .join("logs")
+            .join(container_log_relpath(container_name, attempt))
+    }
+    pub fn read_container_log(
+        &self,
+        pod_uid: &str,
+        container_name: &str,
+        attempt: u32,
+    ) -> Result<Vec<u8>> {
+        let path = self.container_log_file(pod_uid, container_name, attempt);
+        std::fs::read(&path).map_err(Error::from)
+    }
+    pub async fn exec_sync(
+        &self,
+        container_id: &str,
+        cmd: Vec<String>,
+        timeout: i64,
+    ) -> Result<ExecSyncResponse> {
+        if container_id.is_empty() || cmd.is_empty() {
+            return Err(invalid("exec requires a container id and command"));
+        }
+        let cri = Cri::connect(&self.endpoint).await?;
+        Ok(cri
+            .runtime()
+            .exec_sync(ExecSyncRequest {
+                container_id: container_id.into(),
+                cmd,
+                timeout,
+            })
+            .await
+            .map_err(h3s_cri::Error::from)?
+            .into_inner())
     }
     pub async fn healthy(&self) -> bool {
         tokio::time::timeout(Duration::from_secs(5), async {
@@ -374,7 +417,7 @@ impl Runtime {
                     .map(|m| m.attempt.saturating_add(1))
                     .unwrap_or(old_restart);
                 config.metadata.as_mut().expect("metadata").attempt = attempt;
-                config.log_path = format!("{container_name}-{attempt}.log");
+                config.log_path = container_log_relpath(container_name, attempt);
                 let env = inputs::env(agent, p, c).await?;
                 let vars: BTreeMap<_, _> = env
                     .iter()
@@ -596,6 +639,67 @@ async fn publish(agent: &Agent, p: &Value, status: Value) -> Result<()> {
     }
     Ok(())
 }
+/// Convert CRI log lines (`timestamp stream P|F message`) or raw bytes into
+/// kubectl log output. Partial (`P`) lines are concatenated until a full (`F`).
+pub fn format_container_log(bytes: &[u8], timestamps: bool, tail_lines: Option<usize>) -> Vec<u8> {
+    let mut lines = Vec::new();
+    let mut partial = String::new();
+    for raw in bytes.split_inclusive(|b| *b == b'\n') {
+        let line = std::str::from_utf8(raw)
+            .unwrap_or("")
+            .trim_end_matches(['\n', '\r']);
+        match parse_cri(line) {
+            Some((ts, tag, content)) => {
+                if tag == "P" {
+                    partial.push_str(content);
+                } else {
+                    let mut body = std::mem::take(&mut partial);
+                    body.push_str(content);
+                    lines.push(if timestamps {
+                        format!("{ts} {body}")
+                    } else {
+                        body
+                    });
+                }
+            }
+            None => {
+                if !partial.is_empty() {
+                    lines.push(std::mem::take(&mut partial));
+                }
+                if !line.is_empty() {
+                    lines.push(line.to_string());
+                }
+            }
+        }
+    }
+    if !partial.is_empty() {
+        lines.push(partial);
+    }
+    if let Some(n) = tail_lines {
+        let start = lines.len().saturating_sub(n);
+        lines = lines.split_off(start);
+    }
+    let mut out = lines.join("\n").into_bytes();
+    if !out.is_empty() {
+        out.push(b'\n');
+    }
+    out
+}
+fn parse_cri(line: &str) -> Option<(&str, &str, &str)> {
+    let (ts, rest) = line.split_once(' ')?;
+    if !ts.contains('T') {
+        return None;
+    }
+    let (stream, rest) = rest.split_once(' ')?;
+    if stream != "stdout" && stream != "stderr" {
+        return None;
+    }
+    let (tag, content) = rest.split_once(' ').unwrap_or((rest, ""));
+    if tag != "P" && tag != "F" {
+        return None;
+    }
+    Some((ts, tag, content))
+}
 fn stamp(ns: i64) -> String {
     time::OffsetDateTime::from_unix_timestamp_nanos(i128::from(ns))
         .unwrap_or(time::OffsetDateTime::UNIX_EPOCH)
@@ -605,6 +709,47 @@ fn stamp(ns: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn container_log_relpath_matches_cri_log_path() {
+        assert_eq!(container_log_relpath("coredns", 0), "coredns-0.log");
+        assert_eq!(container_log_relpath("web", 2), "web-2.log");
+    }
+    #[test]
+    fn read_container_log_returns_bytes_from_runtime_root() {
+        let dir = tempfile::tempdir().unwrap();
+        let runtime = Runtime::new(
+            "unix:///run/hedronetes/containerd/containerd.sock".into(),
+            dir.path().join("pods"),
+            None,
+        )
+        .unwrap();
+        let path = runtime.container_log_file("pod-uid", "web", 1);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"ready\n").unwrap();
+        assert_eq!(
+            runtime.read_container_log("pod-uid", "web", 1).unwrap(),
+            b"ready\n"
+        );
+        assert!(runtime.read_container_log("pod-uid", "missing", 0).is_err());
+    }
+    #[test]
+    fn format_container_log_strips_cri_prefix_and_honors_tail() {
+        let raw = concat!(
+            "2026-01-01T00:00:00.000000000Z stdout F hello\n",
+            "2026-01-01T00:00:01.000000000Z stdout P wo\n",
+            "2026-01-01T00:00:01.100000000Z stdout F rld\n",
+        );
+        assert_eq!(
+            format_container_log(raw.as_bytes(), false, None),
+            b"hello\nworld\n"
+        );
+        assert_eq!(
+            format_container_log(raw.as_bytes(), true, Some(1)),
+            b"2026-01-01T00:00:01.100000000Z world\n"
+        );
+        assert_eq!(format_container_log(b"ready\n", false, None), b"ready\n");
+        assert_eq!(format_container_log(b"", false, None), b"");
+    }
     #[test]
     fn restart_policy_adopts_created_running_and_terminal_containers() {
         for state in [

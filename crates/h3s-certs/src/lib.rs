@@ -60,6 +60,31 @@ impl Identity {
         CertificateDer::from_pem_slice(self.certificate_pem.as_bytes())
             .map_err(|_| Error::Invalid("certificate PEM".into()))
     }
+    /// Wall-clock notAfter from the leaf. Used to replace three-day operator certs.
+    pub fn not_after(&self) -> Result<OffsetDateTime> {
+        let der = self.certificate_der()?;
+        let not_after = {
+            let (_, cert) = X509Certificate::from_der(der.as_ref())
+                .map_err(|error| Error::Invalid(error.to_string()))?;
+            cert.validity().not_after.to_datetime()
+        };
+        Ok(not_after)
+    }
+    pub fn common_name(&self) -> Result<String> {
+        let der = self.certificate_der()?;
+        let (_, cert) = X509Certificate::from_der(der.as_ref())
+            .map_err(|error| Error::Invalid(error.to_string()))?;
+        let mut names = cert.subject().iter_common_name();
+        let attr = names
+            .next()
+            .ok_or_else(|| Error::Invalid("common name".into()))?;
+        let value = attr
+            .as_str()
+            .map_err(|_| Error::Invalid("common name".into()))?
+            .to_owned();
+        drop(names);
+        Ok(value)
+    }
     fn private_key_der(&self) -> Result<PrivateKeyDer<'static>> {
         PrivateKeyDer::from_pem_slice(self.private_key_pem.as_bytes())
             .map_err(|_| Error::Invalid("private key PEM".into()))
@@ -302,13 +327,32 @@ impl ClusterPki {
     /// The authorized join handler chooses node subjects; joining clients cannot
     /// supply arbitrary usernames/groups.
     pub fn issue_client(&self, username: &str, group: Option<&str>) -> Result<Identity> {
-        issue(
+        self.issue_client_with_lifetime(username, group, Duration::days(365))
+    }
+    /// CoreDNS Kubernetes plugin client. Durable default is 365 days, replacing
+    /// the three-day operator-issued checkpoint certificate.
+    pub const COREDNS_CLIENT_NAME: &'static str = "system:coredns";
+    pub fn issue_client_with_lifetime(
+        &self,
+        username: &str,
+        group: Option<&str>,
+        lifetime: Duration,
+    ) -> Result<Identity> {
+        issue_with_lifetime(
             &self.issuer()?,
             username,
             group,
             &[],
             ExtendedKeyUsagePurpose::ClientAuth,
+            lifetime,
         )
+    }
+    pub fn issue_coredns_client(&self) -> Result<Identity> {
+        self.issue_client_with_lifetime(Self::COREDNS_CLIENT_NAME, None, Duration::days(365))
+    }
+    /// Reissue a client leaf with a new lifetime, keeping the common name.
+    pub fn renew_client(&self, existing: &Identity, lifetime: Duration) -> Result<Identity> {
+        self.issue_client_with_lifetime(&existing.common_name()?, None, lifetime)
     }
     /// Verify CSR possession, then replace every requested certificate parameter
     /// with the server's node policy. CSR subjects, CA bits, SANs and usages
@@ -436,7 +480,17 @@ fn issue(
     sans: &[String],
     usage: ExtendedKeyUsagePurpose,
 ) -> Result<Identity> {
-    let mut params = parameters(name, group, sans, Duration::days(365))?;
+    issue_with_lifetime(issuer, name, group, sans, usage, Duration::days(365))
+}
+fn issue_with_lifetime(
+    issuer: &Issuer<impl rcgen::SigningKey>,
+    name: &str,
+    group: Option<&str>,
+    sans: &[String],
+    usage: ExtendedKeyUsagePurpose,
+    lifetime: Duration,
+) -> Result<Identity> {
+    let mut params = parameters(name, group, sans, lifetime)?;
     params.extended_key_usages = vec![usage];
     params.use_authority_key_identifier_extension = true;
     let key = KeyPair::generate()?;

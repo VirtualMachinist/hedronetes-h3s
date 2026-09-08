@@ -192,6 +192,8 @@ impl Target {
         Self::parse_resource(path, None)
             .or_else(|| Self::parse_resource(path.strip_suffix("/status")?, Some("status")))
             .or_else(|| Self::parse_resource(path.strip_suffix("/binding")?, Some("binding")))
+            .or_else(|| Self::parse_resource(path.strip_suffix("/log")?, Some("log")))
+            .or_else(|| Self::parse_resource(path.strip_suffix("/exec")?, Some("exec")))
     }
     fn parse_resource(path: &str, subresource: Option<&'static str>) -> Option<Self> {
         let parts: Vec<_> = path.strip_prefix('/')?.split('/').collect();
@@ -225,6 +227,7 @@ impl Target {
                 || match subresource {
                     Some("status") => !resource.has_status(),
                     Some("binding") => resource.kind != "Pod",
+                    Some("log") | Some("exec") => resource.kind != "Pod",
                     _ => true,
                 })
         {

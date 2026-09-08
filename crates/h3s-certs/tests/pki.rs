@@ -347,3 +347,34 @@ fn valid_legacy_serving_leaf_is_repaired_once_without_changing_trust_key_sans_or
     let _ = ClusterPki::open_or_create(&dir, &names()).unwrap();
     assert_eq!(before, fs::read(&file).unwrap());
 }
+
+#[test]
+fn coredns_client_replaces_three_day_lifetime() {
+    let root = tempfile::tempdir().unwrap();
+    let cluster = pki(&root);
+    let short = cluster
+        .issue_client_with_lifetime("system:coredns", None, time::Duration::days(3))
+        .unwrap();
+    let short_left = short.not_after().unwrap() - time::OffsetDateTime::now_utc();
+    assert!(short_left <= time::Duration::days(4));
+    let durable = cluster.issue_coredns_client().unwrap();
+    assert_eq!(
+        durable.common_name().unwrap(),
+        ClusterPki::COREDNS_CLIENT_NAME
+    );
+    let durable_left = durable.not_after().unwrap() - time::OffsetDateTime::now_utc();
+    assert!(durable_left >= time::Duration::days(360));
+    let renewed = cluster
+        .renew_client(&short, time::Duration::days(365))
+        .unwrap();
+    assert_eq!(renewed.common_name().unwrap(), "system:coredns");
+    assert!(
+        renewed.not_after().unwrap() - time::OffsetDateTime::now_utc() >= time::Duration::days(360)
+    );
+    assert!(strict_verify(
+        root.path(),
+        cluster.ca_pem(),
+        durable.certificate_pem(),
+        "sslclient"
+    ));
+}

@@ -71,7 +71,7 @@ pub struct Agent {
     ca_pem: String,
     agent_dir: PathBuf,
     kubelet_port: std::sync::atomic::AtomicU16,
-    runtime: Option<runtime::Runtime>,
+    runtime: Option<Arc<runtime::Runtime>>,
     ready: Arc<std::sync::atomic::AtomicBool>,
     service_proxy_nft: Option<PathBuf>,
     proxy_ready: Arc<std::sync::atomic::AtomicBool>,
@@ -231,6 +231,7 @@ impl Agent {
                 .runtime_endpoint
                 .map(|endpoint| {
                     runtime::Runtime::new(endpoint, dir.join("pods"), config.cluster_dns)
+                        .map(Arc::new)
                 })
                 .transpose()?,
             ready: Arc::new(std::sync::atomic::AtomicBool::new(false)),
@@ -403,7 +404,13 @@ impl Agent {
         eprintln!(
             "h3s kubelet listening on https://{target}; readiness follows configured CRI health"
         );
-        let serving = service::serve(listener, tls, self.name.clone(), self.ready.clone());
+        let serving = service::serve(
+            listener,
+            tls,
+            self.name.clone(),
+            self.ready.clone(),
+            self.runtime.clone(),
+        );
         let heartbeats = async {
             let mut interval = tokio::time::interval(Duration::from_secs(10));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
