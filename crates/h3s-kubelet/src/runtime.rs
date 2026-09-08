@@ -189,7 +189,7 @@ impl Runtime {
         {
             let hash = format!(
                 "{:x}",
-                Sha256::digest(serde_json::to_vec(c).expect("container JSON"))
+                Sha256::digest(serde_json::to_vec(&json!({"container":c,"podSecurityContext":p["spec"]["securityContext"],"runtimeProfile":"restricted-v1"})).expect("container JSON"))
             );
             let mut labels = pod::labels(&agent.name, uid);
             labels.insert(pod::HASH.into(), hash);

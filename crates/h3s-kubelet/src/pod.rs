@@ -172,8 +172,12 @@ pub fn validate(p: &Value, node: &str) -> Result<()> {
                 "readOnlyRootFilesystem",
                 "capabilities",
                 "seccompProfile",
+                "procMount",
             ],
         )?;
+        if sc["procMount"].as_str().is_some_and(|s| s != "Default") {
+            return Err(invalid("unmasked proc mounts are unsupported"));
+        }
         let uid = sc["runAsUser"]
             .as_i64()
             .or(s["securityContext"]["runAsUser"].as_i64());
@@ -387,6 +391,16 @@ pub fn security(p: &Value, c: &Value) -> LinuxContainerSecurityContext {
             .as_i64()
             .or(ps["runAsGroup"].as_i64())
             .map(|value| Int64Value { value }),
+        masked_paths: masked_paths(),
+        readonly_paths: [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger",
+        ]
+        .map(str::to_owned)
+        .to_vec(),
         no_new_privs: true,
         readonly_rootfs: sc["readOnlyRootFilesystem"].as_bool().unwrap_or(false),
         capabilities: Some(Capability {
@@ -401,6 +415,46 @@ pub fn security(p: &Value, c: &Value) -> LinuxContainerSecurityContext {
     }
 }
 
+// Kubernetes v1.34 DefaultProcMount policy, from pkg/securitycontext/util.go
+// (Apache-2.0). Runtime defaults must be explicit in CRI, not assumed from OCI.
+fn masked_paths() -> Vec<String> {
+    let mut paths = [
+        "/proc/asound",
+        "/proc/acpi",
+        "/proc/interrupts",
+        "/proc/kcore",
+        "/proc/keys",
+        "/proc/latency_stats",
+        "/proc/timer_list",
+        "/proc/timer_stats",
+        "/proc/sched_debug",
+        "/proc/scsi",
+        "/sys/firmware",
+        "/sys/devices/virtual/powercap",
+    ]
+    .map(str::to_owned)
+    .to_vec();
+    if let Ok(cpus) = std::fs::read_dir("/sys/devices/system/cpu") {
+        for cpu in cpus.flatten() {
+            let name = cpu.file_name();
+            let Some(name) = name.to_str() else {
+                continue;
+            };
+            if name
+                .strip_prefix("cpu")
+                .is_some_and(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()))
+            {
+                let path = cpu.path().join("thermal_throttle");
+                if path.exists() {
+                    paths.push(path.to_string_lossy().into_owned());
+                }
+            }
+        }
+    }
+    paths.sort();
+    paths
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -412,6 +466,9 @@ mod tests {
     fn validates_assignment_and_rejects_unimplemented_security_semantics() {
         let p = fixture();
         validate(&p, "worker").unwrap();
+        let security = security(&p, &p["spec"]["containers"][0]);
+        assert!(security.masked_paths.contains(&"/proc/kcore".into()));
+        assert!(security.readonly_paths.contains(&"/proc/sys".into()));
         assert!(validate(&p, "foreign").is_err());
         for (pointer, value) in [
             ("/spec/hostNetwork", json!(true)),

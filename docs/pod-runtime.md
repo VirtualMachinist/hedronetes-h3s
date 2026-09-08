@@ -35,7 +35,10 @@ and CRI error bodies are not written to operator logs or Pod error messages.
 CPU/memory limits translate with exact fixed-point arithmetic into CRI Linux
 resources. The current security implementation requires an explicit non-root
 numeric UID, disabled privilege escalation, dropped ALL capabilities and
-RuntimeDefault seccomp. It preserves requested root-filesystem read-only mode.
+RuntimeDefault seccomp. It preserves requested root-filesystem read-only mode and explicitly supplies the
+Kubernetes v1.34 default masked/read-only proc paths. The container fingerprint
+includes a runtime-profile version and Pod security context, so upgrading these
+defaults replaces containers created with the older profile.
 Image pull policy is honored for public images. Readiness supports exec, TCP and
 HTTP with delay, period, timeout and success/failure thresholds; network probes
 use the runtime-observed Pod IP, never a caller-selected host, credentials,
@@ -79,3 +82,5 @@ The live acceptance manifest records the tested commit/package and the exact
 configuration. Temporary Tower root service installation is not the final
 NixOS module or a portability result. The complete 24-check contract remains
 in Atrium.
+
+Proc policy source: [Kubernetes v1.34 security-context utilities](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/securitycontext/util.go), Apache-2.0.
