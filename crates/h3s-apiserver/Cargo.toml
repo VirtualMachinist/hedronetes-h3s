@@ -30,6 +30,7 @@ h3s-storage = { path = "../h3s-storage" }
 
 prost-reflect = "0.16.5"
 prost = "0.14"
+json-patch = { version = "4.2.0", default-features = false }
 
 [dev-dependencies]
 hyper = { version = "1", features = ["client", "http1"] }

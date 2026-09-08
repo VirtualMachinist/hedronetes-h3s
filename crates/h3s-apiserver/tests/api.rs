@@ -63,8 +63,13 @@ impl Server {
         let mut req = Request::builder()
             .method(method)
             .uri(path)
-            .header("Host", "localhost")
-            .header("Content-Type", "application/json");
+            .header("Host", "localhost");
+        if !headers
+            .iter()
+            .any(|(key, _)| key.eq_ignore_ascii_case("content-type"))
+        {
+            req = req.header("Content-Type", "application/json");
+        }
         for (k, v) in headers {
             req = req.header(*k, *v);
         }
@@ -100,6 +105,26 @@ impl Server {
             .0,
             201
         );
+    }
+    async fn patch(
+        &self,
+        config: rustls::ClientConfig,
+        path: &str,
+        content_type: &str,
+        value: Value,
+    ) -> (u16, Value) {
+        let response = self
+            .raw(
+                config,
+                "PATCH",
+                path,
+                value,
+                &[("Content-Type", content_type)],
+            )
+            .await;
+        let code = response.status().as_u16();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        (code, serde_json::from_slice(&body).unwrap())
     }
     async fn configmap(&self, name: &str, value: &str) -> Value {
         let (status,v)=self.json(self.admin(),"POST","/api/v1/namespaces/team-a/configmaps",json!({"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":name},"data":{"value":value}})).await;
@@ -532,4 +557,166 @@ async fn resource_names_rbac_requires_exact_field_selection_for_list_and_watch()
             .collect();
         assert_eq!(events, vec![json!({"type":"ADDED","object":visible})]);
     }
+}
+
+#[tokio::test]
+async fn patches_preserve_identity_validate_preconditions_and_commit_atomically() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = Server::start(dir.path()).await;
+    s.namespace("team-a").await;
+    let original = s.configmap("settings", "one").await;
+    let path = "/api/v1/namespaces/team-a/configmaps/settings";
+    let merge = "application/merge-patch+json";
+    let json_patch = "application/json-patch+json";
+    let (code, merged) = s
+        .patch(
+            s.admin(),
+            path,
+            merge,
+            json!({"data":{"value":null,"next":"two"},"metadata":{"labels":{"app":"web"}}}),
+        )
+        .await;
+    assert_eq!(code, 200, "{merged}");
+    assert_eq!(merged["data"], json!({"next":"two"}));
+    assert_eq!(merged["metadata"]["uid"], original["metadata"]["uid"]);
+    assert_eq!(
+        merged["metadata"]["creationTimestamp"],
+        original["metadata"]["creationTimestamp"]
+    );
+    assert_ne!(
+        merged["metadata"]["resourceVersion"],
+        original["metadata"]["resourceVersion"]
+    );
+    let operations = json!([
+        {"op":"test","path":"/metadata/resourceVersion","value":merged["metadata"]["resourceVersion"]},
+        {"op":"copy","from":"/data/next","path":"/data/copy"},
+        {"op":"move","from":"/data/copy","path":"/data/moved"},
+        {"op":"remove","path":"/data/next"},
+        {"op":"add","path":"/metadata/annotations","value":{"example.org/key":"old"}},
+        {"op":"replace","path":"/metadata/annotations/example.org~1key","value":"new"}
+    ]);
+    let (code, patched) = s.patch(s.admin(), path, json_patch, operations).await;
+    assert_eq!(code, 200, "{patched}");
+    assert_eq!(patched["data"], json!({"moved":"two"}));
+    assert_eq!(patched["metadata"]["annotations"]["example.org/key"], "new");
+    for (content_type, value, expected) in [
+        (
+            json_patch,
+            json!([{"op":"add","path":"/data/transient","value":"must roll back"},{"op":"test","path":"/data/moved","value":"wrong"}]),
+            422,
+        ),
+        (
+            merge,
+            json!({"metadata":{"resourceVersion":original["metadata"]["resourceVersion"]}}),
+            409,
+        ),
+        (merge, json!({"metadata":{"name":"renamed"}}), 400),
+        (merge, json!({"metadata":{"namespace":"default"}}), 400),
+        (merge, json!({"metadata":{"uid":"different"}}), 409),
+        (merge, json!({"metadata":{"resourceVersion":42}}), 422),
+        (merge, json!({"data":{"moved":42}}), 422),
+        (merge, json!({"metadata":null}), 422),
+        ("application/apply-patch+yaml", json!({}), 415),
+        ("application/strategic-merge-patch+json", json!({}), 415),
+    ] {
+        let (code, failure) = s.patch(s.admin(), path, content_type, value).await;
+        assert_eq!(code, expected, "{failure}");
+        assert_eq!(s.json(s.admin(), "GET", path, json!({})).await.1, patched);
+    }
+    let (code, _) = s
+        .patch(
+            s.admin(),
+            "/api/v1/namespaces/team-a/configmaps/missing",
+            merge,
+            json!({"data":{"x":"y"}}),
+        )
+        .await;
+    assert_eq!(code, 404);
+    // Two patches of the same observed revision may never overwrite each other.
+    let left = json!({"metadata":{"resourceVersion":patched["metadata"]["resourceVersion"]},"data":{"winner":"left"}});
+    let right = json!({"metadata":{"resourceVersion":patched["metadata"]["resourceVersion"]},"data":{"winner":"right"}});
+    let (a, b) = tokio::join!(
+        s.patch(s.admin(), path, merge, left),
+        s.patch(s.admin(), path, merge, right)
+    );
+    assert!(matches!((a.0, b.0), (200, 409) | (409, 200)));
+}
+
+#[tokio::test]
+async fn patch_authorization_is_distinct_from_update_and_cannot_escalate_rbac() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = Server::start(dir.path()).await;
+    s.namespace("team-a").await;
+    let obj = s.configmap("settings", "original").await;
+    let base = "/apis/rbac.authorization.k8s.io/v1/namespaces/team-a";
+    let role = json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role","metadata":{"name":"patcher"},"rules":[{"apiGroups":["*"],"resources":["configmaps","roles"],"verbs":["patch"]}]});
+    let binding = json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"RoleBinding","metadata":{"name":"patcher"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"Role","name":"patcher"},"subjects":[{"apiGroup":"rbac.authorization.k8s.io","kind":"User","name":"patcher"}]});
+    assert_eq!(
+        s.json(s.admin(), "POST", &format!("{base}/roles"), role)
+            .await
+            .0,
+        201
+    );
+    assert_eq!(
+        s.json(s.admin(), "POST", &format!("{base}/rolebindings"), binding)
+            .await
+            .0,
+        201
+    );
+    let cert = s.pki.issue_client("patcher", None).unwrap();
+    let client = || s.pki.client_config(Some(&cert)).unwrap();
+    let path = "/api/v1/namespaces/team-a/configmaps/settings";
+    assert_eq!(s.json(client(), "PUT", path, obj).await.0, 403);
+    assert_eq!(
+        s.patch(
+            client(),
+            path,
+            "application/merge-patch+json",
+            json!({"data":{"value":"patched"}})
+        )
+        .await
+        .0,
+        200
+    );
+    assert_eq!(
+        s.patch(
+            client(),
+            &format!("{base}/roles/patcher"),
+            "application/merge-patch+json",
+            json!({"rules":[{"apiGroups":["*"],"resources":["*"],"verbs":["*"]}]})
+        )
+        .await
+        .0,
+        403
+    );
+    assert_eq!(
+        s.patch(
+            client(),
+            "/api/v1/namespaces/default/configmaps/settings",
+            "application/merge-patch+json",
+            json!({})
+        )
+        .await
+        .0,
+        403
+    );
+}
+
+#[tokio::test]
+async fn patch_growth_is_bounded_before_persistence() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = Server::start(dir.path()).await;
+    s.namespace("team-a").await;
+    let original = s.configmap("settings", &"x".repeat(1024 * 1024)).await;
+    let path = "/api/v1/namespaces/team-a/configmaps/settings";
+    let (code, failure) = s
+        .patch(
+            s.admin(),
+            path,
+            "application/json-patch+json",
+            json!([{"op":"copy","from":"/data/value","path":"/data/duplicate"}]),
+        )
+        .await;
+    assert_eq!(code, 413, "{failure}");
+    assert_eq!(s.json(s.admin(), "GET", path, json!({})).await.1, original);
 }

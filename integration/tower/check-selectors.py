@@ -89,10 +89,23 @@ def main():
         require(listed["items"] == [changed], "stock kubectl selected list differs")
         named = raw({"fieldSelector": f"metadata.name={entered['metadata']['name']}"})
         require(named["items"] == [changed], "exact-name field selector differs")
+        name = changed["metadata"]["name"]
+        merged = json.loads(run("patch", "configmap", name, "-n", args.namespace,
+                                "--type=merge", "-p", json.dumps({"data": {"value": None, "patched": "merge"}}),
+                                "-o", "json"))
+        require(merged["data"] == {"patched": "merge"}, "stock merge patch differs")
+        operations = [{"op": "test", "path": "/metadata/resourceVersion",
+                       "value": merged["metadata"]["resourceVersion"]},
+                      {"op": "replace", "path": "/data/patched", "value": "json"}]
+        patched = json.loads(run("patch", "configmap", name, "-n", args.namespace,
+                                 "--type=json", "-p", json.dumps(operations), "-o", "json"))
+        require(patched["data"] == {"patched": "json"}, "stock JSON patch differs")
+        require(patched["metadata"]["uid"] == owned[name], "patch changed object identity")
         print(json.dumps({"run_id": run_id, "result": "passed", "snapshot_resource_version": rv,
                           "watch_types": [event["type"] for event in events],
                           "checks": ["filtered snapshot pagination", "watch selector transitions",
-                                     "stock kubectl list pager", "exact-name field selection"]}))
+                                     "stock kubectl list pager", "exact-name field selection",
+                                     "stock merge patch", "stock JSON patch with precondition"]}))
     finally:
         for name, uid in owned.items():
             # Enforce UID preconditions at the API, not a racy get-then-delete.

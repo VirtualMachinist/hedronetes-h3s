@@ -1,5 +1,6 @@
 //! Authenticated Kubernetes API foundation. All registry access belongs here;
 //! future controllers and nodes must use this API rather than write its store.
+mod patch;
 mod resources;
 mod selectors;
 mod transport;
@@ -264,6 +265,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         ("GET", false, _) => "list",
         ("POST", false, _) => "create",
         ("PUT", true, _) => "update",
+        ("PATCH", true, _) => "patch",
         ("DELETE", true, _) => "delete",
         _ => {
             return Err(Failure::new(
@@ -302,7 +304,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         ));
     }
     if target.resource.group == "rbac.authorization.k8s.io"
-        && ["create", "update", "delete"].contains(&verb)
+        && ["create", "update", "patch", "delete"].contains(&verb)
         && !user.is_superuser()
     {
         return Err(Failure::new(403,"Forbidden","RBAC mutations require the bootstrap administrator until escalation checks are implemented"));
@@ -348,7 +350,46 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             "request body exceeds limit or failed to read",
         )
     })?;
-    let mut value = wire::decode(&bytes, &content_type)?;
+    let mut value = if verb == "patch" {
+        let k = key(format!("{prefix}{}", target.name.as_ref().unwrap()))?;
+        let current = api
+            .store
+            .get(&k)
+            .await?
+            .ok_or_else(|| Failure::new(404, "NotFound", "object not found"))?;
+        let revision = current.revision.to_string();
+        let mut patched = patch::apply(object(current)?, &bytes, &content_type)?;
+        if !patched.is_object() || !patched["metadata"].is_object() {
+            return Err(Failure::new(
+                422,
+                "Invalid",
+                "patch must preserve object metadata",
+            ));
+        }
+        if !patched["metadata"]["resourceVersion"].is_null()
+            && !patched["metadata"]["resourceVersion"].is_string()
+        {
+            return Err(Failure::new(
+                422,
+                "Invalid",
+                "resourceVersion must be a string",
+            ));
+        }
+        if patched["metadata"]["resourceVersion"]
+            .as_str()
+            .is_some_and(|rv| rv != revision)
+        {
+            return Err(Failure::new(
+                409,
+                "Conflict",
+                "patch resourceVersion precondition failed",
+            ));
+        }
+        patched["metadata"]["resourceVersion"] = revision.into();
+        patched
+    } else {
+        wire::decode(&bytes, &content_type)?
+    };
     if verb == "delete" {
         let k = key(format!("{prefix}{}", target.name.as_ref().unwrap()))?;
         let current = api
@@ -434,7 +475,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         }
     }
     let k = key(format!("{prefix}{name}"))?;
-    let expected = if verb == "update" {
+    let expected = if matches!(verb, "update" | "patch") {
         let rv = value["metadata"]["resourceVersion"]
             .as_str()
             .ok_or_else(|| bad("update requires metadata.resourceVersion"))?
@@ -495,6 +536,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         }
     }
     let value = target.resource.normalize(value)?;
+    patch::check_size(&value)?;
     let obj = stored(k, &value)?;
     let result = match expected {
         Some(rv) => api.store.update(obj, rv).await?,
@@ -532,7 +574,7 @@ fn discovery(path: &str) -> Option<Value> {
         _ => return None,
     };
     Some(
-        json!({"apiVersion":"v1","kind":"APIResourceList","groupVersion":gv,"resources":RESOURCES.iter().filter(|r|r.api_version()==gv).map(|r|json!({"name":r.plural,"singularName":r.kind.to_ascii_lowercase(),"namespaced":r.namespaced,"kind":r.kind,"verbs":if r.kind=="Namespace"{vec!["get","list","watch","create","update"]}else{vec!["get","list","watch","create","update","delete"]}})).collect::<Vec<_>>()}),
+        json!({"apiVersion":"v1","kind":"APIResourceList","groupVersion":gv,"resources":RESOURCES.iter().filter(|r|r.api_version()==gv).map(|r|json!({"name":r.plural,"singularName":r.kind.to_ascii_lowercase(),"namespaced":r.namespaced,"kind":r.kind,"verbs":if r.kind=="Namespace"{vec!["get","list","watch","create","update","patch"]}else{vec!["get","list","watch","create","update","patch","delete"]}})).collect::<Vec<_>>()}),
     )
 }
 #[derive(Serialize, Deserialize)]
