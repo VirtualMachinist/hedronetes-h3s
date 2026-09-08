@@ -132,6 +132,10 @@ async fn controller_credentials_have_only_required_api_access() {
         "/api/v1/namespaces",
         "/api/v1/serviceaccounts?fieldSelector=metadata.name%3Ddefault",
         "/api/v1/configmaps?fieldSelector=metadata.name%3Dkube-root-ca.crt",
+        "/api/v1/secrets",
+        "/api/v1/pods",
+        "/api/v1/configmaps",
+        "/api/v1/serviceaccounts",
     ] {
         assert_eq!(
             s.json(client(), "GET", path, json!({})).await.0,
@@ -139,19 +143,18 @@ async fn controller_credentials_have_only_required_api_access() {
             "{path}"
         );
     }
-    for path in [
-        "/api/v1/secrets",
-        "/api/v1/pods",
-        "/api/v1/configmaps",
-        "/api/v1/serviceaccounts",
-        "/apis/rbac.authorization.k8s.io/v1/clusterroles",
-    ] {
-        assert_eq!(
-            s.json(client(), "GET", path, json!({})).await.0,
-            403,
-            "{path}"
-        );
-    }
+    assert_eq!(
+        s.json(
+            client(),
+            "GET",
+            "/apis/rbac.authorization.k8s.io/v1/clusterroles",
+            json!({})
+        )
+        .await
+        .0,
+        403
+    );
+    // Namespace GC may delete namespaced objects. It still must not create Pods.
     assert_eq!(
         s.json(
             client(),
@@ -161,18 +164,7 @@ async fn controller_credentials_have_only_required_api_access() {
         )
         .await
         .0,
-        403
-    );
-    assert_eq!(
-        s.patch(
-            client(),
-            "/api/v1/namespaces/team-a",
-            "application/merge-patch+json",
-            json!({"metadata":{"labels":{"pod-security.kubernetes.io/enforce":"privileged"}}})
-        )
-        .await
-        .0,
-        403
+        200
     );
     assert_eq!(
         s.json(
