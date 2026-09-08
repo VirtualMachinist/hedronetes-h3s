@@ -7,7 +7,9 @@ fn invalid(message: &str) -> Failure {
     Failure::new(422, "Invalid", message)
 }
 fn default(value: &mut Value, key: &str, fallback: Value) {
-    if value.get(key).is_none_or(Value::is_null) {
+    if value.get(key).is_none_or(Value::is_null)
+        || (fallback.is_string() && value[key].as_str() == Some(""))
+    {
         value[key] = fallback;
     }
 }
@@ -346,6 +348,9 @@ fn service(spec: &mut Value) -> Result<()> {
     for port in ports {
         valid_port(&port["port"])?;
         let target = port["port"].clone();
+        if port["targetPort"] == 0 {
+            port["targetPort"] = Value::Null;
+        }
         default(port, "targetPort", target);
         if port["targetPort"].is_number() {
             valid_port(&port["targetPort"])?;

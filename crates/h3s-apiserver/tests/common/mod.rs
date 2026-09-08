@@ -50,6 +50,23 @@ impl Server {
         body: Value,
         headers: &[(&str, &str)],
     ) -> Response<Incoming> {
+        self.raw_bytes(
+            config,
+            method,
+            path,
+            serde_json::to_vec(&body).unwrap(),
+            headers,
+        )
+        .await
+    }
+    pub async fn raw_bytes(
+        &self,
+        config: rustls::ClientConfig,
+        method: &str,
+        path: &str,
+        body: Vec<u8>,
+        headers: &[(&str, &str)],
+    ) -> Response<Incoming> {
         let socket = TcpStream::connect(self.address).await.unwrap();
         let tls = TlsConnector::from(Arc::new(config))
             .connect(ServerName::try_from("localhost").unwrap(), socket)
@@ -75,10 +92,7 @@ impl Server {
             req = req.header(*k, *v);
         }
         sender
-            .send_request(
-                req.body(Full::new(Bytes::from(serde_json::to_vec(&body).unwrap())))
-                    .unwrap(),
-            )
+            .send_request(req.body(Full::new(Bytes::from(body))).unwrap())
             .await
             .unwrap()
     }

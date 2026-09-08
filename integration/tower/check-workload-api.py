@@ -43,7 +43,7 @@ def main():
         if not cluster:
             metadata["namespace"] = args.namespace
         value = {"apiVersion": version, "kind": kind, "metadata": metadata, **fields}
-        # Normal kubectl creation exercises its negotiated Protobuf write path.
+        # File-based kubectl creation exercises its dynamic resource client.
         obj = json.loads(run("create", "--validate=false", "-f", "-", "-o", "json", value=value))
         base = "/api/v1" if version == "v1" else f"/apis/{version}"
         path = base + ("" if cluster else f"/namespaces/{ns}") + f"/{plural}/{quote(name, safe='')}"
@@ -72,13 +72,20 @@ def main():
         require(bound["status"] == "Success", "Pod binding failed")
         pod = json.loads(run("get", "--raw", pod_path))
         require(pod["spec"]["nodeName"] == node["metadata"]["name"], "Pod binding was not persisted")
+        # The typed create generator uses a different wire path from create -f.
+        typed_name = prefix + "-typed"
+        typed = json.loads(run("create", "deployment", typed_name, "-n", args.namespace,
+                               "--image=registry.k8s.io/pause:3.10", "--replicas=2", "-o", "json"))
+        typed_path = f"/apis/apps/v1/namespaces/{ns}/deployments/{typed_name}"
+        created.append((typed_path, typed["metadata"]["uid"]))
+        require(typed["spec"]["template"]["spec"]["restartPolicy"] == "Always", "typed deployment defaulting failed")
         # Report observedGeneration without claiming replicas are running.
         deployment["status"] = {"observedGeneration": deployment["metadata"]["generation"]}
         reported = json.loads(run("replace", "--raw", deployment_path + "/status", "-f", "-", value=deployment))
         require(reported["status"]["observedGeneration"] == deployment["metadata"]["generation"], "status update failed")
         require(reported["spec"] == deployment["spec"], "status changed desired state")
         print(json.dumps({"run_id": prefix, "result": "passed", "api_object_count": len(created),
-                          "checks": ["stock typed/Protobuf create and read", "Pod defaults and binding", "Deployment status", "ClusterIP assignment", "encoded RBAC name"],
+                          "checks": ["stock file-based create and read", "Pod defaults and binding", "Deployment status", "ClusterIP assignment", "encoded RBAC name", "typed Deployment create"],
                           "containers_executed": False, "worker_join_verified": False}))
     finally:
         for path, uid in reversed(created):

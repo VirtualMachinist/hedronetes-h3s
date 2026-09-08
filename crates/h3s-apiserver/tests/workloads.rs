@@ -1,5 +1,6 @@
 mod common;
 use common::Server;
+use http_body_util::BodyExt;
 use serde_json::{json, Value};
 
 fn pod(name: &str) -> Value {
@@ -10,6 +11,33 @@ fn deployment(kind: &str, name: &str) -> Value {
 }
 fn service(name: &str) -> Value {
     json!({"apiVersion":"v1","kind":"Service","metadata":{"name":name},"spec":{"selector":{"app":"web"},"ports":[{"port":80}]}})
+}
+
+#[tokio::test]
+async fn stock_kubectl_protobuf_deployment_applies_empty_scalar_defaults() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = Server::start(dir.path()).await;
+    s.namespace("api-smoke").await;
+    let response = s
+        .raw_bytes(
+            s.admin(),
+            "POST",
+            "/apis/apps/v1/namespaces/api-smoke/deployments",
+            include_bytes!("fixtures/kubectl-deployment.pb").to_vec(),
+            &[("Content-Type", "application/vnd.kubernetes.protobuf")],
+        )
+        .await;
+    let code = response.status().as_u16();
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let object: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(code, 201, "{object}");
+    assert_eq!(object["spec"]["replicas"], 2);
+    assert_eq!(object["spec"]["strategy"]["type"], "RollingUpdate");
+    let spec = &object["spec"]["template"]["spec"];
+    assert_eq!(spec["restartPolicy"], "Always");
+    assert_eq!(spec["dnsPolicy"], "ClusterFirst");
+    assert_eq!(spec["schedulerName"], "default-scheduler");
+    assert_eq!(spec["containers"][0]["imagePullPolicy"], "IfNotPresent");
 }
 
 #[tokio::test]
