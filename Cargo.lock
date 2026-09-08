@@ -886,6 +886,7 @@ dependencies = [
 name = "h3s-api"
 version = "0.1.0-dev"
 dependencies = [
+ "ipnet",
  "serde",
 ]
 
@@ -977,6 +978,8 @@ version = "0.1.0-dev"
 dependencies = [
  "chrono",
  "futures-util",
+ "h3s-api",
+ "http",
  "k8s-openapi",
  "kube",
  "serde",

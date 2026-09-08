@@ -69,6 +69,12 @@ struct ServerArgs {
     tls_san: Vec<String>,
     #[arg(long, default_value = "/etc/hedronetes/h3s.yaml")]
     write_kubeconfig: std::path::PathBuf,
+    /// Private IPv4 Pod network, disjoint from the Service range.
+    #[arg(long, default_value = "10.42.0.0/16")]
+    cluster_cidr: String,
+    /// Each node receives one immutable subnet of the Pod network.
+    #[arg(long, default_value_t = 24)]
+    node_cidr_mask_size: u8,
     /// Run the API without a local agent (required while node runtime is incomplete).
     #[arg(long)]
     disable_agent: bool,
@@ -211,6 +217,8 @@ async fn run_server(args: ServerArgs) -> RunResult {
     let store = std::sync::Arc::new(h3s_storage::SqliteStore::open(db_dir.join("h3s.db")).await?);
     let api = h3s_apiserver::Api::new(store)
         .await?
+        .with_node_cidrs(&args.cluster_cidr, args.node_cidr_mask_size)
+        .await?
         .with_bootstrap(pki.clone(), &token)?;
     let listener =
         tokio::net::TcpListener::bind((args.bind_address, args.https_listen_port)).await?;
@@ -242,11 +250,13 @@ async fn run_server(args: ServerArgs) -> RunResult {
         h3s_controllers::REPLICASET_CONTROLLER_ID,
         h3s_controllers::WORKLOAD_GC_ID,
         h3s_controllers::ENDPOINT_CONTROLLER_ID,
+        h3s_controllers::NODE_CIDR_CONTROLLER_ID,
     ] {
         let identity = pki.issue_client(identity, None)?;
         let config = pki.kubeconfig(&endpoint, &identity)?;
         workload_clients.push(h3s_controllers::client_from_kubeconfig(&config).await?);
     }
+    let node_cidr_client = workload_clients.pop().unwrap();
     let endpoint_client = workload_clients.pop().unwrap();
     let gc_client = workload_clients.pop().unwrap();
     let rs_client = workload_clients.pop().unwrap();
@@ -256,6 +266,7 @@ async fn run_server(args: ServerArgs) -> RunResult {
     });
     tokio::select! {
         result = server => result?,
+        result = h3s_controllers::run_node_cidr_controller(node_cidr_client) => result?,
         result = h3s_controllers::run_endpoint_controller(endpoint_client) => result?,
         result = h3s_controllers::run_deployment_controller(deployment_client) => result?,
         result = h3s_controllers::run_replicaset_controller(rs_client) => result?,

@@ -3,6 +3,7 @@
 mod admission;
 mod bootstrap;
 mod kubelet;
+mod node_cidrs;
 mod nodes;
 mod patch;
 mod resources;
@@ -37,6 +38,7 @@ pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub struct Api {
     store: Arc<dyn Storage>,
     bootstrap: Option<Arc<bootstrap::Bootstrap>>,
+    node_cidrs: Option<h3s_api::network::NodeCidrAllocations>,
     supervisor: Arc<h3s_supervisor::Hub>,
     admission_writes: Arc<tokio::sync::Mutex<()>>,
 }
@@ -137,6 +139,7 @@ impl Api {
         let api = Self {
             store,
             bootstrap: None,
+            node_cidrs: None,
             supervisor: Arc::new(h3s_supervisor::Hub::default()),
             admission_writes: Arc::new(tokio::sync::Mutex::new(())),
         };
@@ -219,6 +222,42 @@ impl Api {
             Ok(_) | Err(h3s_storage::Error::AlreadyExists(_)) => Ok(()),
             Err(e) => Err(e),
         }
+    }
+    /// Enable durable IPv4 node allocation before serving requests. Existing
+    /// reservations and Node allocations are checked before the listener starts.
+    pub async fn with_node_cidrs(
+        mut self,
+        cluster_cidr: &str,
+        node_prefix: u8,
+    ) -> std::result::Result<Self, String> {
+        let configured = h3s_api::network::NodeCidrAllocations::new(cluster_cidr, node_prefix)?;
+        let _write = self.admission_writes.lock().await;
+        node_cidrs::initialize(&self.store, &configured)
+            .await
+            .map_err(|e| e.message)?;
+        for (name, rules, subject) in [
+            (
+                "h3s-node-cidr-controller",
+                json!([
+                    {"apiGroups":[""],"resources":["nodes"],"verbs":["get","list","patch"]},
+                    {"nonResourceURLs":[h3s_api::network::NODE_CIDR_PATH],"verbs":["get"]}
+                ]),
+                json!({"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":h3s_api::network::NODE_CIDR_CONTROLLER_ID}),
+            ),
+            (
+                "h3s-network-topology",
+                json!([
+                    {"apiGroups":[""],"resources":["nodes"],"verbs":["get","list","watch"]}
+                ]),
+                json!({"kind":"Group","apiGroup":"rbac.authorization.k8s.io","name":"system:nodes"}),
+            ),
+        ] {
+            self.bootstrap(format!("/registry/clusterroles/{name}"),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":name},"rules":rules})).await.map_err(|e| e.to_string())?;
+            self.bootstrap(format!("/registry/clusterrolebindings/{name}"),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":name},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":name},"subjects":[subject]})).await.map_err(|e| e.to_string())?;
+        }
+        self.node_cidrs = Some(configured);
+        drop(_write);
+        Ok(self)
     }
     pub fn with_bootstrap(
         mut self,
@@ -358,6 +397,39 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         if q.insert(k, v).is_some() {
             return Err(bad("duplicate query parameter"));
         }
+    }
+    if path == h3s_api::network::NODE_CIDR_PATH {
+        if method != "GET" {
+            return Err(Failure::new(
+                405,
+                "MethodNotAllowed",
+                "node CIDR ledger is read-only",
+            ));
+        }
+        if !q.is_empty() {
+            return Err(bad("node CIDR snapshot does not accept query parameters"));
+        }
+        if !api.rbac().await?.allows(
+            &user,
+            &AuthRequest::NonResource {
+                verb: "get",
+                path: &path,
+            },
+        ) {
+            return Err(Failure::new(
+                403,
+                "Forbidden",
+                "node CIDR snapshot access denied",
+            ));
+        }
+        let configured = api.node_cidrs.as_ref().ok_or_else(|| {
+            Failure::new(
+                503,
+                "ServiceUnavailable",
+                "node CIDR allocation is not configured",
+            )
+        })?;
+        return Ok(Json(node_cidrs::snapshot(&api.store, configured).await?).into_response());
     }
     if let Some(discovery) = discovery(&path) {
         if method != "GET" {
@@ -703,6 +775,13 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             .get(&k)
             .await?
             .ok_or_else(|| Failure::new(404, "NotFound", "object not found"))?;
+        if old.revision != rv {
+            return Err(Failure::new(
+                409,
+                "Conflict",
+                "resourceVersion precondition failed",
+            ));
+        }
         let old = object(old)?;
         if value["metadata"]["uid"]
             .as_str()
@@ -777,6 +856,15 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     }
     nodes::admit(&user, &target, verb, &value, old_value.as_ref())?;
     patch::check_size(&value)?;
+    if target.resource.kind == "Node" {
+        if let Some(configured) = &api.node_cidrs {
+            // Do not reserve a subnet for a duplicate create that will fail.
+            if expected.is_none() && api.store.get(&k).await?.is_some() {
+                return Err(Failure::new(409, "AlreadyExists", "Node already exists"));
+            }
+            node_cidrs::admit(&api.store, configured, &value, old_value.as_ref()).await?;
+        }
+    }
     let obj = stored(k, &value)?;
     let result = match expected {
         Some(rv) => api.store.update(obj, rv).await?,

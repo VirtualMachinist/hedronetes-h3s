@@ -1,6 +1,8 @@
 //! In-tree kube-rs reconciliation. This crate has no registry storage dependency.
+mod node_cidrs;
 mod workload;
 use futures_util::StreamExt;
+pub use h3s_api::network::NODE_CIDR_CONTROLLER_ID;
 use k8s_openapi::api::core::v1::{ConfigMap, Namespace, ServiceAccount};
 use kube::{
     api::{ObjectMeta, PostParams},
@@ -8,6 +10,7 @@ use kube::{
     runtime::{controller::Action, reflector::ObjectRef, watcher, Controller},
     Api, Client, Config, ResourceExt,
 };
+pub use node_cidrs::{node_cidrs_once, run_node_cidr_controller};
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 pub use workload::{
     deployment_once, endpoint_gc_once, endpoints_once, gc_once, replicaset_once,

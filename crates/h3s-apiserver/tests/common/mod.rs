@@ -15,6 +15,7 @@ use tokio_rustls::TlsConnector;
 pub const JOIN_TOKEN: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 pub struct Server {
+    node_cidrs: Option<(String, u8)>,
     controller: Option<tokio::task::JoinHandle<Result<(), h3s_controllers::Error>>>,
     address: std::net::SocketAddr,
     task: tokio::task::JoinHandle<std::io::Result<()>>,
@@ -44,16 +45,21 @@ impl Server {
             controller.abort();
             let _ = controller.await;
         }
+        let self_node_cidrs = self.node_cidrs.clone();
         drop(self);
-        Self::start_at(dir, false, Some(address)).await
+        Self::start_at(dir, false, Some(address), self_node_cidrs).await
     }
     async fn start_mode(dir: &std::path::Path, controllers: bool) -> Self {
-        Self::start_at(dir, controllers, None).await
+        Self::start_at(dir, controllers, None, None).await
+    }
+    pub async fn start_with_node_cidrs(dir: &std::path::Path, pool: &str, prefix: u8) -> Self {
+        Self::start_at(dir, false, None, Some((pool.into(), prefix))).await
     }
     async fn start_at(
         dir: &std::path::Path,
         controllers: bool,
         address: Option<std::net::SocketAddr>,
+        node_cidrs: Option<(String, u8)>,
     ) -> Self {
         let pki = Arc::new(
             ClusterPki::open_or_create(&dir.join("tls"), &["localhost".into(), "127.0.0.1".into()])
@@ -65,6 +71,10 @@ impl Server {
             .unwrap()
             .with_bootstrap(pki.clone(), JOIN_TOKEN)
             .unwrap();
+        let api = match &node_cidrs {
+            Some((pool, prefix)) => api.with_node_cidrs(pool, *prefix).await.unwrap(),
+            None => api,
+        };
         let supervisor = api.supervisor();
         let listener = TcpListener::bind(address.unwrap_or_else(|| "127.0.0.1:0".parse().unwrap()))
             .await
@@ -94,6 +104,7 @@ impl Server {
             None
         };
         let server = Self {
+            node_cidrs,
             address,
             task,
             pki,
