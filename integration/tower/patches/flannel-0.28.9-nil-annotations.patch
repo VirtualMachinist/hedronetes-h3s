@@ -1,0 +1,12 @@
+--- a/pkg/subnet/kube/kube.go
++++ b/pkg/subnet/kube/kube.go
+@@ -374,6 +374,9 @@
+ 	}
+ 
+ 	n := cachedNode.DeepCopy()
++	if n.Annotations == nil {
++		n.Annotations = make(map[string]string)
++	}
+ 	if n.Spec.PodCIDR == "" {
+ 		return nil, fmt.Errorf("node %q pod cidr not assigned", ksm.nodeName)
+ 	}

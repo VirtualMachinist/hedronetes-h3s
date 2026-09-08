@@ -216,3 +216,134 @@ fn symlinks_are_rejected_and_kubeconfig_embeds_verified_material() {
         .is_err());
     assert!(cluster.issue_client("", None).is_err());
 }
+
+fn strict_verify(root: &std::path::Path, ca: &str, certificate: &str, purpose: &str) -> bool {
+    fs::write(root.join("verify-ca.pem"), ca).unwrap();
+    fs::write(root.join("verify-leaf.pem"), certificate).unwrap();
+    let mut command = std::process::Command::new("openssl");
+    command
+        .args(["verify", "-x509_strict", "-purpose", purpose, "-CAfile"])
+        .arg(root.join("verify-ca.pem"));
+    if purpose == "sslserver" {
+        command.args(["-verify_hostname", "localhost"]);
+    }
+    command
+        .arg(root.join("verify-leaf.pem"))
+        .output()
+        .expect("OpenSSL is required for the independent strict X.509 regression")
+        .status
+        .success()
+}
+
+#[test]
+fn issued_leaf_certificates_pass_independent_strict_x509_validation() {
+    let root = tempfile::tempdir().unwrap();
+    let cluster = pki(&root);
+    for identity in [
+        cluster
+            .issue_client("system:node:worker", Some("system:nodes"))
+            .unwrap(),
+        cluster.issue_client("scoped-operator", None).unwrap(),
+    ] {
+        assert!(strict_verify(
+            root.path(),
+            cluster.ca_pem(),
+            identity.certificate_pem(),
+            "sslclient"
+        ));
+    }
+    assert!(strict_verify(
+        root.path(),
+        cluster.ca_pem(),
+        cluster.admin().certificate_pem(),
+        "sslclient"
+    ));
+    let serving = cluster
+        .issue_serving("worker", &["localhost".into()])
+        .unwrap();
+    assert!(strict_verify(
+        root.path(),
+        cluster.ca_pem(),
+        serving.certificate_pem(),
+        "sslserver"
+    ));
+}
+
+#[test]
+fn valid_legacy_serving_leaf_is_repaired_once_without_changing_trust_key_sans_or_expiry() {
+    use rustls::pki_types::{pem::PemObject, CertificateDer};
+    use x509_parser::prelude::{FromDer, X509Certificate};
+    let root = tempfile::tempdir().unwrap();
+    let _ = pki(&root);
+    let dir = root.path().join("pki");
+    let file = dir.join("cluster-pki.json");
+    let mut bundle: serde_json::Value = serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
+    let der = CertificateDer::from_pem_slice(
+        bundle["server"]["certificate_pem"]
+            .as_str()
+            .unwrap()
+            .as_bytes(),
+    )
+    .unwrap();
+    let (_, original) = X509Certificate::from_der(der.as_ref()).unwrap();
+    let expiry = original.validity().not_after.to_datetime();
+    let mut params = rcgen::CertificateParams::new(names()).unwrap();
+    params.distinguished_name = rcgen::DistinguishedName::new();
+    params
+        .distinguished_name
+        .push(rcgen::DnType::CommonName, "h3s-apiserver");
+    params.not_before = original.validity().not_before.to_datetime();
+    params.not_after = expiry;
+    params.key_usages = vec![rcgen::KeyUsagePurpose::DigitalSignature];
+    params.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ServerAuth];
+    params.use_authority_key_identifier_extension = false;
+    let issuer = rcgen::Issuer::from_ca_cert_pem(
+        bundle["ca"]["certificate_pem"].as_str().unwrap(),
+        rcgen::KeyPair::from_pem(bundle["ca"]["private_key_pem"].as_str().unwrap()).unwrap(),
+    )
+    .unwrap();
+    let key =
+        rcgen::KeyPair::from_pem(bundle["server"]["private_key_pem"].as_str().unwrap()).unwrap();
+    let legacy = params.signed_by(&key, &issuer).unwrap().pem();
+    assert!(!strict_verify(
+        root.path(),
+        bundle["ca"]["certificate_pem"].as_str().unwrap(),
+        &legacy,
+        "sslserver"
+    ));
+    bundle["server"]["certificate_pem"] = legacy.clone().into();
+    fs::write(&file, serde_json::to_vec(&bundle).unwrap()).unwrap();
+    let workers: Vec<_> = (0..6)
+        .map(|_| {
+            let dir = dir.clone();
+            std::thread::spawn(move || {
+                // Repair must preserve even SANs not requested by this caller.
+                let _ = ClusterPki::open_or_create(&dir, &["localhost".into()]).unwrap();
+            })
+        })
+        .collect();
+    for worker in workers {
+        worker.join().unwrap();
+    }
+    let repaired: serde_json::Value = serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
+    assert_eq!(repaired["ca"], bundle["ca"]);
+    assert_eq!(repaired["admin"], bundle["admin"]);
+    assert_eq!(
+        repaired["server"]["private_key_pem"],
+        bundle["server"]["private_key_pem"]
+    );
+    let cert = repaired["server"]["certificate_pem"].as_str().unwrap();
+    assert_ne!(cert, legacy);
+    assert!(strict_verify(
+        root.path(),
+        repaired["ca"]["certificate_pem"].as_str().unwrap(),
+        cert,
+        "sslserver"
+    ));
+    let der = CertificateDer::from_pem_slice(cert.as_bytes()).unwrap();
+    let (_, parsed) = X509Certificate::from_der(der.as_ref()).unwrap();
+    assert_eq!(parsed.validity().not_after.to_datetime(), expiry);
+    let before = fs::read(&file).unwrap();
+    let _ = ClusterPki::open_or_create(&dir, &names()).unwrap();
+    assert_eq!(before, fs::read(&file).unwrap());
+}

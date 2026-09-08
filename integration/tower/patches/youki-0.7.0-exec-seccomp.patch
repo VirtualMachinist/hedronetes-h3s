@@ -1,0 +1,54 @@
+--- a/crates/libcontainer/src/container/tenant_builder.rs
++++ b/crates/libcontainer/src/container/tenant_builder.rs
+@@ -458,6 +458,12 @@
+         let spec_linux = spec.linux().as_ref().unwrap();
+         let mut linux_builder = LinuxBuilder::default().namespaces(ns);
+ 
++        // Exec joins namespaces but is not forked from the container init;
++        // reapply its seccomp profile instead of silently dropping the filter.
++        if let Some(seccomp) = spec_linux.seccomp() {
++            linux_builder = linux_builder.seccomp(seccomp.clone());
++        }
++
+         if let Some(cgroup_path) = spec_linux.cgroups_path() {
+             linux_builder = linux_builder.cgroups_path(cgroup_path.clone());
+         }
+@@ -655,6 +661,25 @@
+             .collect();
+ 
+         TenantContainerBuilder::new(base).with_env(env_map)
++    }
++
++    #[test]
++    fn exec_preserves_seccomp_profile() -> Result<(), LibcontainerError> {
++        use oci_spec::runtime::{LinuxSeccompBuilder, LinuxSeccompAction};
++        let filter = LinuxSeccompBuilder::default()
++            .default_action(LinuxSeccompAction::ScmpActErrno)
++            .default_errno_ret(1u32)
++            .build()?;
++        let mut container = Container::default();
++        container.set_pid(std::process::id() as i32);
++        let builder = tenant_builder().with_container_args(vec!["/bin/true".into()]);
++        for expected in [Some(filter), None] {
++            let mut spec = Spec::default();
++            spec.linux_mut().as_mut().unwrap().set_seccomp(expected.clone());
++            builder.adapt_spec_for_tenant(&mut spec, &container)?;
++            assert_eq!(spec.linux().as_ref().unwrap().seccomp(), &expected);
++        }
++        Ok(())
+     }
+ 
+     // --- capabilities tests ---
+--- a/crates/libcontainer/src/process/container_main_process.rs
++++ b/crates/libcontainer/src/process/container_main_process.rs
+@@ -212,7 +212,9 @@
+         )?;
+ 
+         #[cfg(feature = "libseccomp")]
+-        if let Some(seccomp) = linux.seccomp() {
++        // Ordinary filters need no listener or Container state. Exec builders
++        // intentionally lack state so they cannot overwrite the init identity.
++        if let Some(seccomp) = linux.seccomp().as_ref().filter(|s| crate::seccomp::is_notify(s)) {
+             let container = container_args
+                 .container
+                 .as_ref()

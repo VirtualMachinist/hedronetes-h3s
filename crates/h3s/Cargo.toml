@@ -16,3 +16,21 @@ path = "src/main.rs"
 clap.workspace = true
 rustls.workspace = true
 tokio.workspace = true
+h3s-apiserver = { path = "../h3s-apiserver" }
+h3s-certs = { path = "../h3s-certs" }
+h3s-storage = { path = "../h3s-storage" }
+tempfile = "3"
+h3s-controllers = { path = "../h3s-controllers" }
+
+h3s-auth = { path = "../h3s-auth" }
+h3s-kubelet = { path = "../h3s-kubelet" }
+h3s-cri = { path = "../h3s-cri" }
+serde_json = "1"
+h3s-scheduler = { path = "../h3s-scheduler" }
+hostname = "0.4"
+h3s-api = { path = "../h3s-api" }
+
+[dev-dependencies]
+kube.workspace = true
+k8s-openapi.workspace = true
+http = "1"

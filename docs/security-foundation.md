@@ -8,8 +8,29 @@ The CA, serving certificate/key, and administrator certificate/key are persisted
 
 `h3s-auth` evaluates stock `k8s-openapi` v1.34 Role, ClusterRole, RoleBinding, and ClusterRoleBinding objects supplied by the API. It denies by default, isolates namespace RoleBindings, resolves User/Group/ServiceAccount subjects, and matches exact resource names, verbs/groups/resources, `*/subresource`, and nonresource URL prefixes. A node certificate does not by itself authorize access to arbitrary objects. The Kubernetes `system:masters` break-glass group is the only built-in unrestricted identity.
 
-This is a library checkpoint. API authentication wiring, RBAC mutation validation and privilege-escalation prevention, node authorization/NodeRestriction, bootstrap-token exchange, bound ServiceAccount tokens, certificate renewal, and the full cluster workflow remain implementation work. The tests do not claim these capabilities are complete.
+The executable API checkpoint now uses verified TLS identities and this RBAC evaluator for its implemented resource handlers. Complete RBAC mutation validation and privilege-escalation prevention, remaining NodeRestriction coverage, bootstrap-token exchange, bound ServiceAccount tokens, certificate renewal, and the full cluster workflow remain implementation work. The tests do not claim these capabilities are complete.
 
 Validation includes actual rustls handshake/data exchange, foreign CA and wrong-EKU rejection, hostname verification, expiry, corrupt/key-mismatched bundle rejection, private modes, concurrent bootstrap, and scoped RBAC decisions. The compiler pin remains 1.98.1; minimum Rust support was deliberately raised to 1.88 for rcgen 0.14.10 and is checked separately.
 
 References: [Kubernetes authentication](https://kubernetes.io/docs/reference/access-authn-authz/authentication/), [Kubernetes RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/), and the [v1.34 rule matching contract](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/apis/rbac/v1/evaluation_helpers.go).
+
+The [node API policy](node-access.md) now grants the supported node operations and checks persisted Pod relationships; Node write restrictions also apply to RBAC-authorized requests. API tests cover scoped certificates, namespace isolation, watch revocation and overbroad-role rejection. This is a prerequisite for join, not a completed worker bootstrap.
+
+## Strict X.509 compatibility and legacy serving repair
+
+New serving and client certificates include an Authority Key Identifier. An
+actual Python 3.13/OpenSSL probe rejected the earlier serving certificate under
+its default strict verification, despite rustls and kubectl accepting it. Strict
+verification remains enabled. Independent `openssl verify -x509_strict` tests
+cover new clients/servers and reproduce the old failure before repair; OpenSSL
+is a test dependency in the Nix package/development shell.
+
+Opening a valid existing bundle now repairs only a serving leaf that lacks AKI.
+A private advisory lock serializes bootstrap/repair, and fsync plus atomic
+replacement persists the result. Repair retains the CA, serving private key,
+subject, all existing DNS/IP SANs and original validity interval; it uses a new
+serial. Existing administrator credentials/kubeconfigs are untouched. Corrupt,
+expired, mismatched or insecure bundles still fail rather than being reset.
+Subsequent opens are byte-stable. This targeted repair is not general renewal
+or an expired-certificate recovery mechanism; legacy client renewal remains
+separate work. The server must restart to begin serving the repaired leaf.

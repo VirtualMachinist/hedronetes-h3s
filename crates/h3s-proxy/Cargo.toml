@@ -9,3 +9,14 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+tokio.workspace = true
+reqwest = { version = "0.13.4", default-features = false, features = ["rustls", "json"] }
+serde_json = "1"
+ipnet = "2"
+sha2 = "0.10"
+thiserror = "2"
+h3s-certs = { path = "../h3s-certs" }
+h3s-api = { path = "../h3s-api" }
+
+[dev-dependencies]
+tempfile = "3"

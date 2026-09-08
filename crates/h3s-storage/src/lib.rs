@@ -86,7 +86,7 @@ fn valid_segment(s: &str) -> bool {
         && s != "."
         && s != ".."
         && s.bytes()
-            .all(|b| b.is_ascii_alphanumeric() || b"-._".contains(&b))
+            .all(|b| b.is_ascii_alphanumeric() || b"-._:".contains(&b))
 }
 
 fn validate_prefix(prefix: &str) -> Result<()> {
@@ -171,6 +171,9 @@ pub enum EventKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WatchEvent {
+    /// Previous live version, read in the same MVCC snapshot as this event.
+    /// Selector watches use it to report objects leaving the watched view.
+    pub previous: Option<StoredObject>,
     pub kind: EventKind,
     pub revision: ResourceVersion,
     pub object: Option<StoredObject>,

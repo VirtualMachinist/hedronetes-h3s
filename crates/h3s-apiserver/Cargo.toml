@@ -9,3 +9,41 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+http-body-util = "0.1"
+h3s-supervisor = { path = "../h3s-supervisor" }
+tokio-util = { version = "0.7", features = ["rt"] }
+h3s-api = { path = "../h3s-api" }
+h3s-certs = { path = "../h3s-certs" }
+axum = { version = "0.8.9", features = ["http2", "ws"] }
+tokio.workspace = true
+rustls.workspace = true
+tokio-rustls = "0.26.5"
+hyper = { version = "1", features = ["server", "client", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["server-auto", "service", "tokio"] }
+tower = { version = "0.5", features = ["util"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_urlencoded = "0.7"
+futures-util = "0.3"
+async-stream = "0.3"
+base64 = "0.22"
+uuid = { version = "1", features = ["v4"] }
+time = { version = "0.3", features = ["formatting"] }
+k8s-openapi.workspace = true
+h3s-auth = { path = "../h3s-auth" }
+h3s-storage = { path = "../h3s-storage" }
+
+prost-reflect = "0.16.5"
+prost = "0.14"
+json-patch = { version = "4.2.0", default-features = false }
+ipnet = "2"
+percent-encoding = "2.3.2"
+
+[dev-dependencies]
+h3s-scheduler = { path = "../h3s-scheduler" }
+tokio-tungstenite = { version = "0.29.0", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+h3s-kubelet = { path = "../h3s-kubelet" }
+rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "x509-parser"] }
+tempfile = "3"
+h3s-controllers = { path = "../h3s-controllers" }
+kube.workspace = true

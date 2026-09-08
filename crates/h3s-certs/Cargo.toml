@@ -9,6 +9,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+sha2 = "0.10.9"
+h3s-api = { path = "../h3s-api" }
 rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "x509-parser", "zeroize"] }
 rustls.workspace = true
 serde = { version = "1", features = ["derive"] }
@@ -19,6 +21,8 @@ x509-parser = { version = "0.18.1", features = ["verify-aws"] }
 tempfile = "3"
 libc = "0.2"
 base64 = "0.22"
+fs2 = "0.4.3"
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 tokio.workspace = true
