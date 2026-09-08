@@ -4,7 +4,7 @@ use http_body_util::BodyExt;
 use serde_json::{json, Value};
 
 fn pod(name: &str) -> Value {
-    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"containers":[{"name":"web","image":"example.invalid/web:v1"}]}})
+    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
 }
 fn deployment(kind: &str, name: &str) -> Value {
     json!({"apiVersion":"apps/v1","kind":kind,"metadata":{"name":name},"spec":{"selector":{"matchLabels":{"app":"web"}},"template":{"metadata":{"labels":{"app":"web"}},"spec":{"containers":[{"name":"web","image":"example.invalid/web:v1"}]}}}})

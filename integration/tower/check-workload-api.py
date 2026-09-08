@@ -5,6 +5,7 @@ Uses an existing project namespace and removes its uniquely named objects with
 UID preconditions. The synthetic Node is only a binding API fixture.
 """
 import argparse
+import copy
 import json
 import subprocess
 import uuid
@@ -53,10 +54,32 @@ def main():
 
     try:
         create("rbac.authorization.k8s.io/v1", "ClusterRole", "clusterroles", {"rules": []}, cluster=True, name="system:" + prefix)
-        pod_spec = {"containers": [{"name": "pause", "image": "registry.k8s.io/pause:3.10"}]}
+        pod_spec = {"securityContext": {"runAsNonRoot": True, "seccompProfile": {"type": "RuntimeDefault"}},
+                    "containers": [{"name": "pause", "image": "registry.k8s.io/pause:3.10",
+                                    "securityContext": {"allowPrivilegeEscalation": False, "capabilities": {"drop": ["ALL"]}}}]}
         _, node = create("v1", "Node", "nodes", {}, cluster=True)
         pod_path, pod = create("v1", "Pod", "pods", {"spec": pod_spec})
         require(pod["status"]["phase"] == "Pending", "new Pod must be Pending")
+        namespace = json.loads(run("get", "--raw", f"/api/v1/namespaces/{ns}"))
+        policy = namespace["metadata"].get("labels", {}).get("pod-security.kubernetes.io/enforce", "restricted")
+        require(policy == "restricted" and args.namespace not in {"kube-system", "kube-public", "kube-node-lease"},
+                "admission probe requires a non-system restricted namespace")
+        denied_name = prefix + "-denied"
+        denied_path = f"/api/v1/namespaces/{ns}/pods/{denied_name}"
+        unsafe = {"apiVersion": "v1", "kind": "Pod", "metadata": {"name": denied_name}, "spec": copy.deepcopy(pod_spec)}
+        unsafe["spec"]["containers"][0]["securityContext"]["privileged"] = True
+        result = subprocess.run([str(args.kubectl), "--kubeconfig", str(args.kubeconfig), "--request-timeout=15s",
+                                 "create", "--raw", f"/api/v1/namespaces/{ns}/pods", "-f", "-"],
+                                input=json.dumps(unsafe), text=True, capture_output=True, timeout=20)
+        if result.returncode == 0:
+            unexpected = json.loads(result.stdout)
+            created.append((denied_path, unexpected["metadata"]["uid"]))
+            raise RuntimeError("privileged Pod unexpectedly admitted")
+        require("Forbidden" in result.stderr and "PodSecurity restricted:v1.34" in result.stderr,
+                "unsafe Pod failed for a reason other than admission")
+        remaining = json.loads(run("get", "--raw", f"/api/v1/namespaces/{ns}/pods?fieldSelector=metadata.name%3D{denied_name}"))
+        require(remaining["items"] == [], "denied Pod was persisted")
+
         selector = {"matchLabels": {"app": prefix}}
         template = {"metadata": {"labels": {"app": prefix}}, "spec": pod_spec}
         deployment_path, deployment = create("apps/v1", "Deployment", "deployments", {"spec": {"replicas": 2, "selector": selector, "template": template}})
@@ -85,7 +108,7 @@ def main():
         require(reported["status"]["observedGeneration"] == deployment["metadata"]["generation"], "status update failed")
         require(reported["spec"] == deployment["spec"], "status changed desired state")
         print(json.dumps({"run_id": prefix, "result": "passed", "api_object_count": len(created),
-                          "checks": ["stock file-based create and read", "Pod defaults and binding", "Deployment status", "ClusterIP assignment", "encoded RBAC name", "typed Deployment create"],
+                          "checks": ["stock file-based create and read", "Pod defaults and binding", "Deployment status", "ClusterIP assignment", "encoded RBAC name", "typed Deployment create", "restricted Pod admission and no denied persistence"],
                           "containers_executed": False, "worker_join_verified": False}))
     finally:
         for path, uid in reversed(created):

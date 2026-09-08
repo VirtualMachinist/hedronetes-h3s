@@ -1,5 +1,6 @@
 //! Authenticated Kubernetes API foundation. All registry access belongs here;
 //! future controllers and nodes must use this API rather than write its store.
+mod admission;
 mod patch;
 mod resources;
 mod selectors;
@@ -30,7 +31,7 @@ pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 #[derive(Clone)]
 pub struct Api {
     store: Arc<dyn Storage>,
-    service_writes: Arc<tokio::sync::Mutex<()>>,
+    admission_writes: Arc<tokio::sync::Mutex<()>>,
 }
 #[derive(Debug)]
 struct Failure {
@@ -119,7 +120,7 @@ impl Api {
     pub async fn new(store: Arc<dyn Storage>) -> std::result::Result<Self, h3s_storage::Error> {
         let api = Self {
             store,
-            service_writes: Arc::new(tokio::sync::Mutex::new(())),
+            admission_writes: Arc::new(tokio::sync::Mutex::new(())),
         };
         for namespace in ["default", "kube-system", "kube-public", "kube-node-lease"] {
             api.bootstrap(format!("/registry/namespaces/{namespace}"),json!({"apiVersion":"v1","kind":"Namespace","metadata":{"name":namespace},"status":{"phase":"Active"}})).await?;
@@ -393,11 +394,9 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             "request body exceeds limit or failed to read",
         )
     })?;
-    let _service_guard = if target.resource.kind == "Service" {
-        Some(api.service_writes.lock().await)
-    } else {
-        None
-    };
+    // Serialize admission with namespace policy/lifecycle changes and Service
+    // allocation through commit in this single-server API.
+    let _admission_guard = api.admission_writes.lock().await;
     let mut value = if verb == "patch" {
         let k = key(format!("{prefix}{}", target.name.as_ref().unwrap()))?;
         let current = api
@@ -505,23 +504,24 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     if !target.resource.valid_name(&name) || target.name.as_ref().is_some_and(|n| n != &name) {
         return Err(bad("invalid or mismatched metadata.name"));
     }
+    let mut namespace = None;
     match &target.namespace {
         Some(ns) => {
             if value["metadata"]["namespace"]
                 .as_str()
-                .is_some_and(|n| n != ns)
+                .is_some_and(|n| !n.is_empty() && n != ns)
             {
                 return Err(bad("metadata.namespace mismatch"));
             }
             value["metadata"]["namespace"] = ns.clone().into();
-            if api
+            let stored = api
                 .store
                 .get(&key(format!("/registry/namespaces/{ns}"))?)
                 .await?
-                .is_none()
-            {
-                return Err(Failure::new(404, "NotFound", "namespace not found"));
-            }
+                .ok_or_else(|| Failure::new(404, "NotFound", "namespace not found"))?;
+            let current = object(stored)?;
+            admission::lifecycle(&current, verb == "create")?;
+            namespace = Some(current);
         }
         None => {
             if value["metadata"]["namespace"]
@@ -598,6 +598,13 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         old_value.as_ref(),
         target.subresource.is_some(),
     )?;
+    if target.subresource.is_none() {
+        match target.resource.kind {
+            "Namespace" => admission::namespace(&value)?,
+            "Pod" => admission::pod(namespace.as_ref().expect("namespaced Pod"), &value)?,
+            _ => {}
+        }
+    }
     if target.resource.kind == "Service" && target.subresource.is_none() {
         services::assign(&api.store, &mut value, old_value.as_ref()).await?;
     }
