@@ -1,0 +1,10 @@
+[package]
+name = "h3s-controllers"
+description = "In-tree kube-rs controller loops"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]

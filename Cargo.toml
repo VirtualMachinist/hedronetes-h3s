@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/h3s",
+    "crates/h3s-api",
+    "crates/h3s-apiserver",
+    "crates/h3s-auth",
+    "crates/h3s-certs",
+    "crates/h3s-cni",
+    "crates/h3s-controllers",
+    "crates/h3s-cri",
+    "crates/h3s-deploy",
+    "crates/h3s-kubelet",
+    "crates/h3s-packaging",
+    "crates/h3s-proxy",
+    "crates/h3s-scheduler",
+    "crates/h3s-storage",
+    "crates/h3s-supervisor",
+]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/VirtualMachinist/hedronetes"
+rust-version = "1.85"
+version = "0.1.0-dev"
+
+[workspace.dependencies]
+# Runtime / CLI pins (P0). rustls default features are aws-lc-rs — not OpenSSL.
+tokio = { version = "1", features = ["full"] }
+rustls = "0.23"
+clap = { version = "4", features = ["derive", "env"] }
+
+# Reserved: Kubernetes v1.34 types when API crates start using them.
+# Do not uncomment until a crate actually imports k8s-openapi (P0: unused).
+# k8s-openapi = { version = "0.26", features = ["v1_34"] }

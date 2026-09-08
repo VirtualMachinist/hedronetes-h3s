@@ -16,16 +16,22 @@ It does **not** embed upstream Go Kubernetes.
 
 - Full product specification: [`SPEC.md`](./SPEC.md)
 
-## Binary (planned)
+## Binary (P0 stub)
 
 ```text
 h3s server   # control plane + datastore + supervisor (+ embedded agent)
 h3s agent    # kubelet + kube-proxy + CNI + runtime + tunnel client
 ```
 
+```bash
+cargo run -p h3s -- --help
+cargo run -p h3s -- server --help
+cargo run -p h3s -- agent --help
+```
+
 ## Status
 
-Founding seed only. Implementation has not started. Spec is normative for design review.
+P0 workspace: empty crates compile. `h3s --help` / `h3s server --help` / `h3s agent --help` are clap multicall stubs. API server and kubelet are not implemented. Spec is normative for design review.
 
 ## License
 
