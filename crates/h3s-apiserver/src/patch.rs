@@ -1,11 +1,21 @@
 //! Bounded RFC 6902 / RFC 7396 transformations before the ordinary write path.
-use super::{Failure, Result};
+use super::{resources::Resource, Failure, Result};
 use serde_json::Value;
+mod strategic;
 
 const MAX_OBJECT_BYTES: usize = 2 * 1024 * 1024;
 
-pub(crate) fn apply(mut object: Value, bytes: &[u8], content_type: &str) -> Result<Value> {
+pub(crate) fn apply(
+    resource: Resource,
+    mut object: Value,
+    bytes: &[u8],
+    content_type: &str,
+) -> Result<Value> {
     match content_type.split(';').next().unwrap_or("").trim() {
+        "application/strategic-merge-patch+json" => {
+            object = strategic::apply(resource, object, serde_json::from_slice(bytes)?)?;
+            check_size(&object)?;
+        }
         "application/merge-patch+json" => {
             let patch: Value = serde_json::from_slice(bytes)?;
             json_patch::merge(&mut object, &patch);
@@ -26,7 +36,7 @@ pub(crate) fn apply(mut object: Value, bytes: &[u8], content_type: &str) -> Resu
             }
         }
         _ => return Err(Failure::new(415, "UnsupportedMediaType",
-            "supported patch types: application/json-patch+json, application/merge-patch+json; strategic merge and server-side apply are not yet implemented")),
+            "supported patch types: application/json-patch+json, application/merge-patch+json, application/strategic-merge-patch+json; server-side apply is not yet implemented")),
     }
     Ok(object)
 }

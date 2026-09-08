@@ -202,6 +202,35 @@ async fn real_agent_enrolls_reconciles_resumes_and_recovers_server_restart() {
     assert_eq!(node["status"]["conditions"][0]["reason"], "RuntimeNotReady");
     assert_eq!(node["status"]["addresses"][0]["address"], "192.0.2.2");
     assert_eq!(lease["spec"]["holderIdentity"], "worker");
+    let network = json!({"type":"NetworkUnavailable","status":"False","reason":"FlannelIsUp"});
+    let (code, patched) = s
+        .patch(
+            s.admin(),
+            "/api/v1/nodes/worker/status",
+            "application/strategic-merge-patch+json",
+            json!({
+            "metadata":{"annotations":{"flannel.alpha.coreos.com/backend-type":"vxlan"},
+                "labels":{"node-restriction.kubernetes.io/trusted":"true"}},
+            "status":{"conditions":[network]}}),
+        )
+        .await;
+    assert_eq!(code, 200, "{patched}");
+    agent.reconcile().await.unwrap();
+    let (_, heartbeat) = s
+        .json(s.admin(), "GET", "/api/v1/nodes/worker", json!({}))
+        .await;
+    assert!(heartbeat["status"]["conditions"]
+        .as_array()
+        .unwrap()
+        .contains(&network));
+    assert_eq!(
+        heartbeat["metadata"]["annotations"],
+        patched["metadata"]["annotations"]
+    );
+    assert_eq!(
+        heartbeat["metadata"]["labels"],
+        patched["metadata"]["labels"]
+    );
     assert!(
         Agent::connect(config(&s, agent_root.path(), true))
             .await

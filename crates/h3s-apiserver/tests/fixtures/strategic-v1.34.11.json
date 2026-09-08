@@ -1,0 +1,7228 @@
+[
+  {
+    "expected": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "{\"VNI\":1,\"VtepMAC\":\"de:ad:be:ef:00:01\"}",
+          "flannel.alpha.coreos.com/backend-type": "vxlan",
+          "flannel.alpha.coreos.com/kube-subnet-manager": "true",
+          "flannel.alpha.coreos.com/public-ip": "192.168.104.3",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "flannel-annotations",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "{\"VNI\":1,\"VtepMAC\":\"de:ad:be:ef:00:01\"}",
+          "flannel.alpha.coreos.com/backend-type": "vxlan",
+          "flannel.alpha.coreos.com/kube-subnet-manager": "true",
+          "flannel.alpha.coreos.com/public-ip": "192.168.104.3"
+        }
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "FlannelIsUp",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "flannel-network-condition",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "FlannelIsUp",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.4",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "addresses-merge",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.4",
+            "type": "InternalIP"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "keyed-delete",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "keyed-replace",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "replace"
+          },
+          {
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "error": true,
+    "kind": "Node",
+    "name": "missing-key",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "error": true,
+    "kind": "Node",
+    "name": "unsupported-directive",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "merge",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "empty-merge-list",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": []
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "null-merge-list",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": null
+      }
+    }
+  },
+  {
+    "expected": {
+      "data": {
+        "c": "c"
+      }
+    },
+    "kind": "ConfigMap",
+    "name": "map-replace",
+    "original": {
+      "data": {
+        "a": "a",
+        "b": "b"
+      }
+    },
+    "patch": {
+      "data": {
+        "$patch": "replace",
+        "c": "c"
+      }
+    }
+  },
+  {
+    "expected": {
+      "data": {}
+    },
+    "kind": "ConfigMap",
+    "name": "map-delete",
+    "original": {
+      "data": {
+        "a": "a"
+      }
+    },
+    "patch": {
+      "data": {
+        "$patch": "delete"
+      }
+    }
+  },
+  {
+    "expected": {
+      "data": {
+        "b": "b"
+      }
+    },
+    "kind": "ConfigMap",
+    "name": "nested-null",
+    "original": {
+      "data": {
+        "a": "a"
+      }
+    },
+    "patch": {
+      "data": {
+        "a": null,
+        "b": "b"
+      }
+    }
+  },
+  {
+    "error": true,
+    "kind": "ConfigMap",
+    "name": "map-bad-directive",
+    "original": {
+      "data": {}
+    },
+    "patch": {
+      "data": {
+        "$patch": "unknown"
+      }
+    }
+  },
+  {
+    "expected": {},
+    "kind": "ConfigMap",
+    "name": "map-delete-absent",
+    "original": {},
+    "patch": {
+      "data": {
+        "$patch": "delete"
+      }
+    }
+  },
+  {
+    "expected": {
+      "data": {
+        "b": "b"
+      }
+    },
+    "kind": "ConfigMap",
+    "name": "nested-null-new",
+    "original": {},
+    "patch": {
+      "data": {
+        "a": null,
+        "b": "b"
+      }
+    }
+  },
+  {
+    "expected": {
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        }
+      }
+    },
+    "kind": "Deployment",
+    "name": "retain-strategy",
+    "original": {
+      "spec": {
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": 1
+          },
+          "type": "RollingUpdate"
+        }
+      }
+    },
+    "patch": {
+      "spec": {
+        "strategy": {
+          "$retainKeys": [
+            "type"
+          ],
+          "type": "Recreate"
+        }
+      }
+    }
+  },
+  {
+    "error": true,
+    "kind": "Deployment",
+    "name": "invalid-retain",
+    "original": {
+      "spec": {
+        "strategy": {
+          "type": "RollingUpdate"
+        }
+      }
+    },
+    "patch": {
+      "spec": {
+        "strategy": {
+          "$retainKeys": [],
+          "type": "Recreate"
+        }
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "finalizers": [
+          "c",
+          "b"
+        ]
+      }
+    },
+    "kind": "Pod",
+    "name": "primitive-merge-delete",
+    "original": {
+      "metadata": {
+        "finalizers": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    "patch": {
+      "metadata": {
+        "$deleteFromPrimitiveList/finalizers": [
+          "a"
+        ],
+        "finalizers": [
+          "c"
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "finalizers": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    "kind": "Pod",
+    "name": "primitive-merge-dedupe",
+    "original": {
+      "metadata": {
+        "finalizers": [
+          "a",
+          "b",
+          "b"
+        ]
+      }
+    },
+    "patch": {
+      "metadata": {
+        "finalizers": [
+          "b",
+          "c",
+          "c"
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "finalizers": [
+          "c",
+          "b",
+          "a"
+        ]
+      }
+    },
+    "kind": "Pod",
+    "name": "primitive-order",
+    "original": {
+      "metadata": {
+        "finalizers": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    "patch": {
+      "metadata": {
+        "$setElementOrder/finalizers": [
+          "c",
+          "b",
+          "a"
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "$deleteFromPrimitiveList/finalizers": [
+          "a"
+        ]
+      }
+    },
+    "kind": "Pod",
+    "name": "primitive-delete-absent",
+    "original": {},
+    "patch": {
+      "metadata": {
+        "$deleteFromPrimitiveList/finalizers": [
+          "a"
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "spec": {
+        "taints": [
+          {
+            "effect": "NoSchedule",
+            "key": "b"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "nonmerge-list",
+    "original": {
+      "spec": {
+        "taints": [
+          {
+            "effect": "NoSchedule",
+            "key": "a"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "spec": {
+        "taints": [
+          {
+            "effect": "NoSchedule",
+            "key": "b"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "spec": {
+        "template": {
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "KEEP",
+                    "value": "1"
+                  },
+                  {
+                    "name": "CHANGE",
+                    "value": "3"
+                  },
+                  {
+                    "name": "NEW",
+                    "value": "4"
+                  }
+                ],
+                "image": "v2",
+                "name": "web"
+              },
+              {
+                "image": "v1",
+                "name": "sidecar"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "kind": "Deployment",
+    "name": "nested-container-env",
+    "original": {
+      "spec": {
+        "template": {
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "KEEP",
+                    "value": "1"
+                  },
+                  {
+                    "name": "CHANGE",
+                    "value": "2"
+                  }
+                ],
+                "image": "v1",
+                "name": "web"
+              },
+              {
+                "image": "v1",
+                "name": "sidecar"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "patch": {
+      "spec": {
+        "template": {
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "CHANGE",
+                    "value": "3"
+                  },
+                  {
+                    "name": "NEW",
+                    "value": "4"
+                  }
+                ],
+                "image": "v2",
+                "name": "web"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "order-Ready,MemoryPressure,DiskPressure",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "merge-order-Ready,MemoryPressure,DiskPressure",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "order-Ready,DiskPressure,MemoryPressure",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "merge-order-Ready,DiskPressure,MemoryPressure",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "order-MemoryPressure,Ready,DiskPressure",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "merge-order-MemoryPressure,Ready,DiskPressure",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "order-MemoryPressure,DiskPressure,Ready",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "merge-order-MemoryPressure,DiskPressure,Ready",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "order-DiskPressure,Ready,MemoryPressure",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "merge-order-DiskPressure,Ready,MemoryPressure",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "order-DiskPressure,MemoryPressure,Ready",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "merge-order-DiskPressure,MemoryPressure,Ready",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "status": "True",
+            "type": "New"
+          },
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "order-with-server-only",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "New"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "status": "True",
+            "type": "New"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "error": true,
+    "kind": "Node",
+    "name": "order-conflict",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "flannel.alpha.coreos.com/backend-data": "old",
+          "keep": "ok"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.1.0/24"
+      },
+      "status": {
+        "addresses": [
+          {
+            "address": "192.168.104.3",
+            "type": "InternalIP"
+          },
+          {
+            "address": "worker",
+            "type": "Hostname"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "NoRouteCreated",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-0",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-1",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "PIDPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-2",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-3",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-4",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-5",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "PIDPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-6",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-7",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "ExampleNew"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-8",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-9",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "DiskPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-10",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-11",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "MemoryPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-12",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-13",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "NetworkUnavailable"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-14",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-15",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "DiskPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-16",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-17",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "MemoryPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-18",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-19",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-20",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-21",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-22",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-23",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-24",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-25",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "PIDPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-26",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-27",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-28",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-29",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "PIDPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-30",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-31",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "DiskPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-32",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-33",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-34",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-35",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "MemoryPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-36",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": []
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-37",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-38",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-39",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-40",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-41",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-42",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-43",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "MemoryPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-44",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-45",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "DiskPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-46",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-47",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-48",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-49",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "PIDPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-50",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-51",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "ExampleNew"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-52",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-53",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-54",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-55",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "DiskPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-56",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "$patch": "delete",
+            "type": "PIDPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-57",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "$patch": "delete",
+            "type": "DiskPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-58",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-59",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "MemoryPressure"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "Ready"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-60",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-61",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "DiskPressure"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "PIDPressure"
+          },
+          {
+            "type": "Ready"
+          },
+          {
+            "type": "MemoryPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "$patch": "delete",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-62",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "generated-conditions-63",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "NetworkUnavailable"
+          },
+          {
+            "reason": "Original",
+            "status": "True",
+            "type": "MemoryPressure"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "$setElementOrder/conditions": [
+          {
+            "type": "ExampleNew"
+          },
+          {
+            "type": "NetworkUnavailable"
+          },
+          {
+            "type": "MemoryPressure"
+          }
+        ],
+        "conditions": [
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "ExampleNew"
+          },
+          {
+            "reason": "Updated",
+            "status": "False",
+            "type": "NetworkUnavailable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "reason": null,
+            "status": "False",
+            "type": "New"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "new-item-null",
+    "original": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": null,
+            "status": "False",
+            "type": "New"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "False",
+            "type": "New"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "new-list-null",
+    "original": {
+      "status": {}
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "reason": null,
+            "status": "False",
+            "type": "New"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "error": true,
+    "kind": "Node",
+    "name": "empty-primitive-order",
+    "original": {
+      "metadata": {
+        "finalizers": []
+      }
+    },
+    "patch": {
+      "metadata": {
+        "$setElementOrder/finalizers": [
+          "b",
+          "a"
+        ],
+        "finalizers": [
+          "a",
+          "b"
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "annotations": [
+          "x"
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "map-type-change",
+    "original": {
+      "metadata": {
+        "annotations": {
+          "test": "yes"
+        }
+      }
+    },
+    "patch": {
+      "metadata": {
+        "annotations": [
+          "x"
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": []
+      }
+    },
+    "kind": "Node",
+    "name": "missing-list-delete",
+    "original": {
+      "status": {}
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "delete",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "missing-list-replace",
+    "original": {
+      "status": {}
+    },
+    "patch": {
+      "status": {
+        "conditions": [
+          {
+            "$patch": "replace"
+          },
+          {
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "expected": {},
+    "kind": "Node",
+    "name": "map-replace-absent",
+    "original": {},
+    "patch": {
+      "status": {
+        "$patch": "replace",
+        "conditions": []
+      }
+    }
+  },
+  {
+    "expected": {
+      "metadata": {
+        "finalizers": [
+          "d",
+          "b",
+          "c"
+        ]
+      }
+    },
+    "kind": "Node",
+    "name": "order-delete-combined",
+    "original": {
+      "metadata": {
+        "finalizers": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    "patch": {
+      "metadata": {
+        "$deleteFromPrimitiveList/finalizers": [
+          "a"
+        ],
+        "$setElementOrder/finalizers": [
+          "d",
+          "c",
+          "a"
+        ],
+        "finalizers": [
+          "d"
+        ]
+      }
+    }
+  },
+  {
+    "expected": {
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "port": 80,
+            "targetPort": 9090
+          },
+          {
+            "name": "https",
+            "port": 443,
+            "targetPort": 8443
+          }
+        ]
+      }
+    },
+    "kind": "Service",
+    "name": "numeric-service-ports",
+    "original": {
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "port": 80,
+            "targetPort": 8080
+          },
+          {
+            "name": "https",
+            "port": 443,
+            "targetPort": 8443
+          }
+        ]
+      }
+    },
+    "patch": {
+      "spec": {
+        "ports": [
+          {
+            "port": 80,
+            "targetPort": 9090
+          }
+        ]
+      }
+    }
+  }
+]

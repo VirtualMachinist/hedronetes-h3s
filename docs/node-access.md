@@ -9,9 +9,9 @@ supply a node identity.
 The [native agent](worker-bootstrap.md) now uses these permissions for token/CSR
 enrollment, Node registration and Lease renewal. The [supervisor WebSocket transport](supervisor-tunnel.md) uses the same
 node certificate. Authorized node proxy health/readiness requests now reach
-the actual worker TLS API through that tunnel. CRI workload runtime remains
-unfinished. The agent reports NotReady;
-a Node registration or status test does not demonstrate container execution.
+the actual worker TLS API through that tunnel. The native CRI workload path
+reports observed runtime readiness; Node registration alone does not demonstrate
+container execution or cross-node network readiness.
 
 ## Supported permissions
 
@@ -56,7 +56,10 @@ Admission is serialized with registry writes and uses the persisted object's
 assignment, not a submitted `spec.nodeName`. A node may not bind Pods, update
 their desired state, create ordinary or mirror Pods, modify foreign Pod status,
 or delete foreign Pods. Pod resource-claim allocation status is protected.
-Status strategy preserves stored spec and metadata before admission.
+Pod status strategy preserves stored spec and metadata before admission.
+Node status preserves stored spec but accepts metadata changes, as required by
+Flannel; node admission applies the restrictions below to those changes too.
+See [strategic patch behavior and verification](strategic-patches.md).
 
 Node updates cannot add, change, or remove administrative labels in reserved
 Kubernetes domains. The v1.34 kubelet label exceptions and node/kubelet label

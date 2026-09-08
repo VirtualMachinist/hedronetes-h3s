@@ -548,7 +548,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             .await?
             .ok_or_else(|| Failure::new(404, "NotFound", "object not found"))?;
         let revision = current.revision.to_string();
-        let mut patched = patch::apply(object(current)?, &bytes, &content_type)?;
+        let mut patched = patch::apply(target.resource, object(current)?, &bytes, &content_type)?;
         if !patched.is_object() || !patched["metadata"].is_object() {
             return Err(Failure::new(
                 422,

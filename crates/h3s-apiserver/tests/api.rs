@@ -489,7 +489,7 @@ async fn patches_preserve_identity_validate_preconditions_and_commit_atomically(
         (merge, json!({"data":{"moved":42}}), 422),
         (merge, json!({"metadata":null}), 422),
         ("application/apply-patch+yaml", json!({}), 415),
-        ("application/strategic-merge-patch+json", json!({}), 415),
+        ("application/strategic-merge-patch+json", json!([]), 422),
     ] {
         let (code, failure) = s.patch(s.admin(), path, content_type, value).await;
         assert_eq!(code, expected, "{failure}");

@@ -68,7 +68,7 @@ async fn node_registers_own_identity_status_and_lease_without_rbac_grants() {
     let (_, created) = s
         .json(worker(&s, "a"), "GET", "/api/v1/nodes/a", json!({}))
         .await;
-    let (code, status) = s.patch(worker(&s,"a"), "/api/v1/nodes/a/status", "application/merge-patch+json", json!({"metadata":{"labels":{"node-restriction.kubernetes.io/trusted":"true"}},"spec":{"podCIDR":"10.42.99.0/24"},"status":{"conditions":[{"type":"Ready","status":"False","reason":"RuntimeNotReady","message":"runtime not started"}]}})).await;
+    let (code, status) = s.patch(worker(&s,"a"), "/api/v1/nodes/a/status", "application/merge-patch+json", json!({"spec":{"podCIDR":"10.42.99.0/24"},"status":{"conditions":[{"type":"Ready","status":"False","reason":"RuntimeNotReady","message":"runtime not started"}]}})).await;
     assert_eq!(code, 200, "{status}");
     assert_eq!(status["spec"], created["spec"]);
     assert_eq!(status["metadata"]["labels"], created["metadata"]["labels"]);
@@ -577,4 +577,109 @@ async fn node_secret_watch_stops_before_delivering_data_after_relationship_revoc
     let event: Value = serde_json::from_str(text.trim()).unwrap();
     assert_eq!(event["type"], "ERROR");
     assert_eq!(event["object"]["code"], 403);
+}
+
+#[tokio::test]
+async fn flannel_status_patches_preserve_conditions_and_enforce_node_boundaries() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = Server::start(dir.path()).await;
+    for name in ["network-a", "network-b"] {
+        let (code, value) = s
+            .json(worker(&s, name), "POST", "/api/v1/nodes", node(name))
+            .await;
+        assert_eq!(code, 201, "{value}");
+    }
+    broad_node_role(&s).await;
+    let main = "/api/v1/nodes/network-a";
+    let status = format!("{main}/status");
+    let smp = "application/strategic-merge-patch+json";
+    let (code, allocated) = s.patch(s.admin(), main, smp, json!({"spec":{"podCIDR":"10.42.1.0/24","podCIDRs":["10.42.1.0/24"],"taints":[{"key":"test","effect":"NoSchedule"}]},"metadata":{"annotations":{"preserve":"value"},"labels":{"node-restriction.kubernetes.io/trusted":"existing"}}})).await;
+    assert_eq!(code, 200, "{allocated}");
+    assert_eq!(s.patch(worker(&s,"network-a"), &status, smp, json!({"status":{"conditions":[{"type":"Ready","status":"True","reason":"KubeletReady"},{"type":"NetworkUnavailable","status":"True","reason":"NoRouteCreated"}]}})).await.0, 200);
+    // The actual fields and request shape emitted by Flannel's kube subnet
+    // manager, plus its NetworkUnavailable condition update. No admin identity.
+    let patch = json!({"metadata":{"annotations":{"flannel.alpha.coreos.com/backend-data":"{\"VNI\":1,\"VtepMAC\":\"de:ad:be:ef:00:01\"}","flannel.alpha.coreos.com/backend-type":"vxlan","flannel.alpha.coreos.com/public-ip":"192.168.104.3","flannel.alpha.coreos.com/kube-subnet-manager":"true"}},"status":{"conditions":[{"type":"NetworkUnavailable","status":"False","reason":"FlannelIsUp"}]}});
+    let (code, ready) = s.patch(worker(&s, "network-a"), &status, smp, patch).await;
+    assert_eq!(code, 200, "{ready}");
+    assert_eq!(ready["metadata"]["annotations"]["preserve"], "value");
+    assert_eq!(
+        ready["metadata"]["annotations"]["flannel.alpha.coreos.com/backend-type"],
+        "vxlan"
+    );
+    assert_eq!(ready["spec"], allocated["spec"]);
+    let conditions = ready["status"]["conditions"].as_array().unwrap();
+    assert_eq!(conditions.len(), 2);
+    assert!(conditions
+        .iter()
+        .any(|c| c["type"] == "Ready" && c["status"] == "True" && c["reason"] == "KubeletReady"));
+    assert!(conditions
+        .iter()
+        .any(|c| c["type"] == "NetworkUnavailable" && c["status"] == "False"));
+    for metadata in [
+        json!({"labels":null}),
+        json!({"labels":{"node-restriction.kubernetes.io/trusted":"true"}}),
+        json!({"labels":{"node-role.kubernetes.io/control-plane":"true"}}),
+        json!({"ownerReferences":[{"apiVersion":"v1","kind":"Node","name":"network-b","uid":"foreign","controller":true}]}),
+        json!({"finalizers":["test/hold"]}),
+        json!({"deletionTimestamp":"2026-09-08T00:00:00Z"}),
+        json!({"deletionGracePeriodSeconds":0}),
+    ] {
+        for kind in [smp, "application/merge-patch+json"] {
+            let (code, value) = s
+                .patch(
+                    worker(&s, "network-a"),
+                    &status,
+                    kind,
+                    json!({"metadata":metadata}),
+                )
+                .await;
+            assert_eq!(code, 403, "{value}");
+        }
+    }
+    assert_eq!(
+        s.patch(
+            worker(&s, "network-b"),
+            &status,
+            smp,
+            json!({"metadata":{"annotations":{"takeover":"yes"}}})
+        )
+        .await
+        .0,
+        403
+    );
+    assert_eq!(s.patch(worker(&s,"network-a"),&status,smp,json!({"metadata":{"resourceVersion":allocated["metadata"]["resourceVersion"]},"status":{"conditions":[]}})).await.0,409);
+    // Desired-state writes through /status are reset, while the same network
+    // allocation change through the main endpoint is denied even with broad RBAC.
+    assert_eq!(
+        s.patch(
+            worker(&s, "network-a"),
+            main,
+            smp,
+            json!({"spec":{"podCIDR":"10.42.9.0/24"}})
+        )
+        .await
+        .0,
+        403
+    );
+    let (code, unchanged) = s
+        .patch(
+            worker(&s, "network-a"),
+            &status,
+            smp,
+            json!({"spec":{"podCIDR":"10.42.9.0/24","taints":[]}}),
+        )
+        .await;
+    assert_eq!(code, 200, "{unchanged}");
+    assert_eq!(unchanged["spec"], allocated["spec"]);
+    assert_eq!(
+        unchanged["metadata"]["annotations"],
+        ready["metadata"]["annotations"]
+    );
+    drop(s);
+    let s = Server::start(dir.path()).await;
+    let (code, reopened) = s
+        .json(worker(&s, "network-a"), "GET", main, json!({}))
+        .await;
+    assert_eq!(code, 200);
+    assert_eq!(reopened, unchanged);
 }

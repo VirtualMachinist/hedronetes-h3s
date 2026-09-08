@@ -29,9 +29,13 @@ pub(crate) fn prepare(
     if status {
         let old = old.expect("status updates require an existing object");
         let rv = value["metadata"]["resourceVersion"].clone();
-        // Status credentials cannot alter desired state or ownership metadata.
+        // Node status writers (including Flannel) update labels/annotations.
+        // Node admission still enforces ownership and administrative labels.
+        // Other status resources retain the existing frozen metadata boundary.
         value["spec"] = old["spec"].clone();
-        value["metadata"] = old["metadata"].clone();
+        if resource.kind != "Node" {
+            value["metadata"] = old["metadata"].clone();
+        }
         value["metadata"]["resourceVersion"] = rv;
     } else if resource.has_status() {
         value["status"] = old

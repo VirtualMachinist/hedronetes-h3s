@@ -282,9 +282,22 @@ impl Agent {
             .and_then(|v| v["lastTransitionTime"].as_str())
             .unwrap_or(&time)
             .to_owned();
+        // Flannel owns NetworkUnavailable. Preserve conditions reported by
+        // other components while replacing only this agent's Ready condition.
+        let other_conditions: Vec<_> = node["status"]["conditions"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|condition| condition["type"] != "Ready")
+            .cloned()
+            .collect();
         node["status"] = json!({"addresses":[{"type":"InternalIP","address":self.ip.to_string()},{"type":"Hostname","address":self.name}],
             "conditions":[{"type":"Ready","status":ready_text,"reason":reason,"message":if ready{"native CRI runtime and network plugin are ready"}else{"CRI runtime is absent or not ready"},
                 "lastHeartbeatTime":time,"lastTransitionTime":transition}]});
+        node["status"]["conditions"]
+            .as_array_mut()
+            .expect("condition array")
+            .extend(other_conditions);
         if let Some((capacity, allocatable)) = capacity::observe() {
             node["status"]["capacity"] = capacity;
             node["status"]["allocatable"] = allocatable;

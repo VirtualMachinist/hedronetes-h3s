@@ -142,9 +142,6 @@ pub fn admit(
                     "a node may modify only its own Node and may not delete it",
                 ));
             }
-            if target.subresource == Some("status") {
-                return Ok(());
-            }
             let empty = Value::Null;
             let old = old.unwrap_or(&empty);
             for field in ["podCIDR", "podCIDRs", "configSource"] {
