@@ -194,7 +194,23 @@ async fn handle(
     }
 }
 async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<Response> {
-    let path = request.uri().path().to_owned();
+    // Decode each segment once, including colon-bearing RBAC names. Encoded
+    // separators may not turn a name into a different resource/subresource.
+    let segments: Result<Vec<_>> = request
+        .uri()
+        .path()
+        .split('/')
+        .map(|segment| {
+            let decoded = percent_encoding::percent_decode_str(segment)
+                .decode_utf8()
+                .map_err(|_| bad("path must be UTF-8"))?;
+            if decoded.contains(['/', '\\', '\0']) || matches!(decoded.as_ref(), "." | "..") {
+                return Err(bad("invalid path segment"));
+            }
+            Ok(decoded.into_owned())
+        })
+        .collect();
+    let path = segments?.join("/");
     let method = request.method().as_str().to_owned();
     if method == "GET" && ["/livez", "/readyz", "/version"].contains(&path.as_str()) {
         return Ok(if path == "/version" {

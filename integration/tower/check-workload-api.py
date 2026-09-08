@@ -37,8 +37,8 @@ def main():
         if not test:
             raise RuntimeError(message)
 
-    def create(version, kind, plural, fields, cluster=False):
-        name = prefix + "-" + plural
+    def create(version, kind, plural, fields, cluster=False, name=None):
+        name = name or prefix + "-" + plural
         metadata = {"name": name}
         if not cluster:
             metadata["namespace"] = args.namespace
@@ -46,12 +46,13 @@ def main():
         # Normal kubectl creation exercises its negotiated Protobuf write path.
         obj = json.loads(run("create", "--validate=false", "-f", "-", "-o", "json", value=value))
         base = "/api/v1" if version == "v1" else f"/apis/{version}"
-        path = base + ("" if cluster else f"/namespaces/{ns}") + f"/{plural}/{name}"
+        path = base + ("" if cluster else f"/namespaces/{ns}") + f"/{plural}/{quote(name, safe='')}"
         created.append((path, obj["metadata"]["uid"]))
         require(json.loads(run("get", "--raw", path)) == obj, f"{kind} read differs")
         return path, obj
 
     try:
+        create("rbac.authorization.k8s.io/v1", "ClusterRole", "clusterroles", {"rules": []}, cluster=True, name="system:" + prefix)
         pod_spec = {"containers": [{"name": "pause", "image": "registry.k8s.io/pause:3.10"}]}
         _, node = create("v1", "Node", "nodes", {}, cluster=True)
         pod_path, pod = create("v1", "Pod", "pods", {"spec": pod_spec})
@@ -77,7 +78,7 @@ def main():
         require(reported["status"]["observedGeneration"] == deployment["metadata"]["generation"], "status update failed")
         require(reported["spec"] == deployment["spec"], "status changed desired state")
         print(json.dumps({"run_id": prefix, "result": "passed", "api_object_count": len(created),
-                          "checks": ["stock typed/Protobuf create and read", "Pod defaults and binding", "Deployment status", "ClusterIP assignment"],
+                          "checks": ["stock typed/Protobuf create and read", "Pod defaults and binding", "Deployment status", "ClusterIP assignment", "encoded RBAC name"],
                           "containers_executed": False, "worker_join_verified": False}))
     finally:
         for path, uid in reversed(created):

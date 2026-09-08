@@ -52,6 +52,14 @@ async fn workload_resources_discovery_scope_and_generated_names() {
         assert_eq!(code, 201, "{path}: {created}");
         let named = format!("{path}/{}", created["metadata"]["name"].as_str().unwrap());
         assert_eq!(s.json(s.admin(), "GET", &named, json!({})).await.1, created);
+        if named.contains(':') {
+            assert_eq!(
+                s.json(s.admin(), "GET", &named.replace(':', "%3A"), json!({}))
+                    .await
+                    .1,
+                created
+            );
+        }
     }
     let (_, groups) = s.json(s.admin(), "GET", "/apis", json!({})).await;
     for group in [
@@ -123,6 +131,19 @@ async fn workload_resources_discovery_scope_and_generated_names() {
             .0,
         400
     );
+    for encoded in ["web%2fstatus", "web%5cstatus", "%2e%2e", "bad%00name"] {
+        assert_eq!(
+            s.json(
+                s.admin(),
+                "GET",
+                &format!("/api/v1/namespaces/team-a/pods/{encoded}"),
+                json!({})
+            )
+            .await
+            .0,
+            400
+        );
+    }
 }
 
 #[tokio::test]

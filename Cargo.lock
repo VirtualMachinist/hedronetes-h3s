@@ -582,6 +582,7 @@ dependencies = [
  "ipnet",
  "json-patch",
  "k8s-openapi",
+ "percent-encoding",
  "prost",
  "prost-reflect",
  "rustls",
