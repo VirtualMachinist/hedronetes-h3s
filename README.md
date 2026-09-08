@@ -1,5 +1,15 @@
 # Hedronetes (h3s)
 
+<p align="center">
+  <img src="assets/hedronetes-seal-dark.jpeg" alt="Hedronetes (h3s) product mark" width="220" />
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-C9A227?style=flat&colorA=111111" alt="Apache-2.0" /></a>
+  <a href="https://github.com/VirtualMachinist/hedronetes-h3s/releases/tag/v0.1.0"><img src="https://img.shields.io/badge/Release-v0.1.0-C9A227?style=flat&colorA=111111" alt="Release v0.1.0" /></a>
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-0042DB?style=flat&colorA=111111&logo=rust&logoColor=C9A227" alt="Rust" /></a>
+</p>
+
 **A Kubernetes-compatible cluster distribution in one Rust binary.**
 
 > k3s, written in Rust, without embedding a Go control plane.
