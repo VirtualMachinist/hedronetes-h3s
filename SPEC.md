@@ -2,7 +2,7 @@
 
 **A Kubernetes-compatible cluster distribution in one Rust binary.**
 
-Version 0.1.0-draft · 7 September 2026 · Apache-2.0
+Version 0.1.0-draft · 8 September 2026 · Apache-2.0
 
 Tagline: *k3s, written in Rust, without embedding a Go control plane.*
 
@@ -104,6 +104,8 @@ Stylized **h3s** the same way Kubernetes is k8s and the lightweight distro is k3
 - Absorb every upstream KEP at Kubernetes velocity on day one.
 - Invent a new YAML dialect or require a custom kubectl.
 - Treat Rūsternetes, Anvil, or Xline as already-shipped defaults.
+- Embed a console or a record store in the `h3s` binary, or use
+  HedronDB as the kube registry. See §2.4.
 
 ### 2.3 What “done the right way” means relative to k3s
 
@@ -120,6 +122,71 @@ Stylized **h3s** the same way Kubernetes is k8s and the lightweight distro is k3
 The fair comparison is k3s, not kubeadm. Winning vs kubeadm on binary size and
 RAM is table stakes. Winning vs k3s is: no GOGC, Rust kubelet, youki, trait
 store, typed pod states.
+
+### 2.4 Agentic planes (adjacent products)
+
+This section is the product source of truth for how h3s sits beside
+adjacent retrieve, record, and console products. It does not change the
+k3s-shaped contract in §§1–2.3 or §6. Agentic use is potential, not a
+shipped feature.
+
+#### Thesis (potential, not shipped)
+
+h3s **MAY** be used as an agentic Kubernetes-shaped runtime: agents as
+first-class cluster citizens, addressed through the same stock API as
+workloads. That potential **MUST NOT** change the product contract —
+one binary, `server` / `agent`, stock `kubectl` and Helm, Kubernetes
+wire format on `:6443`. Agentic use is an application of that contract,
+not a fork of it.
+
+Nothing in this section is a v0.1 or v0.2 deliverable.
+
+#### Three-plane client model
+
+Future integration **MUST** treat these as separate planes. Clients
+compose them. The `h3s` binary implements only the cluster plane.
+
+| Plane | Product | Role |
+|---|---|---|
+| **Cluster** | h3s | Stock Kubernetes API on `:6443`. The runtime. |
+| **Retrieve** | Turso / lattice-style retrieval | Recall at read time. |
+| **Record** | HedronDB | Durable record and reconcile beside Turso. |
+
+**Cluster plane.** Facet (or any other console) is a *client* of h3s.
+It **MUST NOT** be embedded in the `h3s` binary. The console speaks the
+Kubernetes API the same way `kubectl` does.
+
+**Retrieve plane.** Recall at read time is a Turso / lattice-style
+concern. h3s does not own that path.
+
+**Record plane.** HedronDB holds durable record/reconcile state *beside*
+Turso. It **MUST** remain out-of-process relative to h3s. It **MUST NOT**
+become `h3s-storage`, an etcd replacement, or any other kube registry /
+store backend.
+
+#### MUST NOT
+
+- Embed Facet, or any console, inside the `h3s` binary.
+- Embed HedronDB inside the `h3s` binary.
+- Use HedronDB as the Kubernetes registry or `Storage` backend.
+- Cut over a dual source of truth between Turso and HedronDB without a
+  separate, explicit product decision. This spec does not make that
+  decision.
+- Vendor the Rūsternetes or Krustlet trees as the path to agentic
+  features. Same rule as §4 and §21: ideas and interfaces, not git
+  subtrees.
+
+#### Phasing
+
+Facet and HedronDB binding work **MUST NOT** start before a working
+apiserver exists (P2-class: stock `kubectl` against `:6443` for the
+v0.1 type set). Until then, this section is design constraint only.
+
+After in-tree controllers exist, h3s **MAY** grow AgentRun-style custom
+resources served through the stock Kubernetes API. That work is
+design-only until those controllers exist. Those CRDs, if added, still
+travel over the stock API. They are not a reason to embed a console or
+a record store.
 
 ---
 
@@ -417,6 +484,8 @@ in-process. We do not run a separate Kine process on the default path.
 etcd remains the conservative HA default. Xline is an etcd-API-compatible
 Rust store that is interesting for geo-distributed control planes. It is not
 the HA default until it has its own soak in h3s CI.
+
+HedronDB is not a `--store=` backend. See §2.4.
 
 ---
 
@@ -896,6 +965,10 @@ philosophy: one Kubernetes minor per h3s minor.
 8. Apache-2.0.
 9. Fair benchmark is k3s.
 10. Do not ship a number we have not run.
+11. Agentic use is adjacent, not in-process. Facet and HedronDB stay
+    out of the `h3s` binary. HedronDB is not the kube store. A dual
+    source of truth between Turso and HedronDB is a separate product
+    decision. See §2.4.
 
 ---
 
@@ -1057,6 +1130,8 @@ A change is out of scope if it:
 - reintroduces bollard, SSE watches, or a parallel type crate
 - treats Anvil or Xline as the boot path
 - advertises another project’s conformance score
+- embeds Facet or HedronDB in the `h3s` binary, or uses HedronDB as
+  the kube store (§2.4)
 
 When a design is borrowed after this spec ships, add a row here in the
 same keep/drop shape rather than scattering provenance across charter

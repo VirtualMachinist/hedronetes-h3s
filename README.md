@@ -26,7 +26,7 @@ It does **not** embed upstream Go Kubernetes.
 
 ## Docs
 
-- Full product specification: [`SPEC.md`](./SPEC.md)
+- Full product specification: [`SPEC.md`](./SPEC.md). The spec covers adjacent agentic planes (cluster / retrieve / record) as a product constraint, not a shipped feature.
 
 ## Binary (P0 stub)
 
