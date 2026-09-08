@@ -519,11 +519,17 @@ async fn remove(cri: &Cri, s: &PodSandbox, node: &str) -> Result<()> {
 }
 fn conditions(status: &mut Value, p: &Value, ready: bool, initialized: bool) {
     let now = now();
-    status["conditions"]=json!([("PodScheduled",true),("Initialized",true),("ContainersReady",ready),("Ready",ready)].map(|(kind,ok)|{
-        let value=if ok{"True"}else{"False"};let old=p["status"]["conditions"].as_array().into_iter().flatten().find(|c|c["type"]==kind&&c["status"]==value).and_then(|c|c["lastTransitionTime"].as_str()).unwrap_or(&now);
-        json!({"type":kind,"status":value,"lastTransitionTime":old,"reason":if ok{"KubeletObservedReady"}else{"ContainersNotReady"}})
-    }));
+    let values:Vec<_> = [("PodScheduled",true),("Initialized",initialized),("ContainersReady",ready),("Ready",ready)]
+        .into_iter().map(|(kind,ok)|{
+            let value=if ok{"True"}else{"False"};
+            let old=p["status"]["conditions"].as_array().into_iter().flatten()
+                .find(|c|c["type"]==kind&&c["status"]==value)
+                .and_then(|c|c["lastTransitionTime"].as_str()).unwrap_or(&now);
+            json!({"type":kind,"status":value,"lastTransitionTime":old,"reason":if ok{"KubeletObservedReady"}else{"ContainersNotReady"}})
+        }).collect();
+    status["conditions"] = json!(values);
 }
+
 async fn publish(agent: &Agent, p: &Value, status: Value) -> Result<()> {
     if p["status"] == status {
         return Ok(());
@@ -637,6 +643,7 @@ mod tests {
             "2026-09-08T00:00:00Z"
         );
         conditions(&mut status, &p, false, false);
+        assert_eq!(status["conditions"][1]["status"], "False");
         assert_ne!(
             status["conditions"][3]["lastTransitionTime"],
             "2026-09-08T00:00:00Z"
