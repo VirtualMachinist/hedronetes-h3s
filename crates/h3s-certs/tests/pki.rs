@@ -368,7 +368,9 @@ fn coredns_client_replaces_three_day_lifetime() {
         .renew_client(&short, time::Duration::days(365))
         .unwrap();
     assert_eq!(renewed.common_name().unwrap(), "system:coredns");
-    assert!(renewed.not_after().unwrap() - time::OffsetDateTime::now_utc() >= time::Duration::days(360));
+    assert!(
+        renewed.not_after().unwrap() - time::OffsetDateTime::now_utc() >= time::Duration::days(360)
+    );
     assert!(strict_verify(
         root.path(),
         cluster.ca_pem(),
