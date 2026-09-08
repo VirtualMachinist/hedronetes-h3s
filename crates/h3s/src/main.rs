@@ -22,7 +22,7 @@ use clap::{Args, Parser, Subcommand};
     propagate_version = true
 )]
 enum Multicall {
-    /// Hedronetes multicall entry (`h3s server`, `h3s agent`).
+    /// Hedronetes (h3s): Kubernetes-compatible cluster distribution in one Rust binary
     H3s(H3sCli),
     /// Start the control plane + datastore + supervisor (embedded agent unless disabled).
     Server(ServerArgs),
