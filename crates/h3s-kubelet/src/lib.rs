@@ -349,7 +349,26 @@ impl Agent {
         Ok(())
     }
     pub async fn run(&self) -> Result<()> {
-        self.reconcile().await?;
+        // Node CIDR allocation and network status updates can win a revision
+        // race during initial registration. Retry the entire read/modify/write
+        // operation with fresh state, just as the steady heartbeat loop does.
+        // Bound startup and preserve immediate failure for invalid credentials
+        // or configuration, rather than taking down an embedded control plane
+        // for an ordinary optimistic-concurrency conflict.
+        tokio::time::timeout(Duration::from_secs(30), async {
+            loop {
+                match self.reconcile().await {
+                    Ok(()) => return Ok(()),
+                    Err(error @ (Error::Status(409 | 429 | 500..=599) | Error::Transport(_))) => {
+                        eprintln!("h3s initial node registration: {error}; retrying");
+                        tokio::time::sleep(Duration::from_millis(200)).await;
+                    }
+                    Err(error) => return Err(error),
+                }
+            }
+        })
+        .await
+        .map_err(|_| Error::Configuration("initial node registration timed out"))??;
         let tls = service::configuration(self).await?;
         let listener = tokio::net::TcpListener::bind((
             std::net::Ipv4Addr::LOCALHOST,

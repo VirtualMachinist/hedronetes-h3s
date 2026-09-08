@@ -1,6 +1,6 @@
 //! Hedronetes (`h3s`) multicall binary.
 //!
-//! API foundation with persistent PKI/storage. The node runtime is in progress.
+//! Persistent control plane and native server/worker agent composition.
 
 use clap::{Args, Parser, Subcommand};
 
@@ -11,8 +11,8 @@ use clap::{Args, Parser, Subcommand};
     version,
     about = "Hedronetes (h3s): Kubernetes-compatible cluster distribution in one Rust binary",
     long_about = "k3s, written in Rust, without embedding a Go control plane.\n\n\
-         API foundation: use server --disable-agent. \
-         Agents enroll with a supervisor tunnel; an explicit local CRI endpoint enables Pod reconciliation.",
+         The server includes a native local agent unless --disable-agent is set. \
+         An explicit local CRI endpoint enables Pod reconciliation on servers and workers.",
     multicall = true,
     subcommand_required = true,
     arg_required_else_help = true,
@@ -75,9 +75,21 @@ struct ServerArgs {
     /// Each node receives one immutable subnet of the Pod network.
     #[arg(long, default_value_t = 24)]
     node_cidr_mask_size: u8,
-    /// Run the API without a local agent (required while node runtime is incomplete).
+    /// Run the control plane without registering or running a local agent.
     #[arg(long)]
     disable_agent: bool,
+    /// Local node name; defaults to the lowercase system hostname.
+    #[arg(long)]
+    node_name: Option<String>,
+    /// Reachable local node IP; defaults to a concrete bind IP or route-selected IPv4.
+    #[arg(long)]
+    node_ip: Option<std::net::IpAddr>,
+    /// Private loopback kubelet listener; never binds a reachable interface.
+    #[arg(long,default_value_t=10250,value_parser=clap::value_parser!(u16).range(1..))]
+    kubelet_port: u16,
+    /// Use an operator-configured local CRI v1 runtime for assigned Pods.
+    #[arg(long)]
+    container_runtime_endpoint: Option<String>,
     /// Shared enrollment token; prefer --token-file over a command-line value.
     #[arg(
         long,
@@ -154,12 +166,46 @@ fn install_rustls_provider() {
 
 type RunResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
-async fn run_server(args: ServerArgs) -> RunResult {
-    if !args.disable_agent {
-        return Err(
-            "node runtime is not implemented; use --disable-agent for the API foundation".into(),
-        );
+fn local_node(
+    args: &ServerArgs,
+) -> Result<Option<(String, std::net::IpAddr)>, Box<dyn std::error::Error + Send + Sync>> {
+    if args.disable_agent {
+        return Ok(None);
     }
+    let name = match &args.node_name {
+        Some(name) => name.clone(),
+        None => hostname::get()?
+            .into_string()
+            .map_err(|_| "hostname is not UTF-8; set --node-name")?
+            .to_lowercase(),
+    };
+    if !h3s_api::valid_node_name(&name) {
+        return Err("invalid local node name; set --node-name to a lowercase DNS name".into());
+    }
+    let ip = match args.node_ip {
+        Some(ip) => ip,
+        None if !args.bind_address.is_unspecified() && !args.bind_address.is_loopback() => {
+            args.bind_address
+        }
+        None => {
+            // UDP connect asks the kernel for its route's source address. No
+            // datagram is sent, and the documentation-only destination need
+            // not respond. Explicit --node-ip is required on ambiguous hosts.
+            let socket = std::net::UdpSocket::bind("0.0.0.0:0")?;
+            socket
+                .connect("192.0.2.1:9")
+                .map_err(|_| "cannot select a local node IP; set --node-ip")?;
+            socket.local_addr()?.ip()
+        }
+    };
+    if ip.is_unspecified() || ip.is_loopback() || ip.is_multicast() {
+        return Err("local node IP must identify its reachable node interface".into());
+    }
+    Ok(Some((name, ip)))
+}
+
+async fn run_server(args: ServerArgs) -> RunResult {
+    let node = local_node(&args)?;
     let server_dir = args.data_dir.join("server");
     let mut sans = vec![
         "localhost".into(),
@@ -172,6 +218,9 @@ async fn run_server(args: ServerArgs) -> RunResult {
     ];
     if !args.bind_address.is_unspecified() {
         sans.push(args.bind_address.to_string());
+    }
+    if args.bind_address.is_ipv6() {
+        sans.push("::1".into());
     }
     sans.extend(args.tls_san);
     sans.sort();
@@ -224,7 +273,11 @@ async fn run_server(args: ServerArgs) -> RunResult {
         tokio::net::TcpListener::bind((args.bind_address, args.https_listen_port)).await?;
     let local = listener.local_addr()?;
     let connect_ip = if args.bind_address.is_unspecified() {
-        "127.0.0.1".parse().unwrap()
+        if args.bind_address.is_ipv6() {
+            std::net::Ipv6Addr::LOCALHOST.into()
+        } else {
+            std::net::Ipv4Addr::LOCALHOST.into()
+        }
     } else {
         args.bind_address
     };
@@ -264,8 +317,27 @@ async fn run_server(args: ServerArgs) -> RunResult {
     let server = h3s_apiserver::serve(listener, pki.server_config()?, api.router(), async {
         let _ = tokio::signal::ctrl_c().await;
     });
+    // Enrollment must be polled alongside serving: awaiting it before the API
+    // is driven would deadlock this process against its own TLS listener.
+    let local_agent = async {
+        let Some((node_name, node_ip)) = node else {
+            return std::future::pending::<RunResult>().await;
+        };
+        run_native_agent(h3s_kubelet::Config {
+            server: endpoint,
+            ca_file,
+            node_name,
+            node_ip,
+            data_dir: args.data_dir,
+            token: Some(token),
+            kubelet_port: args.kubelet_port,
+            runtime_endpoint: args.container_runtime_endpoint,
+        })
+        .await
+    };
     tokio::select! {
         result = server => result?,
+        result = local_agent => result?,
         result = h3s_controllers::run_node_cidr_controller(node_cidr_client) => result?,
         result = h3s_controllers::run_endpoint_controller(endpoint_client) => result?,
         result = h3s_controllers::run_deployment_controller(deployment_client) => result?,
@@ -348,7 +420,7 @@ fn read_token(
 }
 async fn run_agent(args: AgentArgs) -> RunResult {
     let token = read_token(args.token.as_ref(), args.token_file.as_deref(), None)?;
-    let agent = h3s_kubelet::Agent::connect(h3s_kubelet::Config {
+    run_native_agent(h3s_kubelet::Config {
         server: args.server,
         ca_file: args.server_ca_file,
         node_name: args.node_name,
@@ -358,8 +430,10 @@ async fn run_agent(args: AgentArgs) -> RunResult {
         kubelet_port: args.kubelet_port,
         runtime_endpoint: args.container_runtime_endpoint,
     })
-    .await?;
-    agent.reconcile().await?;
+    .await
+}
+async fn run_native_agent(config: h3s_kubelet::Config) -> RunResult {
+    let agent = h3s_kubelet::Agent::connect(config).await?;
     eprintln!("h3s agent enrolled; Node readiness follows configured runtime health");
     agent.run().await?;
     Ok(())
@@ -450,5 +524,47 @@ mod tests {
                 command: Command::Agent(_)
             })
         ));
+    }
+
+    #[test]
+    fn server_node_identity_uses_explicit_values_and_validates_before_startup() {
+        fn args(extra: &[&str]) -> ServerArgs {
+            let mut argv = vec!["h3s", "server", "--node-name", "server-node"];
+            argv.extend_from_slice(extra);
+            let Multicall::H3s(H3sCli {
+                command: Command::Server(args),
+            }) = Multicall::try_parse_from(argv).unwrap()
+            else {
+                panic!("server arguments")
+            };
+            args
+        }
+        let resolved = local_node(&args(&["--bind-address", "192.0.2.10"]))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            resolved,
+            ("server-node".into(), "192.0.2.10".parse().unwrap())
+        );
+        let resolved = local_node(&args(&[
+            "--bind-address",
+            "192.0.2.10",
+            "--node-ip",
+            "192.0.2.11",
+        ]))
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            resolved.1,
+            "192.0.2.11".parse::<std::net::IpAddr>().unwrap()
+        );
+        for ip in ["0.0.0.0", "127.0.0.1", "224.0.0.1", "::", "::1", "ff02::1"] {
+            assert!(local_node(&args(&["--node-ip", ip])).is_err(), "{ip}");
+        }
+        let mut invalid = args(&["--node-ip", "192.0.2.10"]);
+        invalid.node_name = Some("UPPER CASE".into());
+        assert!(local_node(&invalid).is_err());
+        invalid.disable_agent = true;
+        assert!(local_node(&invalid).unwrap().is_none());
     }
 }

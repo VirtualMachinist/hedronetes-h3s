@@ -5,10 +5,13 @@ registers its own Node, and renews its own Lease every ten seconds. The worker
 creates and retains its private key locally. The server signs a verified CSR;
 neither the CA key nor an administrator credential is sent to the worker.
 
-This implements enrollment and identity persistence. The [supervisor transport](supervisor-tunnel.md) connects automatically and carries mutually authenticated
-health/readiness requests to the worker's real loopback API. CRI/Pod execution,
-CNI, service networking and DNS remain unfinished. The agent reports `Ready=False`, reason `RuntimeNotReady`; enrollment does not demonstrate
-running workloads. The server still requires `--disable-agent`.
+The [supervisor transport](supervisor-tunnel.md) connects automatically and carries
+mutually authenticated health/readiness requests to the worker's real loopback
+API. An explicit CRI endpoint enables native Pod reconciliation and reports
+observed runtime/network readiness. Without it, the agent reports `Ready=False`,
+reason `RuntimeNotReady`. Cross-node Service networking and DNS remain unfinished.
+The server now includes a [native local agent](server-agent.md) by default;
+`--disable-agent` selects the API-only configuration shown below.
 
 ## Operator configuration
 

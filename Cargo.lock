@@ -868,6 +868,7 @@ name = "h3s"
 version = "0.1.0-dev"
 dependencies = [
  "clap",
+ "h3s-api",
  "h3s-apiserver",
  "h3s-auth",
  "h3s-certs",
@@ -876,6 +877,10 @@ dependencies = [
  "h3s-kubelet",
  "h3s-scheduler",
  "h3s-storage",
+ "hostname",
+ "http",
+ "k8s-openapi",
+ "kube",
  "rustls",
  "serde_json",
  "tempfile",
