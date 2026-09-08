@@ -5,6 +5,7 @@ mod bootstrap;
 mod kubelet;
 mod node_cidrs;
 mod nodes;
+mod openapi;
 mod patch;
 mod pod_io;
 mod resources;
@@ -147,7 +148,7 @@ impl Api {
         for namespace in ["default", "kube-system", "kube-public", "kube-node-lease"] {
             api.bootstrap(format!("/registry/namespaces/{namespace}"),json!({"apiVersion":"v1","kind":"Namespace","metadata":{"name":namespace},"status":{"phase":"Active"}})).await?;
         }
-        api.bootstrap("/registry/clusterroles/h3s-discovery".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-discovery"},"rules":[{"verbs":["get"],"nonResourceURLs":["/api","/api/*","/apis","/apis/*"]}]})).await?;
+        api.bootstrap("/registry/clusterroles/h3s-discovery".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-discovery"},"rules":[{"verbs":["get"],"nonResourceURLs":["/api","/api/*","/apis","/apis/*","/openapi","/openapi/*"]}]})).await?;
         api.bootstrap("/registry/clusterrolebindings/h3s-discovery".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-discovery"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-discovery"},"subjects":[{"kind":"Group","apiGroup":"rbac.authorization.k8s.io","name":"system:authenticated"}]})).await?;
         api.bootstrap("/registry/clusterroles/h3s-namespace-controller".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-namespace-controller"},"rules":[
             {"apiGroups":[""],"resources":["namespaces"],"verbs":["get","list","watch","update"]},
@@ -472,6 +473,30 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             return Err(Failure::new(403, "Forbidden", "discovery access denied"));
         }
         return Ok(Json(discovery).into_response());
+    }
+    if path == "/openapi/v2" || path == "/swagger.json" {
+        if method != "GET" {
+            return Err(Failure::new(
+                405,
+                "MethodNotAllowed",
+                "OpenAPI is read-only",
+            ));
+        }
+        if q.keys()
+            .any(|key| !matches!(key.as_str(), "timeout" | "timeoutSeconds"))
+        {
+            return Err(bad("OpenAPI accepts only the client timeout parameter"));
+        }
+        if !api.rbac().await?.allows(
+            &user,
+            &AuthRequest::NonResource {
+                verb: "get",
+                path: "/openapi/v2",
+            },
+        ) {
+            return Err(Failure::new(403, "Forbidden", "OpenAPI access denied"));
+        }
+        return Ok(openapi::v2());
     }
     let target = Target::parse(&path).ok_or_else(|| {
         Failure::new(
