@@ -199,7 +199,21 @@ fn pod(spec: &mut Value) -> Result<()> {
     default(spec, "restartPolicy", json!("Always"));
     default(spec, "dnsPolicy", json!("ClusterFirst"));
     default(spec, "schedulerName", json!("default-scheduler"));
+    if let Some(alias) = spec["serviceAccount"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+    {
+        if spec["serviceAccountName"]
+            .as_str()
+            .is_some_and(|name| !name.is_empty() && name != alias)
+        {
+            return Err(invalid("serviceAccount and serviceAccountName must agree"));
+        }
+        spec["serviceAccountName"] = alias.into();
+    }
     default(spec, "serviceAccountName", json!("default"));
+    spec["serviceAccount"] = spec["serviceAccountName"].clone();
     default(spec, "terminationGracePeriodSeconds", json!(30));
     default(spec, "enableServiceLinks", json!(true));
     one_of(

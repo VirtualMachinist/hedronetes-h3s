@@ -9,3 +9,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+kube.workspace = true
+k8s-openapi.workspace = true
+tokio.workspace = true
+futures-util = "0.3"
+thiserror = "2"

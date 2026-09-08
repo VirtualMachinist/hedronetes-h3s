@@ -39,3 +39,5 @@ hyper = { version = "1", features = ["client", "http1"] }
 http-body-util = "0.1"
 h3s-certs = { path = "../h3s-certs" }
 tempfile = "3"
+h3s-controllers = { path = "../h3s-controllers" }
+kube.workspace = true

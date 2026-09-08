@@ -4,6 +4,7 @@ mod admission;
 mod patch;
 mod resources;
 mod selectors;
+mod serviceaccounts;
 mod services;
 mod strategy;
 mod transport;
@@ -127,6 +128,13 @@ impl Api {
         }
         api.bootstrap("/registry/clusterroles/h3s-discovery".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-discovery"},"rules":[{"verbs":["get"],"nonResourceURLs":["/api","/api/*","/apis","/apis/*"]}]})).await?;
         api.bootstrap("/registry/clusterrolebindings/h3s-discovery".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-discovery"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-discovery"},"subjects":[{"kind":"Group","apiGroup":"rbac.authorization.k8s.io","name":"system:authenticated"}]})).await?;
+        api.bootstrap("/registry/clusterroles/h3s-namespace-controller".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-namespace-controller"},"rules":[
+            {"apiGroups":[""],"resources":["namespaces"],"verbs":["get","list","watch"]},
+            {"apiGroups":[""],"resources":["serviceaccounts"],"verbs":["get","list","watch"],"resourceNames":["default"]},
+            {"apiGroups":[""],"resources":["configmaps"],"verbs":["get","list","watch","update"],"resourceNames":["kube-root-ca.crt"]},
+            {"apiGroups":[""],"resources":["serviceaccounts","configmaps"],"verbs":["create"]}
+        ]})).await?;
+        api.bootstrap("/registry/clusterrolebindings/h3s-namespace-controller".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-namespace-controller"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-namespace-controller"},"subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"system:h3s:namespace-controller"}]})).await?;
         Ok(api)
     }
     async fn bootstrap(
@@ -598,6 +606,15 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         old_value.as_ref(),
         target.subresource.is_some(),
     )?;
+    if target.resource.kind == "Pod" && verb == "create" {
+        serviceaccounts::admit(
+            &api.store,
+            target.namespace.as_deref().expect("Pod namespace"),
+            &mut value,
+        )
+        .await?;
+        value = target.resource.normalize(value)?;
+    }
     if target.subresource.is_none() {
         match target.resource.kind {
             "Namespace" => admission::namespace(&value)?,

@@ -1,6 +1,6 @@
 # Executable API checkpoint
 
-The `server --disable-agent` path now serves a real rustls/Axum API backed by the SQLite registry and persistent cluster PKI. Controllers, scheduling, container execution, worker join, and cluster networking are still incomplete. This checkpoint is not a functioning workload cluster or completed M1.
+The `server --disable-agent` path now serves a real rustls/Axum API backed by the SQLite registry and persistent cluster PKI. Default-ServiceAccount/public-CA reconciliation runs through the API; workload controllers, scheduling, container execution, worker join, and cluster networking are still incomplete. This checkpoint is not a functioning workload cluster or completed M1.
 
 For a local development run:
 

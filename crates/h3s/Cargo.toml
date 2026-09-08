@@ -20,3 +20,4 @@ h3s-apiserver = { path = "../h3s-apiserver" }
 h3s-certs = { path = "../h3s-certs" }
 h3s-storage = { path = "../h3s-storage" }
 tempfile = "3"
+h3s-controllers = { path = "../h3s-controllers" }

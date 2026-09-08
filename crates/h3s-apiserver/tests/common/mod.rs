@@ -13,6 +13,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::TlsConnector;
 
 pub struct Server {
+    controller: Option<tokio::task::JoinHandle<Result<(), h3s_controllers::Error>>>,
     address: std::net::SocketAddr,
     task: tokio::task::JoinHandle<std::io::Result<()>>,
     pub pki: ClusterPki,
@@ -20,10 +21,19 @@ pub struct Server {
 impl Drop for Server {
     fn drop(&mut self) {
         self.task.abort();
+        if let Some(controller) = &self.controller {
+            controller.abort();
+        }
     }
 }
 impl Server {
     pub async fn start(dir: &std::path::Path) -> Self {
+        Self::start_mode(dir, false).await
+    }
+    pub async fn start_with_controllers(dir: &std::path::Path) -> Self {
+        Self::start_mode(dir, true).await
+    }
+    async fn start_mode(dir: &std::path::Path, controllers: bool) -> Self {
         let pki =
             ClusterPki::open_or_create(&dir.join("tls"), &["localhost".into(), "127.0.0.1".into()])
                 .unwrap();
@@ -37,7 +47,65 @@ impl Server {
             api.router(),
             std::future::pending(),
         ));
-        Self { address, task, pki }
+        let controller = if controllers {
+            let identity = pki
+                .issue_client(h3s_controllers::NAMESPACE_CONTROLLER_ID, None)
+                .unwrap();
+            let config = pki
+                .kubeconfig(&format!("https://{address}"), &identity)
+                .unwrap();
+            let client = h3s_controllers::client_from_kubeconfig(&config)
+                .await
+                .unwrap();
+            Some(tokio::spawn(h3s_controllers::run_namespace_controller(
+                client,
+                pki.ca_pem().to_owned(),
+            )))
+        } else {
+            None
+        };
+        let server = Self {
+            address,
+            task,
+            pki,
+            controller,
+        };
+        for ns in ["default", "kube-system", "kube-public", "kube-node-lease"] {
+            server.prepare_account(ns).await;
+        }
+        server
+    }
+    async fn prepare_account(&self, ns: &str) {
+        if self.controller.is_some() {
+            self.wait_account(ns).await;
+        } else {
+            // API contract tests control their registry fixture. Controller
+            // integration tests opt into real background reconciliation instead.
+            let (code,value)=self.json(self.admin(), "POST", &format!("/api/v1/namespaces/{ns}/serviceaccounts"), json!({"apiVersion":"v1","kind":"ServiceAccount","metadata":{"name":"default"}})).await;
+            assert!(matches!(code, 201 | 409), "{value}");
+        }
+    }
+    pub async fn wait_account(&self, ns: &str) {
+        tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            loop {
+                if self
+                    .json(
+                        self.admin(),
+                        "GET",
+                        &format!("/api/v1/namespaces/{ns}/serviceaccounts/default"),
+                        json!({}),
+                    )
+                    .await
+                    .0
+                    == 200
+                {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("default account controller did not converge");
     }
     pub fn admin(&self) -> rustls::ClientConfig {
         self.pki.client_config(Some(self.pki.admin())).unwrap()
@@ -120,6 +188,7 @@ impl Server {
             .0,
             201
         );
+        self.prepare_account(name).await;
     }
     pub async fn patch(
         &self,

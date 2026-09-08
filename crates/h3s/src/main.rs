@@ -79,7 +79,7 @@ fn install_rustls_provider() {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 }
 
-type RunResult = Result<(), Box<dyn std::error::Error>>;
+type RunResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
 async fn run_server(args: ServerArgs) -> RunResult {
     if !args.disable_agent {
@@ -144,10 +144,16 @@ async fn run_server(args: ServerArgs) -> RunResult {
         "h3s API listening on https://{local}; kubeconfig: {}",
         args.write_kubeconfig.display()
     );
-    h3s_apiserver::serve(listener, pki.server_config()?, api.router(), async {
+    let identity = pki.issue_client(h3s_controllers::NAMESPACE_CONTROLLER_ID, None)?;
+    let controller_config = pki.kubeconfig(&endpoint, &identity)?;
+    let client = h3s_controllers::client_from_kubeconfig(&controller_config).await?;
+    let server = h3s_apiserver::serve(listener, pki.server_config()?, api.router(), async {
         let _ = tokio::signal::ctrl_c().await;
-    })
-    .await?;
+    });
+    tokio::select! {
+        result = server => result?,
+        result = h3s_controllers::run_namespace_controller(client, pki.ca_pem().to_owned()) => result?,
+    }
     Ok(())
 }
 fn write_kubeconfig(path: &std::path::Path, contents: &str) -> RunResult {
