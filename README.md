@@ -43,7 +43,11 @@ cargo run -p h3s -- agent --help
 
 ## Status
 
-P0 workspace: empty crates compile. `h3s --help` / `h3s server --help` / `h3s agent --help` are clap multicall stubs. API server and kubelet are not implemented. Spec is normative for design review.
+M1 implementation is underway. The SQLite registry provides durable CRUD/CAS, revisioned snapshot pagination, replayable watch streams, compaction, and leases. Contract tests cover concurrent writers, reopen, slow watches, and invalid/foreign databases. Cluster PKI now persists a private CA/serving/admin bundle and validates TLS identities. RBAC evaluates Kubernetes v1.34 roles and bindings. These libraries are not yet wired into the server. See [the security foundation](docs/security-foundation.md).
+
+The server/agent commands remain CLI stubs; API, runtime, controllers, and cluster networking are not yet implemented. Storage tests do not demonstrate a functioning cluster.
+
+For the pinned ARM64 NixOS development shell and Tower guest definitions, see [integration/tower](integration/tower/README.md) and [the toolchain notes](integration/tower/TOOLCHAIN.md). NixOS is the full M1 integration target; Debian and Fedora will exercise the portable Linux path. Full HA and Kubernetes conformance remain later milestones.
 
 ## License
 

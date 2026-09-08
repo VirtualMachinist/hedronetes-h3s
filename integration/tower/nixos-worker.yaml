@@ -1,0 +1,21 @@
+# Project-owned NixOS guest. Invoke with the isolated LIMA_HOME in README.md.
+vmType: vz
+arch: aarch64
+images:
+  - location: https://github.com/nixos-lima/nixos-lima/releases/download/v0.2.1/nixos-lima-v0.2.1-aarch64.qcow2
+    arch: aarch64
+    digest: sha256:ebdf8363bcb51542892963790c08ddfbffe45443ab19c5e70275c4f0c0aa6f11
+cpus: 2
+memory: 4GiB
+disk: 20GiB
+mounts: []
+networks:
+  - lima: user-v2
+containerd:
+  system: false
+  user: false
+portForwards:
+  - guestIP: 0.0.0.0
+    guestIPMustBeZero: false
+    proto: any
+    ignore: true
