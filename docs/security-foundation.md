@@ -15,3 +15,22 @@ Validation includes actual rustls handshake/data exchange, foreign CA and wrong-
 References: [Kubernetes authentication](https://kubernetes.io/docs/reference/access-authn-authz/authentication/), [Kubernetes RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/), and the [v1.34 rule matching contract](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/apis/rbac/v1/evaluation_helpers.go).
 
 The [node API policy](node-access.md) now grants the supported node operations and checks persisted Pod relationships; Node write restrictions also apply to RBAC-authorized requests. API tests cover scoped certificates, namespace isolation, watch revocation and overbroad-role rejection. This is a prerequisite for join, not a completed worker bootstrap.
+
+## Strict X.509 compatibility and legacy serving repair
+
+New serving and client certificates include an Authority Key Identifier. An
+actual Python 3.13/OpenSSL probe rejected the earlier serving certificate under
+its default strict verification, despite rustls and kubectl accepting it. Strict
+verification remains enabled. Independent `openssl verify -x509_strict` tests
+cover new clients/servers and reproduce the old failure before repair; OpenSSL
+is a test dependency in the Nix package/development shell.
+
+Opening a valid existing bundle now repairs only a serving leaf that lacks AKI.
+A private advisory lock serializes bootstrap/repair, and fsync plus atomic
+replacement persists the result. Repair retains the CA, serving private key,
+subject, all existing DNS/IP SANs and original validity interval; it uses a new
+serial. Existing administrator credentials/kubeconfigs are untouched. Corrupt,
+expired, mismatched or insecure bundles still fail rather than being reset.
+Subsequent opens are byte-stable. This targeted repair is not general renewal
+or an expired-certificate recovery mechanism; legacy client renewal remains
+separate work. The server must restart to begin serving the repaired leaf.

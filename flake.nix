@@ -49,6 +49,7 @@
               && name != "target" && !(pkgs.lib.hasPrefix "._" name);
         };
         cargoLock.lockFile = ./Cargo.lock;
+        nativeCheckInputs = [ pkgs.openssl ];
         nativeBuildInputs = [ pkgs.cmake pkgs.pkg-config ];
         cargoBuildFlags = [ "--workspace" ];
         cargoTestFlags = [ "--workspace" ];
@@ -58,7 +59,7 @@
       packages.${system} = { inherit h3s bun; default = h3s; };
       devShells.${system}.default = pkgs.mkShell {
         packages = [ rust bun pkgs.cmake pkgs.pkg-config pkgs.protobuf
-          pkgs.git pkgs.python3 pkgs.nftables pkgs.iproute2 ];
+          pkgs.git pkgs.python3 pkgs.openssl pkgs.nftables pkgs.iproute2 ];
         CARGO_BUILD_JOBS = "4";
       };
     };

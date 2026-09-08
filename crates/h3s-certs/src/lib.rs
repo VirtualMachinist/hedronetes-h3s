@@ -74,13 +74,28 @@ fn provider() -> Arc<rustls::crypto::CryptoProvider> {
     Arc::new(rustls::crypto::aws_lc_rs::default_provider())
 }
 impl ClusterPki {
-    /// Corrupt, expired, insecure or incompatible existing material fails closed;
-    /// it is never overwritten. Concurrent bootstrap uses create-if-absent.
+    /// Corrupt, expired, insecure or incompatible existing material fails closed.
+    /// A valid legacy serving leaf missing AKI is reissued atomically under a
+    /// bundle lock, preserving CA, private key, subject, SANs and expiry. Other
+    /// material is retained. Concurrent bootstrap uses create-if-absent.
     pub fn open_or_create(directory: &Path, server_names: &[String]) -> Result<Self> {
         private_directory(directory)?;
+        // Serialize creation and the narrowly scoped legacy serving-cert repair.
+        // The separate lock inode is stable across atomic bundle replacement.
+        let _lock = bundle_lock(directory)?;
         let path = directory.join("cluster-pki.json");
         if path.try_exists()? {
-            return Self::load(&path, server_names);
+            let mut pki = Self::load(&path, server_names)?;
+            if pki.repair_legacy_serving_certificate()? {
+                pki.validate(server_names)?;
+                let mut tmp = tempfile::NamedTempFile::new_in(directory)?;
+                serde_json::to_writer(tmp.as_file_mut(), &pki)?;
+                tmp.as_file_mut().write_all(b"\n")?;
+                tmp.as_file().sync_all()?;
+                tmp.persist(&path).map_err(|e| Error::Io(e.error))?;
+                fs::File::open(directory)?.sync_all()?;
+            }
+            return Ok(pki);
         }
         let pki = Self::generate(server_names)?;
         let mut tmp = tempfile::NamedTempFile::new_in(directory)?;
@@ -162,6 +177,59 @@ impl ClusterPki {
         };
         pki.validate(server_names)?;
         Ok(pki)
+    }
+    fn repair_legacy_serving_certificate(&mut self) -> Result<bool> {
+        use x509_parser::extensions::{GeneralName, ParsedExtension};
+        let der = self.server.certificate_der()?;
+        let (_, cert) = X509Certificate::from_der(der.as_ref())
+            .map_err(|_| Error::Invalid("serving DER".into()))?;
+        if cert.extensions().iter().any(|e| {
+            matches!(
+                e.parsed_extension(),
+                ParsedExtension::AuthorityKeyIdentifier(_)
+            )
+        }) {
+            return Ok(false);
+        }
+        let names: Vec<_> = cert.subject().iter_common_name().collect();
+        if names.len() != 1
+            || names[0].as_str().ok() != Some("h3s-apiserver")
+            || cert.subject().iter_organization().next().is_some()
+        {
+            return Err(Error::Invalid(
+                "legacy serving subject cannot be repaired automatically".into(),
+            ));
+        }
+        let mut sans = Vec::new();
+        let san = cert
+            .subject_alternative_name()
+            .map_err(|_| Error::Invalid("legacy serving SAN".into()))?
+            .ok_or_else(|| Error::Invalid("legacy serving SAN absent".into()))?;
+        for name in &san.value.general_names {
+            sans.push(match name {
+                GeneralName::DNSName(name) => (*name).to_owned(),
+                GeneralName::IPAddress(bytes) if bytes.len() == 4 => {
+                    std::net::Ipv4Addr::from(<[u8; 4]>::try_from(*bytes).unwrap()).to_string()
+                }
+                GeneralName::IPAddress(bytes) if bytes.len() == 16 => {
+                    std::net::Ipv6Addr::from(<[u8; 16]>::try_from(*bytes).unwrap()).to_string()
+                }
+                _ => {
+                    return Err(Error::Invalid(
+                        "legacy serving SAN cannot be repaired automatically".into(),
+                    ))
+                }
+            });
+        }
+        let mut params = parameters("h3s-apiserver", None, &sans, Duration::days(365))?;
+        params.not_before = cert.validity().not_before.to_datetime();
+        params.not_after = cert.validity().not_after.to_datetime();
+        params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ServerAuth];
+        params.use_authority_key_identifier_extension = true;
+        params.serial_number = Some(uuid::Uuid::new_v4().as_bytes().to_vec().into());
+        let key = KeyPair::from_pem(&self.server.private_key_pem)?;
+        self.server.certificate_pem = params.signed_by(&key, &self.issuer()?)?.pem();
+        Ok(true)
     }
     fn issuer(&self) -> Result<Issuer<'static, KeyPair>> {
         Ok(Issuer::from_ca_cert_pem(
@@ -319,6 +387,7 @@ fn issue(
 ) -> Result<Identity> {
     let mut params = parameters(name, group, sans, Duration::days(365))?;
     params.extended_key_usages = vec![usage];
+    params.use_authority_key_identifier_extension = true;
     let key = KeyPair::generate()?;
     let cert = params.signed_by(&key, issuer)?;
     Ok(Identity {
@@ -347,4 +416,28 @@ fn private_directory(path: &Path) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn bundle_lock(directory: &Path) -> Result<fs::File> {
+    let mut options = fs::OpenOptions::new();
+    options.read(true).write(true).create(true).truncate(false);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
+    }
+    let file = options.open(directory.join(".pki.lock"))?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file() {
+        return Err(Error::Invalid("PKI lock must be a regular file".into()));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if metadata.permissions().mode() & 0o077 != 0 {
+            return Err(Error::Invalid("PKI lock requires mode 0600".into()));
+        }
+    }
+    fs2::FileExt::lock_exclusive(&file)?;
+    Ok(file)
 }

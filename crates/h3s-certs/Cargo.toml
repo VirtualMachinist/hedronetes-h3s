@@ -19,6 +19,8 @@ x509-parser = { version = "0.18.1", features = ["verify-aws"] }
 tempfile = "3"
 libc = "0.2"
 base64 = "0.22"
+fs2 = "0.4.3"
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 tokio.workspace = true
