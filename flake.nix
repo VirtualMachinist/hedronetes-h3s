@@ -118,6 +118,7 @@
         '';
         meta = { platforms = [ system ]; license = pkgs.lib.licenses.asl20; };
       };
+      flannel = pkgs.callPackage ./integration/tower/flannel.nix {};
       runtime-tools = pkgs.buildEnv {
         name = "hedronetes-runtime-tools";
         paths = [ containerd youki pkgs.iproute2 pkgs.nftables
@@ -147,7 +148,7 @@
         meta = { platforms = [ system ]; license = pkgs.lib.licenses.asl20; };
       };
     in {
-      packages.${system} = { inherit h3s bun youki containerd cni-plugins runtime-tools; default = h3s; };
+      packages.${system} = { inherit h3s bun youki containerd cni-plugins runtime-tools flannel; default = h3s; };
       devShells.${system}.default = pkgs.mkShell {
         packages = [ rust bun pkgs.cmake pkgs.pkg-config pkgs.protobuf
           pkgs.git pkgs.python3 pkgs.openssl pkgs.nftables pkgs.iproute2 ];
