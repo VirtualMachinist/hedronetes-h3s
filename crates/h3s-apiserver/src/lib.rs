@@ -151,12 +151,14 @@ impl Api {
         api.bootstrap("/registry/clusterrolebindings/h3s-discovery".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-discovery"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-discovery"},"subjects":[{"kind":"Group","apiGroup":"rbac.authorization.k8s.io","name":"system:authenticated"}]})).await?;
         api.bootstrap("/registry/clusterroles/h3s-namespace-controller".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-namespace-controller"},"rules":[
             {"apiGroups":[""],"resources":["namespaces"],"verbs":["get","list","watch","update"]},
-            {"apiGroups":[""],"resources":["pods","services","configmaps","secrets","serviceaccounts"],"verbs":["get","list","watch","create","delete"]},
-            {"apiGroups":[""],"resources":["configmaps"],"verbs":["update"],"resourceNames":["kube-root-ca.crt"]},
-            {"apiGroups":["apps"],"resources":["deployments","replicasets"],"verbs":["get","list","watch","delete"]},
-            {"apiGroups":["discovery.k8s.io"],"resources":["endpointslices"],"verbs":["get","list","watch","delete"]},
-            {"apiGroups":["rbac.authorization.k8s.io"],"resources":["roles","rolebindings"],"verbs":["get","list","watch","delete"]},
-            {"apiGroups":["coordination.k8s.io"],"resources":["leases"],"verbs":["get","list","watch","delete"]}
+            {"apiGroups":[""],"resources":["serviceaccounts"],"verbs":["get","watch"],"resourceNames":["default"]},
+            {"apiGroups":[""],"resources":["configmaps"],"verbs":["get","watch","update"],"resourceNames":["kube-root-ca.crt"]},
+            {"apiGroups":[""],"resources":["serviceaccounts","configmaps"],"verbs":["create"]},
+            {"apiGroups":[""],"resources":["pods","services","configmaps","secrets","serviceaccounts"],"verbs":["list","delete"]},
+            {"apiGroups":["apps"],"resources":["deployments","replicasets"],"verbs":["list","delete"]},
+            {"apiGroups":["discovery.k8s.io"],"resources":["endpointslices"],"verbs":["list","delete"]},
+            {"apiGroups":["rbac.authorization.k8s.io"],"resources":["roles","rolebindings"],"verbs":["list","delete"]},
+            {"apiGroups":["coordination.k8s.io"],"resources":["leases"],"verbs":["list","delete"]}
         ]})).await?;
         api.bootstrap("/registry/clusterrolebindings/h3s-namespace-controller".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-namespace-controller"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-namespace-controller"},"subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"system:h3s:namespace-controller"}]})).await?;
         api.bootstrap("/registry/clusterroles/h3s-scheduler".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-scheduler"},"rules":[

@@ -136,6 +136,7 @@ async fn controller_credentials_have_only_required_api_access() {
         "/api/v1/pods",
         "/api/v1/configmaps",
         "/api/v1/serviceaccounts",
+        "/api/v1/services",
     ] {
         assert_eq!(
             s.json(client(), "GET", path, json!({})).await.0,
@@ -143,29 +144,30 @@ async fn controller_credentials_have_only_required_api_access() {
             "{path}"
         );
     }
-    assert_eq!(
-        s.json(
-            client(),
-            "GET",
-            "/apis/rbac.authorization.k8s.io/v1/clusterroles",
-            json!({})
-        )
-        .await
-        .0,
-        403
-    );
-    // Namespace GC may delete namespaced objects. It still must not create Pods.
-    assert_eq!(
-        s.json(
-            client(),
-            "DELETE",
-            "/api/v1/namespaces/team-a/serviceaccounts/default",
-            json!({})
-        )
-        .await
-        .0,
-        200
-    );
+    for resource in [
+        "secrets",
+        "pods",
+        "configmaps",
+        "serviceaccounts",
+        "services",
+    ] {
+        let path = format!("/api/v1/namespaces/team-a/{resource}/gc-probe");
+        assert_eq!(
+            s.json(client(), "DELETE", &path, json!({})).await.0,
+            404,
+            "{path}"
+        );
+    }
+    for path in [
+        "/apis/rbac.authorization.k8s.io/v1/clusterroles",
+        "/api/v1/namespaces/team-a/secrets/gc-probe",
+    ] {
+        assert_eq!(
+            s.json(client(), "GET", path, json!({})).await.0,
+            403,
+            "{path}"
+        );
+    }
     assert_eq!(
         s.json(
             client(),
