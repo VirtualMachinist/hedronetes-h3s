@@ -8,7 +8,7 @@ The CA, serving certificate/key, and administrator certificate/key are persisted
 
 `h3s-auth` evaluates stock `k8s-openapi` v1.34 Role, ClusterRole, RoleBinding, and ClusterRoleBinding objects supplied by the API. It denies by default, isolates namespace RoleBindings, resolves User/Group/ServiceAccount subjects, and matches exact resource names, verbs/groups/resources, `*/subresource`, and nonresource URL prefixes. A node certificate does not by itself authorize access to arbitrary objects. The Kubernetes `system:masters` break-glass group is the only built-in unrestricted identity.
 
-This is a library checkpoint. API authentication wiring, RBAC mutation validation and privilege-escalation prevention, node authorization/NodeRestriction, bootstrap-token exchange, bound ServiceAccount tokens, certificate renewal, and the full cluster workflow remain implementation work. The tests do not claim these capabilities are complete.
+The executable API checkpoint now uses verified TLS identities and this RBAC evaluator for its implemented resource handlers. Complete RBAC mutation validation and privilege-escalation prevention, node authorization/NodeRestriction, bootstrap-token exchange, bound ServiceAccount tokens, certificate renewal, and the full cluster workflow remain implementation work. The tests do not claim these capabilities are complete.
 
 Validation includes actual rustls handshake/data exchange, foreign CA and wrong-EKU rejection, hostname verification, expiry, corrupt/key-mismatched bundle rejection, private modes, concurrent bootstrap, and scoped RBAC decisions. The compiler pin remains 1.98.1; minimum Rust support was deliberately raised to 1.88 for rcgen 0.14.10 and is checked separately.
 

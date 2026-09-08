@@ -1,0 +1,2130 @@
+
+—
+4k8s.io/apimachinery/pkg/api/resource/generated.proto$k8s.io.apimachinery.pkg.api.resource""
+Quantity
+string (	Rstring"'
+QuantityValue
+string (	RstringB&Z$k8s.io/apimachinery/pkg/api/resource
+à
+/k8s.io/apimachinery/pkg/runtime/generated.protok8s.io.apimachinery.pkg.runtime" 
+RawExtension
+raw (Rraw">
+TypeMeta
+
+apiVersion (	R
+apiVersion
+kind (	Rkind"Æ
+UnknownE
+typeMeta (2).k8s.io.apimachinery.pkg.runtime.TypeMetaRtypeMeta
+raw (Rraw(
+contentEncoding (	RcontentEncoding 
+contentType (	RcontentTypeB!Zk8s.io/apimachinery/pkg/runtime
+ä
+6k8s.io/apimachinery/pkg/runtime/schema/generated.proto&k8s.io.apimachinery.pkg.runtime.schemaB(Z&k8s.io/apimachinery/pkg/runtime/schema
+÷8
+4k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto$k8s.io.apimachinery.pkg.apis.meta.v1/k8s.io/apimachinery/pkg/runtime/generated.proto6k8s.io/apimachinery/pkg/runtime/schema/generated.proto"Á
+APIGroup
+name (	RnameZ
+versions (2>.k8s.io.apimachinery.pkg.apis.meta.v1.GroupVersionForDiscoveryRversionsj
+preferredVersion (2>.k8s.io.apimachinery.pkg.apis.meta.v1.GroupVersionForDiscoveryRpreferredVersion
+serverAddressByClientCIDRs (2?.k8s.io.apimachinery.pkg.apis.meta.v1.ServerAddressByClientCIDRRserverAddressByClientCIDRs"V
+APIGroupListF
+groups (2..k8s.io.apimachinery.pkg.apis.meta.v1.APIGroupRgroups"‹
+APIResource
+name (	Rname"
+singularName (	RsingularName
+
+namespaced (R
+namespaced
+group (	Rgroup
+version	 (	Rversion
+kind (	RkindA
+verbs (2+.k8s.io.apimachinery.pkg.apis.meta.v1.VerbsRverbs
+
+shortNames (	R
+shortNames
+
+categories (	R
+categories.
+storageVersionHash
+ (	RstorageVersionHash"Ü
+APIResourceList"
+groupVersion (	RgroupVersionO
+	resources (21.k8s.io.apimachinery.pkg.apis.meta.v1.APIResourceR	resources"™
+APIVersions
+versions (	Rversions
+serverAddressByClientCIDRs (2?.k8s.io.apimachinery.pkg.apis.meta.v1.ServerAddressByClientCIDRRserverAddressByClientCIDRs"`
+ApplyOptions
+dryRun (	RdryRun
+force (Rforce"
+fieldManager (	RfieldManager"ı
+	Condition
+type (	Rtype
+status (	Rstatus.
+observedGeneration (RobservedGenerationZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"u
+CreateOptions
+dryRun (	RdryRun"
+fieldManager (	RfieldManager(
+fieldValidation (	RfieldValidation"¯
+DeleteOptions.
+gracePeriodSeconds (RgracePeriodSecondsY
+preconditions (23.k8s.io.apimachinery.pkg.apis.meta.v1.PreconditionsRpreconditions*
+orphanDependents (RorphanDependents,
+propagationPolicy (	RpropagationPolicy
+dryRun (	RdryRunj
+0ignoreStoreReadErrorWithClusterBreakingPotential (R0ignoreStoreReadErrorWithClusterBreakingPotential"&
+Duration
+duration (Rduration"`
+FieldSelectorRequirement
+key (	Rkey
+operator (	Roperator
+values (	Rvalues"
+FieldsV1
+Raw (RRaw"6
+
+GetOptions(
+resourceVersion (	RresourceVersion"5
+	GroupKind
+group (	Rgroup
+kind (	Rkind"A
+GroupResource
+group (	Rgroup
+resource (	Rresource">
+GroupVersion
+group (	Rgroup
+version (	Rversion"X
+GroupVersionForDiscovery"
+groupVersion (	RgroupVersion
+version (	Rversion"V
+GroupVersionKind
+group (	Rgroup
+version (	Rversion
+kind (	Rkind"b
+GroupVersionResource
+group (	Rgroup
+version (	Rversion
+resource (	Rresource"£
+LabelSelectorf
+matchLabels (2D.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector.MatchLabelsEntryRmatchLabelsj
+matchExpressions (2>.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirementRmatchExpressions>
+MatchLabelsEntry
+key (	Rkey
+value (	Rvalue:8"`
+LabelSelectorRequirement
+key (	Rkey
+operator (	Roperator
+values (	Rvalues"ó
+ListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadataC
+items (2-.k8s.io.apimachinery.pkg.runtime.RawExtensionRitems"ú
+ListMeta
+selfLink (	RselfLink(
+resourceVersion (	RresourceVersion
+continue (	Rcontinue.
+remainingItemCount (RremainingItemCount"á
+ListOptions$
+labelSelector (	RlabelSelector$
+fieldSelector (	RfieldSelector
+watch (Rwatch0
+allowWatchBookmarks	 (RallowWatchBookmarks(
+resourceVersion (	RresourceVersion2
+resourceVersionMatch
+ (	RresourceVersionMatch&
+timeoutSeconds (RtimeoutSeconds
+limit (Rlimit
+continue (	Rcontinue,
+sendInitialEvents (RsendInitialEvents"∫
+ManagedFieldsEntry
+manager (	Rmanager
+	operation (	R	operation
+
+apiVersion (	R
+apiVersion>
+time (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRtime
+
+fieldsType (	R
+fieldsTypeJ
+fieldsV1 (2..k8s.io.apimachinery.pkg.apis.meta.v1.FieldsV1RfieldsV1 
+subresource (	Rsubresource";
+	MicroTime
+seconds (Rseconds
+nanos (Rnanos"‰
+
+ObjectMeta
+name (	Rname"
+generateName (	RgenerateName
+	namespace (	R	namespace
+selfLink (	RselfLink
+uid (	Ruid(
+resourceVersion (	RresourceVersion
+
+generation (R
+generationX
+creationTimestamp (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRcreationTimestampX
+deletionTimestamp	 (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRdeletionTimestamp>
+deletionGracePeriodSeconds
+ (RdeletionGracePeriodSecondsT
+labels (2<.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta.LabelsEntryRlabelsc
+annotations (2A.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta.AnnotationsEntryRannotations^
+ownerReferences (24.k8s.io.apimachinery.pkg.apis.meta.v1.OwnerReferenceRownerReferences
+
+finalizers (	R
+finalizers^
+managedFields (28.k8s.io.apimachinery.pkg.apis.meta.v1.ManagedFieldsEntryRmanagedFields9
+LabelsEntry
+key (	Rkey
+value (	Rvalue:8>
+AnnotationsEntry
+key (	Rkey
+value (	Rvalue:8"∫
+OwnerReference
+
+apiVersion (	R
+apiVersion
+kind (	Rkind
+name (	Rname
+uid (	Ruid
+
+controller (R
+controller.
+blockOwnerDeletion (RblockOwnerDeletion"e
+PartialObjectMetadataL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata"∫
+PartialObjectMetadataListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadataQ
+items (2;.k8s.io.apimachinery.pkg.apis.meta.v1.PartialObjectMetadataRitems"
+Patch"ä
+PatchOptions
+dryRun (	RdryRun
+force (Rforce"
+fieldManager (	RfieldManager(
+fieldValidation (	RfieldValidation"K
+Preconditions
+uid (	Ruid(
+resourceVersion (	RresourceVersion"!
+	RootPaths
+paths (	Rpaths"a
+ServerAddressByClientCIDR
+
+clientCIDR (	R
+clientCIDR$
+serverAddress (	RserverAddress"Å
+StatusJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata
+status (	Rstatus
+message (	Rmessage
+reason (	RreasonM
+details (23.k8s.io.apimachinery.pkg.apis.meta.v1.StatusDetailsRdetails
+code (Rcode"U
+StatusCause
+reason (	Rreason
+message (	Rmessage
+field (	Rfield"ÿ
+StatusDetails
+name (	Rname
+group (	Rgroup
+kind (	Rkind
+uid (	RuidI
+causes (21.k8s.io.apimachinery.pkg.apis.meta.v1.StatusCauseRcauses,
+retryAfterSeconds (RretryAfterSeconds"4
+TableOptions$
+includeObject (	RincludeObject"6
+Time
+seconds (Rseconds
+nanos (Rnanos";
+	Timestamp
+seconds (Rseconds
+nanos (Rnanos">
+TypeMeta
+kind (	Rkind
+
+apiVersion (	R
+apiVersion"u
+UpdateOptions
+dryRun (	RdryRun"
+fieldManager (	RfieldManager(
+fieldValidation (	RfieldValidation"
+Verbs
+items (	Ritems"g
+
+WatchEvent
+type (	RtypeE
+object (2-.k8s.io.apimachinery.pkg.runtime.RawExtensionRobjectB&Z$k8s.io/apimachinery/pkg/apis/meta/v1
+‘
+3k8s.io/apimachinery/pkg/util/intstr/generated.proto#k8s.io.apimachinery.pkg.util.intstr"Q
+IntOrString
+type (Rtype
+intVal (RintVal
+strVal (	RstrValB%Z#k8s.io/apimachinery/pkg/util/intstr
+Á∂
+"k8s.io/api/core/v1/generated.protok8s.io.api.core.v14k8s.io/apimachinery/pkg/api/resource/generated.proto4k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto/k8s.io/apimachinery/pkg/runtime/generated.proto6k8s.io/apimachinery/pkg/runtime/schema/generated.proto3k8s.io/apimachinery/pkg/util/intstr/generated.proto"ê
+ AWSElasticBlockStoreVolumeSource
+volumeID (	RvolumeID
+fsType (	RfsType
+	partition (R	partition
+readOnly (RreadOnly"‚
+AffinityD
+nodeAffinity (2 .k8s.io.api.core.v1.NodeAffinityRnodeAffinityA
+podAffinity (2.k8s.io.api.core.v1.PodAffinityRpodAffinityM
+podAntiAffinity (2#.k8s.io.api.core.v1.PodAntiAffinityRpodAntiAffinity"Q
+AppArmorProfile
+type (	Rtype*
+localhostProfile (	RlocalhostProfile"D
+AttachedVolume
+name (	Rname
+
+devicePath (	R
+devicePath"_
+	AvoidPodsR
+preferAvoidPods (2(.k8s.io.api.core.v1.PreferAvoidPodsEntryRpreferAvoidPods"∑
+AzureDiskVolumeSource
+diskName (	RdiskName
+diskURI (	RdiskURI 
+cachingMode (	RcachingMode
+fsType (	RfsType
+readOnly (RreadOnly
+kind (	Rkind"•
+AzureFilePersistentVolumeSource
+
+secretName (	R
+secretName
+	shareName (	R	shareName
+readOnly (RreadOnly(
+secretNamespace (	RsecretNamespace"q
+AzureFileVolumeSource
+
+secretName (	R
+secretName
+	shareName (	R	shareName
+readOnly (RreadOnly"î
+BindingL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata;
+target (2#.k8s.io.api.core.v1.ObjectReferenceRtarget"é
+CSIPersistentVolumeSource
+driver (	Rdriver"
+volumeHandle (	RvolumeHandle
+readOnly (RreadOnly
+fsType (	RfsTypeo
+volumeAttributes (2C.k8s.io.api.core.v1.CSIPersistentVolumeSource.VolumeAttributesEntryRvolumeAttributesc
+controllerPublishSecretRef (2#.k8s.io.api.core.v1.SecretReferenceRcontrollerPublishSecretRefS
+nodeStageSecretRef (2#.k8s.io.api.core.v1.SecretReferenceRnodeStageSecretRefW
+nodePublishSecretRef (2#.k8s.io.api.core.v1.SecretReferenceRnodePublishSecretRefa
+controllerExpandSecretRef	 (2#.k8s.io.api.core.v1.SecretReferenceRcontrollerExpandSecretRefU
+nodeExpandSecretRef
+ (2#.k8s.io.api.core.v1.SecretReferenceRnodeExpandSecretRefC
+VolumeAttributesEntry
+key (	Rkey
+value (	Rvalue:8"Á
+CSIVolumeSource
+driver (	Rdriver
+readOnly (RreadOnly
+fsType (	RfsTypee
+volumeAttributes (29.k8s.io.api.core.v1.CSIVolumeSource.VolumeAttributesEntryRvolumeAttributes\
+nodePublishSecretRef (2(.k8s.io.api.core.v1.LocalObjectReferenceRnodePublishSecretRefC
+VolumeAttributesEntry
+key (	Rkey
+value (	Rvalue:8"4
+Capabilities
+add (	Radd
+drop (	Rdrop"·
+CephFSPersistentVolumeSource
+monitors (	Rmonitors
+path (	Rpath
+user (	Ruser
+
+secretFile (	R
+secretFileA
+	secretRef (2#.k8s.io.api.core.v1.SecretReferenceR	secretRef
+readOnly (RreadOnly"‹
+CephFSVolumeSource
+monitors (	Rmonitors
+path (	Rpath
+user (	Ruser
+
+secretFile (	R
+secretFileF
+	secretRef (2(.k8s.io.api.core.v1.LocalObjectReferenceR	secretRef
+readOnly (RreadOnly"±
+CinderPersistentVolumeSource
+volumeID (	RvolumeID
+fsType (	RfsType
+readOnly (RreadOnlyA
+	secretRef (2#.k8s.io.api.core.v1.SecretReferenceR	secretRef"¨
+CinderVolumeSource
+volumeID (	RvolumeID
+fsType (	RfsType
+readOnly (RreadOnlyF
+	secretRef (2(.k8s.io.api.core.v1.LocalObjectReferenceR	secretRef"8
+ClientIPConfig&
+timeoutSeconds (RtimeoutSeconds"›
+ClusterTrustBundleProjection
+name (	Rname
+
+signerName (	R
+signerNameY
+labelSelector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRlabelSelector
+optional (Roptional
+path (	Rpath"p
+ComponentCondition
+type (	Rtype
+status (	Rstatus
+message (	Rmessage
+error (	Rerror"ß
+ComponentStatusL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataF
+
+conditions (2&.k8s.io.api.core.v1.ComponentConditionR
+conditions"ú
+ComponentStatusListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata9
+items (2#.k8s.io.api.core.v1.ComponentStatusRitems"˚
+	ConfigMapL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata
+	immutable (R	immutable;
+data (2'.k8s.io.api.core.v1.ConfigMap.DataEntryRdataM
+
+binaryData (2-.k8s.io.api.core.v1.ConfigMap.BinaryDataEntryR
+binaryData7
+	DataEntry
+key (	Rkey
+value (	Rvalue:8=
+BinaryDataEntry
+key (	Rkey
+value (Rvalue:8"é
+ConfigMapEnvSource\
+localObjectReference (2(.k8s.io.api.core.v1.LocalObjectReferenceRlocalObjectReference
+optional (Roptional"¢
+ConfigMapKeySelector\
+localObjectReference (2(.k8s.io.api.core.v1.LocalObjectReferenceRlocalObjectReference
+key (	Rkey
+optional (Roptional"ê
+ConfigMapListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata3
+items (2.k8s.io.api.core.v1.ConfigMapRitems"µ
+ConfigMapNodeConfigSource
+	namespace (	R	namespace
+name (	Rname
+uid (	Ruid(
+resourceVersion (	RresourceVersion*
+kubeletConfigKey (	RkubeletConfigKey"ƒ
+ConfigMapProjection\
+localObjectReference (2(.k8s.io.api.core.v1.LocalObjectReferenceRlocalObjectReference3
+items (2.k8s.io.api.core.v1.KeyToPathRitems
+optional (Roptional"Ë
+ConfigMapVolumeSource\
+localObjectReference (2(.k8s.io.api.core.v1.LocalObjectReferenceRlocalObjectReference3
+items (2.k8s.io.api.core.v1.KeyToPathRitems 
+defaultMode (RdefaultMode
+optional (Roptional"˛	
+	Container
+name (	Rname
+image (	Rimage
+command (	Rcommand
+args (	Rargs
+
+workingDir (	R
+workingDir7
+ports (2!.k8s.io.api.core.v1.ContainerPortRports;
+envFrom (2!.k8s.io.api.core.v1.EnvFromSourceRenvFrom,
+env (2.k8s.io.api.core.v1.EnvVarRenvF
+	resources (2(.k8s.io.api.core.v1.ResourceRequirementsR	resourcesM
+resizePolicy (2).k8s.io.api.core.v1.ContainerResizePolicyRresizePolicy$
+restartPolicy (	RrestartPolicyX
+restartPolicyRules (2(.k8s.io.api.core.v1.ContainerRestartRuleRrestartPolicyRulesC
+volumeMounts	 (2.k8s.io.api.core.v1.VolumeMountRvolumeMountsF
+volumeDevices (2 .k8s.io.api.core.v1.VolumeDeviceRvolumeDevices?
+livenessProbe
+ (2.k8s.io.api.core.v1.ProbeRlivenessProbeA
+readinessProbe (2.k8s.io.api.core.v1.ProbeRreadinessProbe=
+startupProbe (2.k8s.io.api.core.v1.ProbeRstartupProbe;
+	lifecycle (2.k8s.io.api.core.v1.LifecycleR	lifecycle6
+terminationMessagePath (	RterminationMessagePath:
+terminationMessagePolicy (	RterminationMessagePolicy(
+imagePullPolicy (	RimagePullPolicyM
+securityContext (2#.k8s.io.api.core.v1.SecurityContextRsecurityContext
+stdin (Rstdin
+	stdinOnce (R	stdinOnce
+tty (Rtty"é
+ ContainerExtendedResourceRequest$
+containerName (	RcontainerName"
+resourceName (	RresourceName 
+requestName (	RrequestName"D
+ContainerImage
+names (	Rnames
+	sizeBytes (R	sizeBytes"ô
+ContainerPort
+name (	Rname
+hostPort (RhostPort$
+containerPort (RcontainerPort
+protocol (	Rprotocol
+hostIP (	RhostIP"a
+ContainerResizePolicy"
+resourceName (	RresourceName$
+restartPolicy (	RrestartPolicy"Å
+ContainerRestartRule
+action (	RactionQ
+	exitCodes (23.k8s.io.api.core.v1.ContainerRestartRuleOnExitCodesR	exitCodes"U
+ContainerRestartRuleOnExitCodes
+operator (	Roperator
+values (Rvalues"Ë
+ContainerStateC
+waiting (2).k8s.io.api.core.v1.ContainerStateWaitingRwaitingC
+running (2).k8s.io.api.core.v1.ContainerStateRunningRrunningL
+
+terminated (2,.k8s.io.api.core.v1.ContainerStateTerminatedR
+terminated"a
+ContainerStateRunningH
+	startedAt (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeR	startedAt"∏
+ContainerStateTerminated
+exitCode (RexitCode
+signal (Rsignal
+reason (	Rreason
+message (	RmessageH
+	startedAt (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeR	startedAtJ
+
+finishedAt (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeR
+finishedAt 
+containerID (	RcontainerID"I
+ContainerStateWaiting
+reason (	Rreason
+message (	Rmessage"ı
+ContainerStatus
+name (	Rname8
+state (2".k8s.io.api.core.v1.ContainerStateRstate@
+	lastState (2".k8s.io.api.core.v1.ContainerStateR	lastState
+ready (Rready"
+restartCount (RrestartCount
+image (	Rimage
+imageID (	RimageID 
+containerID (	RcontainerID
+started	 (Rstartedk
+allocatedResources
+ (2;.k8s.io.api.core.v1.ContainerStatus.AllocatedResourcesEntryRallocatedResourcesF
+	resources (2(.k8s.io.api.core.v1.ResourceRequirementsR	resourcesI
+volumeMounts (2%.k8s.io.api.core.v1.VolumeMountStatusRvolumeMounts5
+user (2!.k8s.io.api.core.v1.ContainerUserRuser^
+allocatedResourcesStatus (2".k8s.io.api.core.v1.ResourceStatusRallocatedResourcesStatus
+
+stopSignal (	R
+stopSignalu
+AllocatedResourcesEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8"M
+ContainerUser<
+linux (2&.k8s.io.api.core.v1.LinuxContainerUserRlinux"$
+DaemonEndpoint
+Port (RPort"X
+DownwardAPIProjection?
+items (2).k8s.io.api.core.v1.DownwardAPIVolumeFileRitems"€
+DownwardAPIVolumeFile
+path (	RpathC
+fieldRef (2'.k8s.io.api.core.v1.ObjectFieldSelectorRfieldRefU
+resourceFieldRef (2).k8s.io.api.core.v1.ResourceFieldSelectorRresourceFieldRef
+mode (Rmode"|
+DownwardAPIVolumeSource?
+items (2).k8s.io.api.core.v1.DownwardAPIVolumeFileRitems 
+defaultMode (RdefaultMode"|
+EmptyDirVolumeSource
+medium (	RmediumL
+	sizeLimit (2..k8s.io.apimachinery.pkg.api.resource.QuantityR	sizeLimit"ú
+EndpointAddress
+ip (	Rip
+hostname (	Rhostname
+nodeName (	RnodeNameA
+	targetRef (2#.k8s.io.api.core.v1.ObjectReferenceR	targetRef"t
+EndpointPort
+name (	Rname
+port (Rport
+protocol (	Rprotocol 
+appProtocol (	RappProtocol"ﬁ
+EndpointSubsetA
+	addresses (2#.k8s.io.api.core.v1.EndpointAddressR	addressesQ
+notReadyAddresses (2#.k8s.io.api.core.v1.EndpointAddressRnotReadyAddresses6
+ports (2 .k8s.io.api.core.v1.EndpointPortRports"ó
+	EndpointsL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata<
+subsets (2".k8s.io.api.core.v1.EndpointSubsetRsubsets"ê
+EndpointsListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata3
+items (2.k8s.io.api.core.v1.EndpointsRitems"∂
+EnvFromSource
+prefix (	RprefixJ
+configMapRef (2&.k8s.io.api.core.v1.ConfigMapEnvSourceRconfigMapRefA
+	secretRef (2#.k8s.io.api.core.v1.SecretEnvSourceR	secretRef"r
+EnvVar
+name (	Rname
+value (	Rvalue>
+	valueFrom (2 .k8s.io.api.core.v1.EnvVarSourceR	valueFrom"é
+EnvVarSourceC
+fieldRef (2'.k8s.io.api.core.v1.ObjectFieldSelectorRfieldRefU
+resourceFieldRef (2).k8s.io.api.core.v1.ResourceFieldSelectorRresourceFieldRefR
+configMapKeyRef (2(.k8s.io.api.core.v1.ConfigMapKeySelectorRconfigMapKeyRefI
+secretKeyRef (2%.k8s.io.api.core.v1.SecretKeySelectorRsecretKeyRefC
+
+fileKeyRef (2#.k8s.io.api.core.v1.FileKeySelectorR
+fileKeyRef"∞
+EphemeralContainerh
+ephemeralContainerCommon (2,.k8s.io.api.core.v1.EphemeralContainerCommonRephemeralContainerCommon0
+targetContainerName (	RtargetContainerName"ç
+
+EphemeralContainerCommon
+name (	Rname
+image (	Rimage
+command (	Rcommand
+args (	Rargs
+
+workingDir (	R
+workingDir7
+ports (2!.k8s.io.api.core.v1.ContainerPortRports;
+envFrom (2!.k8s.io.api.core.v1.EnvFromSourceRenvFrom,
+env (2.k8s.io.api.core.v1.EnvVarRenvF
+	resources (2(.k8s.io.api.core.v1.ResourceRequirementsR	resourcesM
+resizePolicy (2).k8s.io.api.core.v1.ContainerResizePolicyRresizePolicy$
+restartPolicy (	RrestartPolicyX
+restartPolicyRules (2(.k8s.io.api.core.v1.ContainerRestartRuleRrestartPolicyRulesC
+volumeMounts	 (2.k8s.io.api.core.v1.VolumeMountRvolumeMountsF
+volumeDevices (2 .k8s.io.api.core.v1.VolumeDeviceRvolumeDevices?
+livenessProbe
+ (2.k8s.io.api.core.v1.ProbeRlivenessProbeA
+readinessProbe (2.k8s.io.api.core.v1.ProbeRreadinessProbe=
+startupProbe (2.k8s.io.api.core.v1.ProbeRstartupProbe;
+	lifecycle (2.k8s.io.api.core.v1.LifecycleR	lifecycle6
+terminationMessagePath (	RterminationMessagePath:
+terminationMessagePolicy (	RterminationMessagePolicy(
+imagePullPolicy (	RimagePullPolicyM
+securityContext (2#.k8s.io.api.core.v1.SecurityContextRsecurityContext
+stdin (Rstdin
+	stdinOnce (R	stdinOnce
+tty (Rtty"|
+EphemeralVolumeSourcec
+volumeClaimTemplate (21.k8s.io.api.core.v1.PersistentVolumeClaimTemplateRvolumeClaimTemplate"ö
+EventL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataK
+involvedObject (2#.k8s.io.api.core.v1.ObjectReferenceRinvolvedObject
+reason (	Rreason
+message (	Rmessage7
+source (2.k8s.io.api.core.v1.EventSourceRsourceR
+firstTimestamp (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRfirstTimestampP
+lastTimestamp (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTimestamp
+count (Rcount
+type	 (	RtypeM
+	eventTime
+ (2/.k8s.io.apimachinery.pkg.apis.meta.v1.MicroTimeR	eventTime7
+series (2.k8s.io.api.core.v1.EventSeriesRseries
+action (	Raction=
+related (2#.k8s.io.api.core.v1.ObjectReferenceRrelated.
+reportingComponent (	RreportingComponent,
+reportingInstance (	RreportingInstance"à
+	EventListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata/
+items (2.k8s.io.api.core.v1.EventRitems"Ä
+EventSeries
+count (Rcount[
+lastObservedTime (2/.k8s.io.apimachinery.pkg.apis.meta.v1.MicroTimeRlastObservedTime"?
+EventSource
+	component (	R	component
+host (	Rhost"&
+
+ExecAction
+command (	Rcommand"å
+FCVolumeSource
+
+targetWWNs (	R
+targetWWNs
+lun (Rlun
+fsType (	RfsType
+readOnly (RreadOnly
+wwids (	Rwwids"s
+FileKeySelector
+
+volumeName (	R
+volumeName
+path (	Rpath
+key (	Rkey
+optional (Roptional"æ
+FlexPersistentVolumeSource
+driver (	Rdriver
+fsType (	RfsTypeA
+	secretRef (2#.k8s.io.api.core.v1.SecretReferenceR	secretRef
+readOnly (RreadOnlyU
+options (2;.k8s.io.api.core.v1.FlexPersistentVolumeSource.OptionsEntryRoptions:
+OptionsEntry
+key (	Rkey
+value (	Rvalue:8"Ø
+FlexVolumeSource
+driver (	Rdriver
+fsType (	RfsTypeF
+	secretRef (2(.k8s.io.api.core.v1.LocalObjectReferenceR	secretRef
+readOnly (RreadOnlyK
+options (21.k8s.io.api.core.v1.FlexVolumeSource.OptionsEntryRoptions:
+OptionsEntry
+key (	Rkey
+value (	Rvalue:8"Y
+FlockerVolumeSource 
+datasetName (	RdatasetName 
+datasetUUID (	RdatasetUUID"â
+GCEPersistentDiskVolumeSource
+pdName (	RpdName
+fsType (	RfsType
+	partition (R	partition
+readOnly (RreadOnly":
+
+GRPCAction
+port (Rport
+service (	Rservice"o
+GitRepoVolumeSource
+
+repository (	R
+repository
+revision (	Rrevision
+	directory (	R	directory"ü
+GlusterfsPersistentVolumeSource
+	endpoints (	R	endpoints
+path (	Rpath
+readOnly (RreadOnly.
+endpointsNamespace (	RendpointsNamespace"e
+GlusterfsVolumeSource
+	endpoints (	R	endpoints
+path (	Rpath
+readOnly (RreadOnly"◊
+HTTPGetAction
+path (	RpathD
+port (20.k8s.io.apimachinery.pkg.util.intstr.IntOrStringRport
+host (	Rhost
+scheme (	Rscheme@
+httpHeaders (2.k8s.io.api.core.v1.HTTPHeaderRhttpHeaders"6
+
+HTTPHeader
+name (	Rname
+value (	Rvalue"9
+	HostAlias
+ip (	Rip
+	hostnames (	R	hostnames"
+HostIP
+ip (	Rip">
+HostPathVolumeSource
+path (	Rpath
+type (	Rtype"ú
+ISCSIPersistentVolumeSource"
+targetPortal (	RtargetPortal
+iqn (	Riqn
+lun (Rlun&
+iscsiInterface (	RiscsiInterface
+fsType (	RfsType
+readOnly (RreadOnly
+portals (	Rportals,
+chapAuthDiscovery (RchapAuthDiscovery(
+chapAuthSession (RchapAuthSessionA
+	secretRef
+ (2#.k8s.io.api.core.v1.SecretReferenceR	secretRef$
+initiatorName (	RinitiatorName"ó
+ISCSIVolumeSource"
+targetPortal (	RtargetPortal
+iqn (	Riqn
+lun (Rlun&
+iscsiInterface (	RiscsiInterface
+fsType (	RfsType
+readOnly (RreadOnly
+portals (	Rportals,
+chapAuthDiscovery (RchapAuthDiscovery(
+chapAuthSession (RchapAuthSessionF
+	secretRef
+ (2(.k8s.io.api.core.v1.LocalObjectReferenceR	secretRef$
+initiatorName (	RinitiatorName"Q
+ImageVolumeSource
+	reference (	R	reference
+
+pullPolicy (	R
+pullPolicy"E
+	KeyToPath
+key (	Rkey
+path (	Rpath
+mode (Rmode"Ø
+	LifecycleB
+	postStart (2$.k8s.io.api.core.v1.LifecycleHandlerR	postStart>
+preStop (2$.k8s.io.api.core.v1.LifecycleHandlerRpreStop
+
+stopSignal (	R
+stopSignal"˝
+LifecycleHandler2
+exec (2.k8s.io.api.core.v1.ExecActionRexec;
+httpGet (2!.k8s.io.api.core.v1.HTTPGetActionRhttpGetA
+	tcpSocket (2#.k8s.io.api.core.v1.TCPSocketActionR	tcpSocket5
+sleep (2.k8s.io.api.core.v1.SleepActionRsleep"í
+
+LimitRangeL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata6
+spec (2".k8s.io.api.core.v1.LimitRangeSpecRspec"Á
+LimitRangeItem
+type (	Rtype=
+max (2+.k8s.io.api.core.v1.LimitRangeItem.MaxEntryRmax=
+min (2+.k8s.io.api.core.v1.LimitRangeItem.MinEntryRminI
+default (2/.k8s.io.api.core.v1.LimitRangeItem.DefaultEntryRdefault^
+defaultRequest (26.k8s.io.api.core.v1.LimitRangeItem.DefaultRequestEntryRdefaultRequestp
+maxLimitRequestRatio (2<.k8s.io.api.core.v1.LimitRangeItem.MaxLimitRequestRatioEntryRmaxLimitRequestRatiof
+MaxEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8f
+MinEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8j
+DefaultEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8q
+DefaultRequestEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8w
+MaxLimitRequestRatioEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8"í
+LimitRangeListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata4
+items (2.k8s.io.api.core.v1.LimitRangeRitems"L
+LimitRangeSpec:
+limits (2".k8s.io.api.core.v1.LimitRangeItemRlimits"h
+LinuxContainerUser
+uid (Ruid
+gid (Rgid.
+supplementalGroups (RsupplementalGroups"ó
+ListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadataC
+items (2-.k8s.io.apimachinery.pkg.runtime.RawExtensionRitems"è
+LoadBalancerIngress
+ip (	Rip
+hostname (	Rhostname
+ipMode (	RipMode4
+ports (2.k8s.io.api.core.v1.PortStatusRports"W
+LoadBalancerStatusA
+ingress (2'.k8s.io.api.core.v1.LoadBalancerIngressRingress"*
+LocalObjectReference
+name (	Rname"?
+LocalVolumeSource
+path (	Rpath
+fsType (	RfsType"v
+ModifyVolumeStatusH
+targetVolumeAttributesClassName (	RtargetVolumeAttributesClassName
+status (	Rstatus"Y
+NFSVolumeSource
+server (	Rserver
+path (	Rpath
+readOnly (RreadOnly"Õ
+	NamespaceL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata5
+spec (2!.k8s.io.api.core.v1.NamespaceSpecRspec;
+status (2#.k8s.io.api.core.v1.NamespaceStatusRstatus"Œ
+NamespaceCondition
+type (	Rtype
+status (	RstatusZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"ê
+NamespaceListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata3
+items (2.k8s.io.api.core.v1.NamespaceRitems"/
+NamespaceSpec
+
+finalizers (	R
+finalizers"o
+NamespaceStatus
+phase (	RphaseF
+
+conditions (2&.k8s.io.api.core.v1.NamespaceConditionR
+conditions"æ
+NodeL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata0
+spec (2.k8s.io.api.core.v1.NodeSpecRspec6
+status (2.k8s.io.api.core.v1.NodeStatusRstatus";
+NodeAddress
+type (	Rtype
+address (	Raddress"±
+NodeAffinityà
+.requiredDuringSchedulingIgnoredDuringExecution (2 .k8s.io.api.core.v1.NodeSelectorR.requiredDuringSchedulingIgnoredDuringExecutionï
+/preferredDuringSchedulingIgnoredDuringExecution (2+.k8s.io.api.core.v1.PreferredSchedulingTermR/preferredDuringSchedulingIgnoredDuringExecution"£
+NodeCondition
+type (	Rtype
+status (	RstatusX
+lastHeartbeatTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastHeartbeatTimeZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"_
+NodeConfigSourceK
+	configMap (2-.k8s.io.api.core.v1.ConfigMapNodeConfigSourceR	configMap"Ù
+NodeConfigStatus@
+assigned (2$.k8s.io.api.core.v1.NodeConfigSourceRassigned<
+active (2$.k8s.io.api.core.v1.NodeConfigSourceRactiveJ
+lastKnownGood (2$.k8s.io.api.core.v1.NodeConfigSourceRlastKnownGood
+error (	Rerror"c
+NodeDaemonEndpointsL
+kubeletEndpoint (2".k8s.io.api.core.v1.DaemonEndpointRkubeletEndpoint"J
+NodeFeatures:
+supplementalGroupsPolicy (RsupplementalGroupsPolicy"Ü
+NodeListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata.
+items (2.k8s.io.api.core.v1.NodeRitems"&
+NodeProxyOptions
+path (	Rpath"t
+NodeRuntimeHandler
+name (	RnameJ
+features (2..k8s.io.api.core.v1.NodeRuntimeHandlerFeaturesRfeatures"~
+NodeRuntimeHandlerFeatures8
+recursiveReadOnlyMounts (RrecursiveReadOnlyMounts&
+userNamespaces (RuserNamespaces"b
+NodeSelectorR
+nodeSelectorTerms (2$.k8s.io.api.core.v1.NodeSelectorTermRnodeSelectorTerms"_
+NodeSelectorRequirement
+key (	Rkey
+operator (	Roperator
+values (	Rvalues"∫
+NodeSelectorTermW
+matchExpressions (2+.k8s.io.api.core.v1.NodeSelectorRequirementRmatchExpressionsM
+matchFields (2+.k8s.io.api.core.v1.NodeSelectorRequirementRmatchFields"£
+NodeSpec
+podCIDR (	RpodCIDR
+podCIDRs (	RpodCIDRs
+
+providerID (	R
+providerID$
+unschedulable (Runschedulable1
+taints (2.k8s.io.api.core.v1.TaintRtaintsH
+configSource (2$.k8s.io.api.core.v1.NodeConfigSourceRconfigSource
+
+externalID (	R
+externalID"≠
+
+NodeStatusH
+capacity (2,.k8s.io.api.core.v1.NodeStatus.CapacityEntryRcapacityQ
+allocatable (2/.k8s.io.api.core.v1.NodeStatus.AllocatableEntryRallocatable
+phase (	RphaseA
+
+conditions (2!.k8s.io.api.core.v1.NodeConditionR
+conditions=
+	addresses (2.k8s.io.api.core.v1.NodeAddressR	addressesQ
+daemonEndpoints (2'.k8s.io.api.core.v1.NodeDaemonEndpointsRdaemonEndpoints>
+nodeInfo (2".k8s.io.api.core.v1.NodeSystemInfoRnodeInfo:
+images (2".k8s.io.api.core.v1.ContainerImageRimages"
+volumesInUse	 (	RvolumesInUseL
+volumesAttached
+ (2".k8s.io.api.core.v1.AttachedVolumeRvolumesAttached<
+config (2$.k8s.io.api.core.v1.NodeConfigStatusRconfigP
+runtimeHandlers (2&.k8s.io.api.core.v1.NodeRuntimeHandlerRruntimeHandlers<
+features (2 .k8s.io.api.core.v1.NodeFeaturesRfeaturesk
+CapacityEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8n
+AllocatableEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8",
+NodeSwapStatus
+capacity (Rcapacity"∫
+NodeSystemInfo
+	machineID (	R	machineID
+
+systemUUID (	R
+systemUUID
+bootID (	RbootID$
+kernelVersion (	RkernelVersion
+osImage (	RosImage8
+containerRuntimeVersion (	RcontainerRuntimeVersion&
+kubeletVersion (	RkubeletVersion*
+kubeProxyVersion (	RkubeProxyVersion(
+operatingSystem	 (	RoperatingSystem"
+architecture
+ (	Rarchitecture6
+swap (2".k8s.io.api.core.v1.NodeSwapStatusRswap"S
+ObjectFieldSelector
+
+apiVersion (	R
+apiVersion
+	fieldPath (	R	fieldPath"—
+ObjectReference
+kind (	Rkind
+	namespace (	R	namespace
+name (	Rname
+uid (	Ruid
+
+apiVersion (	R
+apiVersion(
+resourceVersion (	RresourceVersion
+	fieldPath (	R	fieldPath"‚
+PersistentVolumeL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata<
+spec (2(.k8s.io.api.core.v1.PersistentVolumeSpecRspecB
+status (2*.k8s.io.api.core.v1.PersistentVolumeStatusRstatus"Ò
+PersistentVolumeClaimL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataA
+spec (2-.k8s.io.api.core.v1.PersistentVolumeClaimSpecRspecG
+status (2/.k8s.io.api.core.v1.PersistentVolumeClaimStatusRstatus"¨
+PersistentVolumeClaimCondition
+type (	Rtype
+status (	RstatusP
+lastProbeTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastProbeTimeZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"®
+PersistentVolumeClaimListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata?
+items (2).k8s.io.api.core.v1.PersistentVolumeClaimRitems"•
+PersistentVolumeClaimSpec 
+accessModes (	RaccessModesO
+selector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRselectorL
+	resources (2..k8s.io.api.core.v1.VolumeResourceRequirementsR	resources
+
+volumeName (	R
+volumeName*
+storageClassName (	RstorageClassName
+
+volumeMode (	R
+volumeModeM
+
+dataSource (2-.k8s.io.api.core.v1.TypedLocalObjectReferenceR
+dataSourceN
+dataSourceRef (2(.k8s.io.api.core.v1.TypedObjectReferenceRdataSourceRef<
+volumeAttributesClassName	 (	RvolumeAttributesClassName"‚
+PersistentVolumeClaimStatus
+phase (	Rphase 
+accessModes (	RaccessModesY
+capacity (2=.k8s.io.api.core.v1.PersistentVolumeClaimStatus.CapacityEntryRcapacityR
+
+conditions (22.k8s.io.api.core.v1.PersistentVolumeClaimConditionR
+conditionsw
+allocatedResources (2G.k8s.io.api.core.v1.PersistentVolumeClaimStatus.AllocatedResourcesEntryRallocatedResourceså
+allocatedResourceStatuses (2N.k8s.io.api.core.v1.PersistentVolumeClaimStatus.AllocatedResourceStatusesEntryRallocatedResourceStatusesJ
+ currentVolumeAttributesClassName (	R currentVolumeAttributesClassNameV
+modifyVolumeStatus	 (2&.k8s.io.api.core.v1.ModifyVolumeStatusRmodifyVolumeStatusk
+CapacityEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8u
+AllocatedResourcesEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8L
+AllocatedResourceStatusesEntry
+key (	Rkey
+value (	Rvalue:8"∞
+PersistentVolumeClaimTemplateL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataA
+spec (2-.k8s.io.api.core.v1.PersistentVolumeClaimSpecRspec"]
+!PersistentVolumeClaimVolumeSource
+	claimName (	R	claimName
+readOnly (RreadOnly"û
+PersistentVolumeListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata:
+items (2$.k8s.io.api.core.v1.PersistentVolumeRitems"©
+PersistentVolumeSource_
+gcePersistentDisk (21.k8s.io.api.core.v1.GCEPersistentDiskVolumeSourceRgcePersistentDiskh
+awsElasticBlockStore (24.k8s.io.api.core.v1.AWSElasticBlockStoreVolumeSourceRawsElasticBlockStoreD
+hostPath (2(.k8s.io.api.core.v1.HostPathVolumeSourceRhostPathQ
+	glusterfs (23.k8s.io.api.core.v1.GlusterfsPersistentVolumeSourceR	glusterfs5
+nfs (2#.k8s.io.api.core.v1.NFSVolumeSourceRnfs?
+rbd (2-.k8s.io.api.core.v1.RBDPersistentVolumeSourceRrbdE
+iscsi (2/.k8s.io.api.core.v1.ISCSIPersistentVolumeSourceRiscsiH
+cinder (20.k8s.io.api.core.v1.CinderPersistentVolumeSourceRcinderH
+cephfs	 (20.k8s.io.api.core.v1.CephFSPersistentVolumeSourceRcephfs2
+fc
+ (2".k8s.io.api.core.v1.FCVolumeSourceRfcA
+flocker (2'.k8s.io.api.core.v1.FlockerVolumeSourceRflockerN
+
+flexVolume (2..k8s.io.api.core.v1.FlexPersistentVolumeSourceR
+flexVolumeQ
+	azureFile (23.k8s.io.api.core.v1.AzureFilePersistentVolumeSourceR	azureFileX
+vsphereVolume (22.k8s.io.api.core.v1.VsphereVirtualDiskVolumeSourceRvsphereVolumeA
+quobyte (2'.k8s.io.api.core.v1.QuobyteVolumeSourceRquobyteG
+	azureDisk (2).k8s.io.api.core.v1.AzureDiskVolumeSourceR	azureDiskh
+photonPersistentDisk (24.k8s.io.api.core.v1.PhotonPersistentDiskVolumeSourceRphotonPersistentDiskP
+portworxVolume (2(.k8s.io.api.core.v1.PortworxVolumeSourceRportworxVolumeK
+scaleIO (21.k8s.io.api.core.v1.ScaleIOPersistentVolumeSourceRscaleIO;
+local (2%.k8s.io.api.core.v1.LocalVolumeSourceRlocalQ
+	storageos (23.k8s.io.api.core.v1.StorageOSPersistentVolumeSourceR	storageos?
+csi (2-.k8s.io.api.core.v1.CSIPersistentVolumeSourceRcsi"ﬁ
+PersistentVolumeSpecR
+capacity (26.k8s.io.api.core.v1.PersistentVolumeSpec.CapacityEntryRcapacityb
+persistentVolumeSource (2*.k8s.io.api.core.v1.PersistentVolumeSourceRpersistentVolumeSource 
+accessModes (	RaccessModes?
+claimRef (2#.k8s.io.api.core.v1.ObjectReferenceRclaimRefD
+persistentVolumeReclaimPolicy (	RpersistentVolumeReclaimPolicy*
+storageClassName (	RstorageClassName"
+mountOptions (	RmountOptions
+
+volumeMode (	R
+volumeModeJ
+nodeAffinity	 (2&.k8s.io.api.core.v1.VolumeNodeAffinityRnodeAffinity<
+volumeAttributesClassName
+ (	RvolumeAttributesClassNamek
+CapacityEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8"∆
+PersistentVolumeStatus
+phase (	Rphase
+message (	Rmessage
+reason (	Rreasond
+lastPhaseTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastPhaseTransitionTime"N
+ PhotonPersistentDiskVolumeSource
+pdID (	RpdID
+fsType (	RfsType"ª
+PodL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata/
+spec (2.k8s.io.api.core.v1.PodSpecRspec5
+status (2.k8s.io.api.core.v1.PodStatusRstatus"≥
+PodAffinityã
+.requiredDuringSchedulingIgnoredDuringExecution (2#.k8s.io.api.core.v1.PodAffinityTermR.requiredDuringSchedulingIgnoredDuringExecutionï
+/preferredDuringSchedulingIgnoredDuringExecution (2+.k8s.io.api.core.v1.WeightedPodAffinityTermR/preferredDuringSchedulingIgnoredDuringExecution"Á
+PodAffinityTermY
+labelSelector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRlabelSelector
+
+namespaces (	R
+namespaces 
+topologyKey (	RtopologyKeya
+namespaceSelector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRnamespaceSelector&
+matchLabelKeys (	RmatchLabelKeys,
+mismatchLabelKeys (	RmismatchLabelKeys"∑
+PodAntiAffinityã
+.requiredDuringSchedulingIgnoredDuringExecution (2#.k8s.io.api.core.v1.PodAffinityTermR.requiredDuringSchedulingIgnoredDuringExecutionï
+/preferredDuringSchedulingIgnoredDuringExecution (2+.k8s.io.api.core.v1.WeightedPodAffinityTermR/preferredDuringSchedulingIgnoredDuringExecution"à
+PodAttachOptions
+stdin (Rstdin
+stdout (Rstdout
+stderr (Rstderr
+tty (Rtty
+	container (	R	container"ä
+PodCertificateProjection
+
+signerName (	R
+signerName
+keyType (	RkeyType2
+maxExpirationSeconds (RmaxExpirationSeconds2
+credentialBundlePath (	RcredentialBundlePath
+keyPath (	RkeyPath2
+certificateChainPath (	RcertificateChainPath" 
+PodCondition
+type (	Rtype.
+observedGeneration (RobservedGeneration
+status (	RstatusP
+lastProbeTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastProbeTimeZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"é
+PodDNSConfig 
+nameservers (	Rnameservers
+searches (	Rsearches@
+options (2&.k8s.io.api.core.v1.PodDNSConfigOptionRoptions">
+PodDNSConfigOption
+name (	Rname
+value (	Rvalue"†
+PodExecOptions
+stdin (Rstdin
+stdout (Rstdout
+stderr (Rstderr
+tty (Rtty
+	container (	R	container
+command (	Rcommand"Æ
+PodExtendedResourceClaimStatus^
+requestMappings (24.k8s.io.api.core.v1.ContainerExtendedResourceRequestRrequestMappings,
+resourceClaimName (	RresourceClaimName"
+PodIP
+ip (	Rip"Ñ
+PodListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata-
+items (2.k8s.io.api.core.v1.PodRitems"â
+PodLogOptions
+	container (	R	container
+follow (Rfollow
+previous (Rprevious"
+sinceSeconds (RsinceSecondsH
+	sinceTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeR	sinceTime
+
+timestamps (R
+timestamps
+	tailLines (R	tailLines
+
+limitBytes (R
+limitBytesB
+insecureSkipTLSVerifyBackend	 (RinsecureSkipTLSVerifyBackend
+stream
+ (	Rstream"
+PodOS
+name (	Rname"-
+PodPortForwardOptions
+ports (Rports"%
+PodProxyOptions
+path (	Rpath"8
+PodReadinessGate$
+conditionType (	RconditionType"í
+PodResourceClaim
+name (	Rname,
+resourceClaimName (	RresourceClaimName<
+resourceClaimTemplateName (	RresourceClaimTemplateName"Z
+PodResourceClaimStatus
+name (	Rname,
+resourceClaimName (	RresourceClaimName"'
+PodSchedulingGate
+name (	Rname"ÿ
+PodSecurityContextJ
+seLinuxOptions (2".k8s.io.api.core.v1.SELinuxOptionsRseLinuxOptionsY
+windowsOptions (21.k8s.io.api.core.v1.WindowsSecurityContextOptionsRwindowsOptions
+	runAsUser (R	runAsUser
+
+runAsGroup (R
+runAsGroup"
+runAsNonRoot (RrunAsNonRoot.
+supplementalGroups (RsupplementalGroups:
+supplementalGroupsPolicy (	RsupplementalGroupsPolicy
+fsGroup (RfsGroup4
+sysctls (2.k8s.io.api.core.v1.SysctlRsysctls0
+fsGroupChangePolicy	 (	RfsGroupChangePolicyJ
+seccompProfile
+ (2".k8s.io.api.core.v1.SeccompProfileRseccompProfileM
+appArmorProfile (2#.k8s.io.api.core.v1.AppArmorProfileRappArmorProfile0
+seLinuxChangePolicy (	RseLinuxChangePolicy"j
+PodSignatureZ
+podController (24.k8s.io.apimachinery.pkg.apis.meta.v1.OwnerReferenceRpodController"Ü
+PodSpec4
+volumes (2.k8s.io.api.core.v1.VolumeRvolumesE
+initContainers (2.k8s.io.api.core.v1.ContainerRinitContainers=
+
+containers (2.k8s.io.api.core.v1.ContainerR
+containersX
+ephemeralContainers" (2&.k8s.io.api.core.v1.EphemeralContainerRephemeralContainers$
+restartPolicy (	RrestartPolicyD
+terminationGracePeriodSeconds (RterminationGracePeriodSeconds4
+activeDeadlineSeconds (RactiveDeadlineSeconds
+	dnsPolicy (	R	dnsPolicyQ
+nodeSelector (2-.k8s.io.api.core.v1.PodSpec.NodeSelectorEntryRnodeSelector.
+serviceAccountName (	RserviceAccountName&
+serviceAccount	 (	RserviceAccountB
+automountServiceAccountToken (RautomountServiceAccountToken
+nodeName
+ (	RnodeName 
+hostNetwork (RhostNetwork
+hostPID (RhostPID
+hostIPC (RhostIPC4
+shareProcessNamespace (RshareProcessNamespaceP
+securityContext (2&.k8s.io.api.core.v1.PodSecurityContextRsecurityContextT
+imagePullSecrets (2(.k8s.io.api.core.v1.LocalObjectReferenceRimagePullSecrets
+hostname (	Rhostname
+	subdomain (	R	subdomain8
+affinity (2.k8s.io.api.core.v1.AffinityRaffinity$
+schedulerName (	RschedulerName@
+tolerations (2.k8s.io.api.core.v1.TolerationRtolerations?
+hostAliases (2.k8s.io.api.core.v1.HostAliasRhostAliases,
+priorityClassName (	RpriorityClassName
+priority (Rpriority>
+	dnsConfig (2 .k8s.io.api.core.v1.PodDNSConfigR	dnsConfigL
+readinessGates (2$.k8s.io.api.core.v1.PodReadinessGateRreadinessGates*
+runtimeClassName (	RruntimeClassName.
+enableServiceLinks (RenableServiceLinks*
+preemptionPolicy (	RpreemptionPolicyE
+overhead  (2).k8s.io.api.core.v1.PodSpec.OverheadEntryRoverheadj
+topologySpreadConstraints! (2,.k8s.io.api.core.v1.TopologySpreadConstraintRtopologySpreadConstraints,
+setHostnameAsFQDN# (RsetHostnameAsFQDN)
+os$ (2.k8s.io.api.core.v1.PodOSRos
+	hostUsers% (R	hostUsersO
+schedulingGates& (2%.k8s.io.api.core.v1.PodSchedulingGateRschedulingGatesL
+resourceClaims' (2$.k8s.io.api.core.v1.PodResourceClaimRresourceClaimsF
+	resources( (2(.k8s.io.api.core.v1.ResourceRequirementsR	resources*
+hostnameOverride) (	RhostnameOverride?
+NodeSelectorEntry
+key (	Rkey
+value (	Rvalue:8k
+OverheadEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8"Û
+	PodStatus.
+observedGeneration (RobservedGeneration
+phase (	Rphase@
+
+conditions (2 .k8s.io.api.core.v1.PodConditionR
+conditions
+message (	Rmessage
+reason (	Rreason,
+nominatedNodeName (	RnominatedNodeName
+hostIP (	RhostIP4
+hostIPs (2.k8s.io.api.core.v1.HostIPRhostIPs
+podIP (	RpodIP1
+podIPs (2.k8s.io.api.core.v1.PodIPRpodIPsH
+	startTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeR	startTimeY
+initContainerStatuses
+ (2#.k8s.io.api.core.v1.ContainerStatusRinitContainerStatusesQ
+containerStatuses (2#.k8s.io.api.core.v1.ContainerStatusRcontainerStatuses
+qosClass	 (	RqosClassc
+ephemeralContainerStatuses (2#.k8s.io.api.core.v1.ContainerStatusRephemeralContainerStatuses
+resize (	Rresize`
+resourceClaimStatuses (2*.k8s.io.api.core.v1.PodResourceClaimStatusRresourceClaimStatusest
+extendedResourceClaimStatus (22.k8s.io.api.core.v1.PodExtendedResourceClaimStatusRextendedResourceClaimStatus"ñ
+PodStatusResultL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata5
+status (2.k8s.io.api.core.v1.PodStatusRstatus"ú
+PodTemplateL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata?
+template (2#.k8s.io.api.core.v1.PodTemplateSpecRtemplate"î
+PodTemplateListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata5
+items (2.k8s.io.api.core.v1.PodTemplateRitems"ê
+PodTemplateSpecL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata/
+spec (2.k8s.io.api.core.v1.PodSpecRspec"R
+
+PortStatus
+port (Rport
+protocol (	Rprotocol
+error (	Rerror"f
+PortworxVolumeSource
+volumeID (	RvolumeID
+fsType (	RfsType
+readOnly (RreadOnly"!
+Preconditions
+uid (	Ruid"ﬁ
+PreferAvoidPodsEntryD
+podSignature (2 .k8s.io.api.core.v1.PodSignatureRpodSignatureN
+evictionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRevictionTime
+reason (	Rreason
+message (	Rmessage"w
+PreferredSchedulingTerm
+weight (RweightD
+
+preference (2$.k8s.io.api.core.v1.NodeSelectorTermR
+preference"·
+Probe:
+handler (2 .k8s.io.api.core.v1.ProbeHandlerRhandler0
+initialDelaySeconds (RinitialDelaySeconds&
+timeoutSeconds (RtimeoutSeconds$
+periodSeconds (RperiodSeconds*
+successThreshold (RsuccessThreshold*
+failureThreshold (RfailureThresholdD
+terminationGracePeriodSeconds (RterminationGracePeriodSeconds"ˆ
+ProbeHandler2
+exec (2.k8s.io.api.core.v1.ExecActionRexec;
+httpGet (2!.k8s.io.api.core.v1.HTTPGetActionRhttpGetA
+	tcpSocket (2#.k8s.io.api.core.v1.TCPSocketActionR	tcpSocket2
+grpc (2.k8s.io.api.core.v1.GRPCActionRgrpc"y
+ProjectedVolumeSource>
+sources (2$.k8s.io.api.core.v1.VolumeProjectionRsources 
+defaultMode (RdefaultMode"ß
+QuobyteVolumeSource
+registry (	Rregistry
+volume (	Rvolume
+readOnly (RreadOnly
+user (	Ruser
+group (	Rgroup
+tenant (	Rtenant"Ü
+RBDPersistentVolumeSource
+monitors (	Rmonitors
+image (	Rimage
+fsType (	RfsType
+pool (	Rpool
+user (	Ruser
+keyring (	RkeyringA
+	secretRef (2#.k8s.io.api.core.v1.SecretReferenceR	secretRef
+readOnly (RreadOnly"Å
+RBDVolumeSource
+monitors (	Rmonitors
+image (	Rimage
+fsType (	RfsType
+pool (	Rpool
+user (	Ruser
+keyring (	RkeyringF
+	secretRef (2(.k8s.io.api.core.v1.LocalObjectReferenceR	secretRef
+readOnly (RreadOnly"â
+RangeAllocationL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata
+range (	Rrange
+data (Rdata"Ò
+ReplicationControllerL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataA
+spec (2-.k8s.io.api.core.v1.ReplicationControllerSpecRspecG
+status (2/.k8s.io.api.core.v1.ReplicationControllerStatusRstatus"⁄
+ReplicationControllerCondition
+type (	Rtype
+status (	RstatusZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"®
+ReplicationControllerListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata?
+items (2).k8s.io.api.core.v1.ReplicationControllerRitems"∏
+ReplicationControllerSpec
+replicas (Rreplicas(
+minReadySeconds (RminReadySecondsW
+selector (2;.k8s.io.api.core.v1.ReplicationControllerSpec.SelectorEntryRselector?
+template (2#.k8s.io.api.core.v1.PodTemplateSpecRtemplate;
+SelectorEntry
+key (	Rkey
+value (	Rvalue:8"≈
+ReplicationControllerStatus
+replicas (Rreplicas2
+fullyLabeledReplicas (RfullyLabeledReplicas$
+readyReplicas (RreadyReplicas,
+availableReplicas (RavailableReplicas.
+observedGeneration (RobservedGenerationR
+
+conditions (22.k8s.io.api.core.v1.ReplicationControllerConditionR
+conditions"=
+ResourceClaim
+name (	Rname
+request (	Rrequest"£
+ResourceFieldSelector$
+containerName (	RcontainerName
+resource (	RresourceH
+divisor (2..k8s.io.apimachinery.pkg.api.resource.QuantityRdivisor"H
+ResourceHealth
+
+resourceID (	R
+resourceID
+health (	Rhealth"Ÿ
+ResourceQuotaL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata9
+spec (2%.k8s.io.api.core.v1.ResourceQuotaSpecRspec?
+status (2'.k8s.io.api.core.v1.ResourceQuotaStatusRstatus"ò
+ResourceQuotaListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata7
+items (2!.k8s.io.api.core.v1.ResourceQuotaRitems"¢
+ResourceQuotaSpecC
+hard (2/.k8s.io.api.core.v1.ResourceQuotaSpec.HardEntryRhard
+scopes (	RscopesG
+scopeSelector (2!.k8s.io.api.core.v1.ScopeSelectorRscopeSelectorg
+	HardEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8"ı
+ResourceQuotaStatusE
+hard (21.k8s.io.api.core.v1.ResourceQuotaStatus.HardEntryRhardE
+used (21.k8s.io.api.core.v1.ResourceQuotaStatus.UsedEntryRusedg
+	HardEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8g
+	UsedEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8"À
+ResourceRequirementsL
+limits (24.k8s.io.api.core.v1.ResourceRequirements.LimitsEntryRlimitsR
+requests (26.k8s.io.api.core.v1.ResourceRequirements.RequestsEntryRrequests9
+claims (2!.k8s.io.api.core.v1.ResourceClaimRclaimsi
+LimitsEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8k
+RequestsEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8"f
+ResourceStatus
+name (	Rname@
+	resources (2".k8s.io.api.core.v1.ResourceHealthR	resources"b
+SELinuxOptions
+user (	Ruser
+role (	Rrole
+type (	Rtype
+level (	Rlevel"¯
+ScaleIOPersistentVolumeSource
+gateway (	Rgateway
+system (	RsystemA
+	secretRef (2#.k8s.io.api.core.v1.SecretReferenceR	secretRef
+
+sslEnabled (R
+sslEnabled*
+protectionDomain (	RprotectionDomain 
+storagePool (	RstoragePool 
+storageMode (	RstorageMode
+
+volumeName (	R
+volumeName
+fsType	 (	RfsType
+readOnly
+ (RreadOnly"Û
+ScaleIOVolumeSource
+gateway (	Rgateway
+system (	RsystemF
+	secretRef (2(.k8s.io.api.core.v1.LocalObjectReferenceR	secretRef
+
+sslEnabled (R
+sslEnabled*
+protectionDomain (	RprotectionDomain 
+storagePool (	RstoragePool 
+storageMode (	RstorageMode
+
+volumeName (	R
+volumeName
+fsType	 (	RfsType
+readOnly
+ (RreadOnly"r
+ScopeSelectora
+matchExpressions (25.k8s.io.api.core.v1.ScopedResourceSelectorRequirementRmatchExpressions"u
+!ScopedResourceSelectorRequirement
+	scopeName (	R	scopeName
+operator (	Roperator
+values (	Rvalues"P
+SeccompProfile
+type (	Rtype*
+localhostProfile (	RlocalhostProfile"Ü
+SecretL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata
+	immutable (R	immutable8
+data (2$.k8s.io.api.core.v1.Secret.DataEntryRdataJ
+
+stringData (2*.k8s.io.api.core.v1.Secret.StringDataEntryR
+stringData
+type (	Rtype7
+	DataEntry
+key (	Rkey
+value (Rvalue:8=
+StringDataEntry
+key (	Rkey
+value (	Rvalue:8"ã
+SecretEnvSource\
+localObjectReference (2(.k8s.io.api.core.v1.LocalObjectReferenceRlocalObjectReference
+optional (Roptional"ü
+SecretKeySelector\
+localObjectReference (2(.k8s.io.api.core.v1.LocalObjectReferenceRlocalObjectReference
+key (	Rkey
+optional (Roptional"ä
+
+SecretListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata0
+items (2.k8s.io.api.core.v1.SecretRitems"¡
+SecretProjection\
+localObjectReference (2(.k8s.io.api.core.v1.LocalObjectReferenceRlocalObjectReference3
+items (2.k8s.io.api.core.v1.KeyToPathRitems
+optional (Roptional"C
+SecretReference
+name (	Rname
+	namespace (	R	namespace"ß
+SecretVolumeSource
+
+secretName (	R
+secretName3
+items (2.k8s.io.api.core.v1.KeyToPathRitems 
+defaultMode (RdefaultMode
+optional (Roptional"≠
+SecurityContextD
+capabilities (2 .k8s.io.api.core.v1.CapabilitiesRcapabilities
+
+privileged (R
+privilegedJ
+seLinuxOptions (2".k8s.io.api.core.v1.SELinuxOptionsRseLinuxOptionsY
+windowsOptions
+ (21.k8s.io.api.core.v1.WindowsSecurityContextOptionsRwindowsOptions
+	runAsUser (R	runAsUser
+
+runAsGroup (R
+runAsGroup"
+runAsNonRoot (RrunAsNonRoot6
+readOnlyRootFilesystem (RreadOnlyRootFilesystem:
+allowPrivilegeEscalation (RallowPrivilegeEscalation
+	procMount	 (	R	procMountJ
+seccompProfile (2".k8s.io.api.core.v1.SeccompProfileRseccompProfileM
+appArmorProfile (2#.k8s.io.api.core.v1.AppArmorProfileRappArmorProfile"X
+SerializedReferenceA
+	reference (2#.k8s.io.api.core.v1.ObjectReferenceR	reference"«
+ServiceL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata3
+spec (2.k8s.io.api.core.v1.ServiceSpecRspec9
+status (2!.k8s.io.api.core.v1.ServiceStatusRstatus"∑
+ServiceAccountL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata=
+secrets (2#.k8s.io.api.core.v1.ObjectReferenceRsecretsT
+imagePullSecrets (2(.k8s.io.api.core.v1.LocalObjectReferenceRimagePullSecretsB
+automountServiceAccountToken (RautomountServiceAccountToken"ö
+ServiceAccountListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata8
+items (2".k8s.io.api.core.v1.ServiceAccountRitems"}
+ServiceAccountTokenProjection
+audience (	Raudience,
+expirationSeconds (RexpirationSeconds
+path (	Rpath"å
+ServiceListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata1
+items (2.k8s.io.api.core.v1.ServiceRitems"·
+ServicePort
+name (	Rname
+protocol (	Rprotocol 
+appProtocol (	RappProtocol
+port (RportP
+
+targetPort (20.k8s.io.apimachinery.pkg.util.intstr.IntOrStringR
+targetPort
+nodePort (RnodePort")
+ServiceProxyOptions
+path (	Rpath"õ
+ServiceSpec5
+ports (2.k8s.io.api.core.v1.ServicePortRportsI
+selector (2-.k8s.io.api.core.v1.ServiceSpec.SelectorEntryRselector
+	clusterIP (	R	clusterIP
+
+clusterIPs (	R
+clusterIPs
+type (	Rtype 
+externalIPs (	RexternalIPs(
+sessionAffinity (	RsessionAffinity&
+loadBalancerIP (	RloadBalancerIP:
+loadBalancerSourceRanges	 (	RloadBalancerSourceRanges"
+externalName
+ (	RexternalName4
+externalTrafficPolicy (	RexternalTrafficPolicy0
+healthCheckNodePort (RhealthCheckNodePort:
+publishNotReadyAddresses (RpublishNotReadyAddresses_
+sessionAffinityConfig (2).k8s.io.api.core.v1.SessionAffinityConfigRsessionAffinityConfig
+
+ipFamilies (	R
+ipFamilies&
+ipFamilyPolicy (	RipFamilyPolicyD
+allocateLoadBalancerNodePorts (RallocateLoadBalancerNodePorts,
+loadBalancerClass (	RloadBalancerClass4
+internalTrafficPolicy (	RinternalTrafficPolicy0
+trafficDistribution (	RtrafficDistribution;
+SelectorEntry
+key (	Rkey
+value (	Rvalue:8"¨
+ServiceStatusJ
+loadBalancer (2&.k8s.io.api.core.v1.LoadBalancerStatusRloadBalancerO
+
+conditions (2/.k8s.io.apimachinery.pkg.apis.meta.v1.ConditionR
+conditions"W
+SessionAffinityConfig>
+clientIP (2".k8s.io.api.core.v1.ClientIPConfigRclientIP"'
+SleepAction
+seconds (Rseconds"‚
+StorageOSPersistentVolumeSource
+
+volumeName (	R
+volumeName(
+volumeNamespace (	RvolumeNamespace
+fsType (	RfsType
+readOnly (RreadOnlyA
+	secretRef (2#.k8s.io.api.core.v1.ObjectReferenceR	secretRef"›
+StorageOSVolumeSource
+
+volumeName (	R
+volumeName(
+volumeNamespace (	RvolumeNamespace
+fsType (	RfsType
+readOnly (RreadOnlyF
+	secretRef (2(.k8s.io.api.core.v1.LocalObjectReferenceR	secretRef"2
+Sysctl
+name (	Rname
+value (	Rvalue"k
+TCPSocketActionD
+port (20.k8s.io.apimachinery.pkg.util.intstr.IntOrStringRport
+host (	Rhost"ë
+Taint
+key (	Rkey
+value (	Rvalue
+effect (	ReffectH
+	timeAdded (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeR	timeAdded"ñ
+
+Toleration
+key (	Rkey
+operator (	Roperator
+value (	Rvalue
+effect (	Reffect,
+tolerationSeconds (RtolerationSeconds"L
+ TopologySelectorLabelRequirement
+key (	Rkey
+values (	Rvalues"Ç
+TopologySelectorTermj
+matchLabelExpressions (24.k8s.io.api.core.v1.TopologySelectorLabelRequirementRmatchLabelExpressions"É
+TopologySpreadConstraint
+maxSkew (RmaxSkew 
+topologyKey (	RtopologyKey,
+whenUnsatisfiable (	RwhenUnsatisfiableY
+labelSelector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRlabelSelector
+
+minDomains (R
+minDomains.
+nodeAffinityPolicy (	RnodeAffinityPolicy*
+nodeTaintsPolicy (	RnodeTaintsPolicy&
+matchLabelKeys (	RmatchLabelKeys"_
+TypedLocalObjectReference
+apiGroup (	RapiGroup
+kind (	Rkind
+name (	Rname"x
+TypedObjectReference
+apiGroup (	RapiGroup
+kind (	Rkind
+name (	Rname
+	namespace (	R	namespace"b
+Volume
+name (	RnameD
+volumeSource (2 .k8s.io.api.core.v1.VolumeSourceRvolumeSource"B
+VolumeDevice
+name (	Rname
+
+devicePath (	R
+devicePath"Ò
+VolumeMount
+name (	Rname
+readOnly (RreadOnly,
+recursiveReadOnly (	RrecursiveReadOnly
+	mountPath (	R	mountPath
+subPath (	RsubPath*
+mountPropagation (	RmountPropagation 
+subPathExpr (	RsubPathExpr"è
+VolumeMountStatus
+name (	Rname
+	mountPath (	R	mountPath
+readOnly (RreadOnly,
+recursiveReadOnly (	RrecursiveReadOnly"R
+VolumeNodeAffinity<
+required (2 .k8s.io.api.core.v1.NodeSelectorRrequired"Å
+VolumeProjection<
+secret (2$.k8s.io.api.core.v1.SecretProjectionRsecretK
+downwardAPI (2).k8s.io.api.core.v1.DownwardAPIProjectionRdownwardAPIE
+	configMap (2'.k8s.io.api.core.v1.ConfigMapProjectionR	configMapc
+serviceAccountToken (21.k8s.io.api.core.v1.ServiceAccountTokenProjectionRserviceAccountToken`
+clusterTrustBundle (20.k8s.io.api.core.v1.ClusterTrustBundleProjectionRclusterTrustBundleT
+podCertificate (2,.k8s.io.api.core.v1.PodCertificateProjectionRpodCertificate"¢
+VolumeResourceRequirementsR
+limits (2:.k8s.io.api.core.v1.VolumeResourceRequirements.LimitsEntryRlimitsX
+requests (2<.k8s.io.api.core.v1.VolumeResourceRequirements.RequestsEntryRrequestsi
+LimitsEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8k
+RequestsEntry
+key (	RkeyD
+value (2..k8s.io.apimachinery.pkg.api.resource.QuantityRvalue:8"õ
+VolumeSourceD
+hostPath (2(.k8s.io.api.core.v1.HostPathVolumeSourceRhostPathD
+emptyDir (2(.k8s.io.api.core.v1.EmptyDirVolumeSourceRemptyDir_
+gcePersistentDisk (21.k8s.io.api.core.v1.GCEPersistentDiskVolumeSourceRgcePersistentDiskh
+awsElasticBlockStore (24.k8s.io.api.core.v1.AWSElasticBlockStoreVolumeSourceRawsElasticBlockStoreA
+gitRepo (2'.k8s.io.api.core.v1.GitRepoVolumeSourceRgitRepo>
+secret (2&.k8s.io.api.core.v1.SecretVolumeSourceRsecret5
+nfs (2#.k8s.io.api.core.v1.NFSVolumeSourceRnfs;
+iscsi (2%.k8s.io.api.core.v1.ISCSIVolumeSourceRiscsiG
+	glusterfs	 (2).k8s.io.api.core.v1.GlusterfsVolumeSourceR	glusterfsk
+persistentVolumeClaim
+ (25.k8s.io.api.core.v1.PersistentVolumeClaimVolumeSourceRpersistentVolumeClaim5
+rbd (2#.k8s.io.api.core.v1.RBDVolumeSourceRrbdD
+
+flexVolume (2$.k8s.io.api.core.v1.FlexVolumeSourceR
+flexVolume>
+cinder (2&.k8s.io.api.core.v1.CinderVolumeSourceRcinder>
+cephfs (2&.k8s.io.api.core.v1.CephFSVolumeSourceRcephfsA
+flocker (2'.k8s.io.api.core.v1.FlockerVolumeSourceRflockerM
+downwardAPI (2+.k8s.io.api.core.v1.DownwardAPIVolumeSourceRdownwardAPI2
+fc (2".k8s.io.api.core.v1.FCVolumeSourceRfcG
+	azureFile (2).k8s.io.api.core.v1.AzureFileVolumeSourceR	azureFileG
+	configMap (2).k8s.io.api.core.v1.ConfigMapVolumeSourceR	configMapX
+vsphereVolume (22.k8s.io.api.core.v1.VsphereVirtualDiskVolumeSourceRvsphereVolumeA
+quobyte (2'.k8s.io.api.core.v1.QuobyteVolumeSourceRquobyteG
+	azureDisk (2).k8s.io.api.core.v1.AzureDiskVolumeSourceR	azureDiskh
+photonPersistentDisk (24.k8s.io.api.core.v1.PhotonPersistentDiskVolumeSourceRphotonPersistentDiskG
+	projected (2).k8s.io.api.core.v1.ProjectedVolumeSourceR	projectedP
+portworxVolume (2(.k8s.io.api.core.v1.PortworxVolumeSourceRportworxVolumeA
+scaleIO (2'.k8s.io.api.core.v1.ScaleIOVolumeSourceRscaleIOG
+	storageos (2).k8s.io.api.core.v1.StorageOSVolumeSourceR	storageos5
+csi (2#.k8s.io.api.core.v1.CSIVolumeSourceRcsiG
+	ephemeral (2).k8s.io.api.core.v1.EphemeralVolumeSourceR	ephemeral;
+image (2%.k8s.io.api.core.v1.ImageVolumeSourceRimage"∞
+VsphereVirtualDiskVolumeSource
+
+volumePath (	R
+volumePath
+fsType (	RfsType,
+storagePolicyName (	RstoragePolicyName(
+storagePolicyID (	RstoragePolicyID"Ä
+WeightedPodAffinityTerm
+weight (RweightM
+podAffinityTerm (2#.k8s.io.api.core.v1.PodAffinityTermRpodAffinityTerm"œ
+WindowsSecurityContextOptions6
+gmsaCredentialSpecName (	RgmsaCredentialSpecName.
+gmsaCredentialSpec (	RgmsaCredentialSpec$
+runAsUserName (	RrunAsUserName 
+hostProcess (RhostProcessBZk8s.io/api/core/v1
+≈
+"k8s.io/api/rbac/v1/generated.protok8s.io.api.rbac.v14k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto/k8s.io/apimachinery/pkg/runtime/generated.proto6k8s.io/apimachinery/pkg/runtime/schema/generated.proto"z
+AggregationRuleg
+clusterRoleSelectors (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRclusterRoleSelectors"‡
+ClusterRoleL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata4
+rules (2.k8s.io.api.rbac.v1.PolicyRuleRrulesM
+aggregationRule (2#.k8s.io.api.rbac.v1.AggregationRuleRaggregationRule"“
+ClusterRoleBindingL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata7
+subjects (2.k8s.io.api.rbac.v1.SubjectRsubjects5
+roleRef (2.k8s.io.api.rbac.v1.RoleRefRroleRef"¢
+ClusterRoleBindingListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata<
+items (2&.k8s.io.api.rbac.v1.ClusterRoleBindingRitems"î
+ClusterRoleListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata5
+items (2.k8s.io.api.rbac.v1.ClusterRoleRitems"Æ
+
+PolicyRule
+verbs (	Rverbs
+	apiGroups (	R	apiGroups
+	resources (	R	resources$
+resourceNames (	RresourceNames(
+nonResourceURLs (	RnonResourceURLs"ä
+RoleL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata4
+rules (2.k8s.io.api.rbac.v1.PolicyRuleRrules"À
+RoleBindingL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata7
+subjects (2.k8s.io.api.rbac.v1.SubjectRsubjects5
+roleRef (2.k8s.io.api.rbac.v1.RoleRefRroleRef"î
+RoleBindingListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata5
+items (2.k8s.io.api.rbac.v1.RoleBindingRitems"Ü
+RoleListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata.
+items (2.k8s.io.api.rbac.v1.RoleRitems"M
+RoleRef
+apiGroup (	RapiGroup
+kind (	Rkind
+name (	Rname"k
+Subject
+kind (	Rkind
+apiGroup (	RapiGroup
+name (	Rname
+	namespace (	R	namespaceBZk8s.io/api/rbac/v1
+©<
+"k8s.io/api/apps/v1/generated.protok8s.io.api.apps.v1"k8s.io/api/core/v1/generated.proto4k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto/k8s.io/apimachinery/pkg/runtime/generated.proto6k8s.io/apimachinery/pkg/runtime/schema/generated.proto3k8s.io/apimachinery/pkg/util/intstr/generated.proto"¡
+ControllerRevisionL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataA
+data (2-.k8s.io.apimachinery.pkg.runtime.RawExtensionRdata
+revision (Rrevision"¢
+ControllerRevisionListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata<
+items (2&.k8s.io.api.apps.v1.ControllerRevisionRitems"Õ
+	DaemonSetL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata5
+spec (2!.k8s.io.api.apps.v1.DaemonSetSpecRspec;
+status (2#.k8s.io.api.apps.v1.DaemonSetStatusRstatus"Œ
+DaemonSetCondition
+type (	Rtype
+status (	RstatusZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"ê
+DaemonSetListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata3
+items (2.k8s.io.api.apps.v1.DaemonSetRitems"‘
+DaemonSetSpecO
+selector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRselector?
+template (2#.k8s.io.api.core.v1.PodTemplateSpecRtemplateS
+updateStrategy (2+.k8s.io.api.apps.v1.DaemonSetUpdateStrategyRupdateStrategy(
+minReadySeconds (RminReadySeconds2
+revisionHistoryLimit (RrevisionHistoryLimit"É
+DaemonSetStatus6
+currentNumberScheduled (RcurrentNumberScheduled.
+numberMisscheduled (RnumberMisscheduled6
+desiredNumberScheduled (RdesiredNumberScheduled 
+numberReady (RnumberReady.
+observedGeneration (RobservedGeneration6
+updatedNumberScheduled (RupdatedNumberScheduled(
+numberAvailable (RnumberAvailable,
+numberUnavailable (RnumberUnavailable&
+collisionCount	 (RcollisionCountF
+
+conditions
+ (2&.k8s.io.api.apps.v1.DaemonSetConditionR
+conditions"
+DaemonSetUpdateStrategy
+type (	RtypeP
+rollingUpdate (2*.k8s.io.api.apps.v1.RollingUpdateDaemonSetRrollingUpdate"–
+
+DeploymentL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata6
+spec (2".k8s.io.api.apps.v1.DeploymentSpecRspec<
+status (2$.k8s.io.api.apps.v1.DeploymentStatusRstatus"£
+DeploymentCondition
+type (	Rtype
+status (	RstatusR
+lastUpdateTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastUpdateTimeZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"í
+DeploymentListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata4
+items (2.k8s.io.api.apps.v1.DeploymentRitems"≤
+DeploymentSpec
+replicas (RreplicasO
+selector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRselector?
+template (2#.k8s.io.api.core.v1.PodTemplateSpecRtemplateB
+strategy (2&.k8s.io.api.apps.v1.DeploymentStrategyRstrategy(
+minReadySeconds (RminReadySeconds2
+revisionHistoryLimit (RrevisionHistoryLimit
+paused (Rpaused8
+progressDeadlineSeconds	 (RprogressDeadlineSeconds"±
+DeploymentStatus.
+observedGeneration (RobservedGeneration
+replicas (Rreplicas(
+updatedReplicas (RupdatedReplicas$
+readyReplicas (RreadyReplicas,
+availableReplicas (RavailableReplicas0
+unavailableReplicas (RunavailableReplicas0
+terminatingReplicas	 (RterminatingReplicasG
+
+conditions (2'.k8s.io.api.apps.v1.DeploymentConditionR
+conditions&
+collisionCount (RcollisionCount"{
+DeploymentStrategy
+type (	RtypeQ
+rollingUpdate (2+.k8s.io.api.apps.v1.RollingUpdateDeploymentRrollingUpdate"–
+
+ReplicaSetL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata6
+spec (2".k8s.io.api.apps.v1.ReplicaSetSpecRspec<
+status (2$.k8s.io.api.apps.v1.ReplicaSetStatusRstatus"œ
+ReplicaSetCondition
+type (	Rtype
+status (	RstatusZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"í
+ReplicaSetListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata4
+items (2.k8s.io.api.apps.v1.ReplicaSetRitems"Ë
+ReplicaSetSpec
+replicas (Rreplicas(
+minReadySeconds (RminReadySecondsO
+selector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRselector?
+template (2#.k8s.io.api.core.v1.PodTemplateSpecRtemplate"·
+ReplicaSetStatus
+replicas (Rreplicas2
+fullyLabeledReplicas (RfullyLabeledReplicas$
+readyReplicas (RreadyReplicas,
+availableReplicas (RavailableReplicas0
+terminatingReplicas (RterminatingReplicas.
+observedGeneration (RobservedGenerationG
+
+conditions (2'.k8s.io.api.apps.v1.ReplicaSetConditionR
+conditions"¿
+RollingUpdateDaemonSetX
+maxUnavailable (20.k8s.io.apimachinery.pkg.util.intstr.IntOrStringRmaxUnavailableL
+maxSurge (20.k8s.io.apimachinery.pkg.util.intstr.IntOrStringRmaxSurge"¡
+RollingUpdateDeploymentX
+maxUnavailable (20.k8s.io.apimachinery.pkg.util.intstr.IntOrStringRmaxUnavailableL
+maxSurge (20.k8s.io.apimachinery.pkg.util.intstr.IntOrStringRmaxSurge"ö
+ RollingUpdateStatefulSetStrategy
+	partition (R	partitionX
+maxUnavailable (20.k8s.io.apimachinery.pkg.util.intstr.IntOrStringRmaxUnavailable"”
+StatefulSetL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata7
+spec (2#.k8s.io.api.apps.v1.StatefulSetSpecRspec=
+status (2%.k8s.io.api.apps.v1.StatefulSetStatusRstatus"–
+StatefulSetCondition
+type (	Rtype
+status (	RstatusZ
+lastTransitionTime (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRlastTransitionTime
+reason (	Rreason
+message (	Rmessage"î
+StatefulSetListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata5
+items (2.k8s.io.api.apps.v1.StatefulSetRitems"+
+StatefulSetOrdinals
+start (Rstart"s
+/StatefulSetPersistentVolumeClaimRetentionPolicy 
+whenDeleted (	RwhenDeleted
+
+whenScaled (	R
+whenScaled"Ü
+StatefulSetSpec
+replicas (RreplicasO
+selector (23.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRselector?
+template (2#.k8s.io.api.core.v1.PodTemplateSpecRtemplate]
+volumeClaimTemplates (2).k8s.io.api.core.v1.PersistentVolumeClaimRvolumeClaimTemplates 
+serviceName (	RserviceName0
+podManagementPolicy (	RpodManagementPolicyU
+updateStrategy (2-.k8s.io.api.apps.v1.StatefulSetUpdateStrategyRupdateStrategy2
+revisionHistoryLimit (RrevisionHistoryLimit(
+minReadySeconds	 (RminReadySecondsó
+$persistentVolumeClaimRetentionPolicy
+ (2C.k8s.io.api.apps.v1.StatefulSetPersistentVolumeClaimRetentionPolicyR$persistentVolumeClaimRetentionPolicyC
+ordinals (2'.k8s.io.api.apps.v1.StatefulSetOrdinalsRordinals"À
+StatefulSetStatus.
+observedGeneration (RobservedGeneration
+replicas (Rreplicas$
+readyReplicas (RreadyReplicas(
+currentReplicas (RcurrentReplicas(
+updatedReplicas (RupdatedReplicas(
+currentRevision (	RcurrentRevision&
+updateRevision (	RupdateRevision&
+collisionCount	 (RcollisionCountH
+
+conditions
+ (2(.k8s.io.api.apps.v1.StatefulSetConditionR
+conditions,
+availableReplicas (RavailableReplicas"ã
+StatefulSetUpdateStrategy
+type (	RtypeZ
+rollingUpdate (24.k8s.io.api.apps.v1.RollingUpdateStatefulSetStrategyRrollingUpdateBZk8s.io/api/apps/v1
+·
+'k8s.io/api/discovery/v1/generated.protok8s.io.api.discovery.v1"k8s.io/api/core/v1/generated.proto4k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto/k8s.io/apimachinery/pkg/runtime/generated.proto6k8s.io/apimachinery/pkg/runtime/schema/generated.proto"Ù
+Endpoint
+	addresses (	R	addressesK
+
+conditions (2+.k8s.io.api.discovery.v1.EndpointConditionsR
+conditions
+hostname (	RhostnameA
+	targetRef (2#.k8s.io.api.core.v1.ObjectReferenceR	targetRefi
+deprecatedTopology (29.k8s.io.api.discovery.v1.Endpoint.DeprecatedTopologyEntryRdeprecatedTopology
+nodeName (	RnodeName
+zone (	Rzone<
+hints (2&.k8s.io.api.discovery.v1.EndpointHintsRhintsE
+DeprecatedTopologyEntry
+key (	Rkey
+value (	Rvalue:8"f
+EndpointConditions
+ready (Rready
+serving (Rserving 
+terminating (Rterminating"ã
+EndpointHints<
+forZones (2 .k8s.io.api.discovery.v1.ForZoneRforZones<
+forNodes (2 .k8s.io.api.discovery.v1.ForNodeRforNodes"t
+EndpointPort
+name (	Rname
+protocol (	Rprotocol
+port (Rport 
+appProtocol (	RappProtocol"˝
+EndpointSliceL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata 
+addressType (	RaddressType?
+	endpoints (2!.k8s.io.api.discovery.v1.EndpointR	endpoints;
+ports (2%.k8s.io.api.discovery.v1.EndpointPortRports"ù
+EndpointSliceListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata<
+items (2&.k8s.io.api.discovery.v1.EndpointSliceRitems"
+ForNode
+name (	Rname"
+ForZone
+name (	RnameBZk8s.io/api/discovery/v1
+©
+*k8s.io/api/coordination/v1/generated.protok8s.io.api.coordination.v14k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto/k8s.io/apimachinery/pkg/runtime/generated.proto6k8s.io/apimachinery/pkg/runtime/schema/generated.proto"ê
+LeaseL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadata9
+spec (2%.k8s.io.api.coordination.v1.LeaseSpecRspec"ê
+	LeaseListJ
+metadata (2..k8s.io.apimachinery.pkg.apis.meta.v1.ListMetaRmetadata7
+items (2!.k8s.io.api.coordination.v1.LeaseRitems"˚
+	LeaseSpec&
+holderIdentity (	RholderIdentity2
+leaseDurationSeconds (RleaseDurationSecondsQ
+acquireTime (2/.k8s.io.apimachinery.pkg.apis.meta.v1.MicroTimeRacquireTimeM
+	renewTime (2/.k8s.io.apimachinery.pkg.apis.meta.v1.MicroTimeR	renewTime*
+leaseTransitions (RleaseTransitions
+strategy (	Rstrategy(
+preferredHolder (	RpreferredHolderBZk8s.io/api/coordination/v1
+≈
+,k8s.io/api/authentication/v1/generated.protok8s.io.api.authentication.v14k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto/k8s.io/apimachinery/pkg/runtime/generated.proto6k8s.io/apimachinery/pkg/runtime/schema/generated.proto"p
+BoundObjectReference
+kind (	Rkind
+
+apiVersion (	R
+apiVersion
+name (	Rname
+uID (	RuID""
+
+ExtraValue
+items (	Ritems"∞
+SelfSubjectReviewL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataM
+status (25.k8s.io.api.authentication.v1.SelfSubjectReviewStatusRstatus"]
+SelfSubjectReviewStatusB
+userInfo (2&.k8s.io.api.authentication.v1.UserInfoRuserInfo"Í
+TokenRequestL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataB
+spec (2..k8s.io.api.authentication.v1.TokenRequestSpecRspecH
+status (20.k8s.io.api.authentication.v1.TokenRequestStatusRstatus"∫
+TokenRequestSpec
+	audiences (	R	audiences,
+expirationSeconds (RexpirationSecondsZ
+boundObjectRef (22.k8s.io.api.authentication.v1.BoundObjectReferenceRboundObjectRef"à
+TokenRequestStatus
+token (	Rtoken\
+expirationTimestamp (2*.k8s.io.apimachinery.pkg.apis.meta.v1.TimeRexpirationTimestamp"Á
+TokenReviewL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataA
+spec (2-.k8s.io.api.authentication.v1.TokenReviewSpecRspecG
+status (2/.k8s.io.api.authentication.v1.TokenReviewStatusRstatus"E
+TokenReviewSpec
+token (	Rtoken
+	audiences (	R	audiences"©
+TokenReviewStatus$
+authenticated (Rauthenticated:
+user (2&.k8s.io.api.authentication.v1.UserInfoRuser
+	audiences (	R	audiences
+error (	Rerror"˝
+UserInfo
+username (	Rusername
+uid (	Ruid
+groups (	RgroupsG
+extra (21.k8s.io.api.authentication.v1.UserInfo.ExtraEntryRextrab
+
+ExtraEntry
+key (	Rkey>
+value (2(.k8s.io.api.authentication.v1.ExtraValueRvalue:8BZk8s.io/api/authentication/v1
+Ã
++k8s.io/api/authorization/v1/generated.protok8s.io.api.authorization.v14k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto/k8s.io/apimachinery/pkg/runtime/generated.proto6k8s.io/apimachinery/pkg/runtime/schema/generated.proto""
+
+ExtraValue
+items (	Ritems"ü
+FieldSelectorAttributes 
+rawSelector (	RrawSelectorb
+requirements (2>.k8s.io.apimachinery.pkg.apis.meta.v1.FieldSelectorRequirementRrequirements"ü
+LabelSelectorAttributes 
+rawSelector (	RrawSelectorb
+requirements (2>.k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirementRrequirements"Ç
+LocalSubjectAccessReviewL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataH
+spec (24.k8s.io.api.authorization.v1.SubjectAccessReviewSpecRspecN
+status (26.k8s.io.api.authorization.v1.SubjectAccessReviewStatusRstatus"?
+NonResourceAttributes
+path (	Rpath
+verb (	Rverb"Q
+NonResourceRule
+verbs (	Rverbs(
+nonResourceURLs (	RnonResourceURLs"Ä
+ResourceAttributes
+	namespace (	R	namespace
+verb (	Rverb
+group (	Rgroup
+version (	Rversion
+resource (	Rresource 
+subresource (	Rsubresource
+name (	RnameZ
+fieldSelector (24.k8s.io.api.authorization.v1.FieldSelectorAttributesRfieldSelectorZ
+labelSelector	 (24.k8s.io.api.authorization.v1.LabelSelectorAttributesRlabelSelector"Ü
+ResourceRule
+verbs (	Rverbs
+	apiGroups (	R	apiGroups
+	resources (	R	resources$
+resourceNames (	RresourceNames"Ö
+SelfSubjectAccessReviewL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataL
+spec (28.k8s.io.api.authorization.v1.SelfSubjectAccessReviewSpecRspecN
+status (26.k8s.io.api.authorization.v1.SubjectAccessReviewStatusRstatus"Ë
+SelfSubjectAccessReviewSpec_
+resourceAttributes (2/.k8s.io.api.authorization.v1.ResourceAttributesRresourceAttributesh
+nonResourceAttributes (22.k8s.io.api.authorization.v1.NonResourceAttributesRnonResourceAttributes"Ç
+SelfSubjectRulesReviewL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataK
+spec (27.k8s.io.api.authorization.v1.SelfSubjectRulesReviewSpecRspecM
+status (25.k8s.io.api.authorization.v1.SubjectRulesReviewStatusRstatus":
+SelfSubjectRulesReviewSpec
+	namespace (	R	namespace"˝
+SubjectAccessReviewL
+metadata (20.k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMetaRmetadataH
+spec (24.k8s.io.api.authorization.v1.SubjectAccessReviewSpecRspecN
+status (26.k8s.io.api.authorization.v1.SubjectAccessReviewStatusRstatus"‹
+SubjectAccessReviewSpec_
+resourceAttributes (2/.k8s.io.api.authorization.v1.ResourceAttributesRresourceAttributesh
+nonResourceAttributes (22.k8s.io.api.authorization.v1.NonResourceAttributesRnonResourceAttributes
+user (	Ruser
+groups (	RgroupsU
+extra (2?.k8s.io.api.authorization.v1.SubjectAccessReviewSpec.ExtraEntryRextra
+uid (	Ruida
+
+ExtraEntry
+key (	Rkey=
+value (2'.k8s.io.api.authorization.v1.ExtraValueRvalue:8"è
+SubjectAccessReviewStatus
+allowed (Rallowed
+denied (Rdenied
+reason (	Rreason(
+evaluationError (	RevaluationError"è
+SubjectRulesReviewStatusO
+resourceRules (2).k8s.io.api.authorization.v1.ResourceRuleRresourceRulesX
+nonResourceRules (2,.k8s.io.api.authorization.v1.NonResourceRuleRnonResourceRules
+
+incomplete (R
+incomplete(
+evaluationError (	RevaluationErrorBZk8s.io/api/authorization/v1

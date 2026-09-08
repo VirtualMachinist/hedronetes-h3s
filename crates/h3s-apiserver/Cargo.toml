@@ -9,3 +9,30 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+axum = { version = "0.8.9", features = ["http2"] }
+tokio.workspace = true
+rustls.workspace = true
+tokio-rustls = "0.26.5"
+hyper = { version = "1", features = ["server", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["server-auto", "service", "tokio"] }
+tower = { version = "0.5", features = ["util"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_urlencoded = "0.7"
+futures-util = "0.3"
+async-stream = "0.3"
+base64 = "0.22"
+uuid = { version = "1", features = ["v4"] }
+time = { version = "0.3", features = ["formatting"] }
+k8s-openapi.workspace = true
+h3s-auth = { path = "../h3s-auth" }
+h3s-storage = { path = "../h3s-storage" }
+
+prost-reflect = "0.16.5"
+prost = "0.14"
+
+[dev-dependencies]
+hyper = { version = "1", features = ["client", "http1"] }
+http-body-util = "0.1"
+h3s-certs = { path = "../h3s-certs" }
+tempfile = "3"

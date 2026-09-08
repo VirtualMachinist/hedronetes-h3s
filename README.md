@@ -28,7 +28,7 @@ It does **not** embed upstream Go Kubernetes.
 
 - Full product specification: [`SPEC.md`](./SPEC.md). The spec covers adjacent agentic planes (cluster / retrieve / record) as a product constraint, not a shipped feature.
 
-## Binary (P0 stub)
+## Binary (M1 API foundation)
 
 ```text
 h3s server   # control plane + datastore + supervisor (+ embedded agent)
@@ -43,9 +43,9 @@ cargo run -p h3s -- agent --help
 
 ## Status
 
-M1 implementation is underway. The SQLite registry provides durable CRUD/CAS, revisioned snapshot pagination, replayable watch streams, compaction, and leases. Contract tests cover concurrent writers, reopen, slow watches, and invalid/foreign databases. Cluster PKI now persists a private CA/serving/admin bundle and validates TLS identities. RBAC evaluates Kubernetes v1.34 roles and bindings. These libraries are not yet wired into the server. See [the security foundation](docs/security-foundation.md).
+M1 implementation is underway. The SQLite registry provides durable CRUD/CAS, revisioned snapshot pagination, replayable watch streams, compaction, and leases. Contract tests cover concurrent writers, reopen, slow watches, and invalid/foreign databases. Cluster PKI now persists a private CA/serving/admin bundle and validates TLS identities. RBAC evaluates Kubernetes v1.34 roles and bindings. The server now wires these libraries into an authenticated API. See [the security foundation](docs/security-foundation.md) and [the executable API checkpoint](docs/api-foundation.md).
 
-The server/agent commands remain CLI stubs; API, runtime, controllers, and cluster networking are not yet implemented. Storage tests do not demonstrate a functioning cluster.
+`h3s server --disable-agent` now serves Namespace/ConfigMap/Secret/RBAC requests over TLS with durable state. The worker agent, workload resources, runtime, controllers, and cluster networking remain incomplete. This API checkpoint does not demonstrate a functioning workload cluster.
 
 For the pinned ARM64 NixOS development shell and Tower guest definitions, see [integration/tower](integration/tower/README.md) and [the toolchain notes](integration/tower/TOOLCHAIN.md). NixOS is the full M1 integration target; Debian and Fedora will exercise the portable Linux path. Full HA and Kubernetes conformance remain later milestones.
 
