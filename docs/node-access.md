@@ -6,10 +6,10 @@ kubeconfig or a broad `system:node` ClusterRole. Both identity attributes are
 required. TLS validation and ordinary RBAC still apply; HTTP headers cannot
 supply a node identity.
 
-This is the API prerequisite for worker bootstrap. The agent, token exchange,
-supervisor WebSocket tunnel, CRI runtime and actual worker registration process
-remain unfinished. Creating a Node object in a test does not establish a worker,
-and a status test does not demonstrate container execution.
+The [native agent](worker-bootstrap.md) now uses these permissions for token/CSR
+enrollment, Node registration and Lease renewal. The supervisor WebSocket
+tunnel and CRI workload runtime remain unfinished. The agent reports NotReady;
+a Node registration or status test does not demonstrate container execution.
 
 ## Supported permissions
 

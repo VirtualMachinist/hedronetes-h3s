@@ -12,11 +12,13 @@ use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::TlsConnector;
 
+pub const JOIN_TOKEN: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
 pub struct Server {
     controller: Option<tokio::task::JoinHandle<Result<(), h3s_controllers::Error>>>,
     address: std::net::SocketAddr,
     task: tokio::task::JoinHandle<std::io::Result<()>>,
-    pub pki: ClusterPki,
+    pub pki: Arc<ClusterPki>,
 }
 impl Drop for Server {
     fn drop(&mut self) {
@@ -33,13 +35,38 @@ impl Server {
     pub async fn start_with_controllers(dir: &std::path::Path) -> Self {
         Self::start_mode(dir, true).await
     }
+    pub async fn restart(mut self, dir: &std::path::Path) -> Self {
+        let address = self.address;
+        self.task.abort();
+        let _ = (&mut self.task).await;
+        if let Some(controller) = &mut self.controller {
+            controller.abort();
+            let _ = controller.await;
+        }
+        drop(self);
+        Self::start_at(dir, false, Some(address)).await
+    }
     async fn start_mode(dir: &std::path::Path, controllers: bool) -> Self {
-        let pki =
+        Self::start_at(dir, controllers, None).await
+    }
+    async fn start_at(
+        dir: &std::path::Path,
+        controllers: bool,
+        address: Option<std::net::SocketAddr>,
+    ) -> Self {
+        let pki = Arc::new(
             ClusterPki::open_or_create(&dir.join("tls"), &["localhost".into(), "127.0.0.1".into()])
-                .unwrap();
+                .unwrap(),
+        );
         let store = Arc::new(SqliteStore::open(dir.join("registry.db")).await.unwrap());
-        let api = Api::new(store).await.unwrap();
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let api = Api::new(store)
+            .await
+            .unwrap()
+            .with_bootstrap(pki.clone(), JOIN_TOKEN)
+            .unwrap();
+        let listener = TcpListener::bind(address.unwrap_or_else(|| "127.0.0.1:0".parse().unwrap()))
+            .await
+            .unwrap();
         let address = listener.local_addr().unwrap();
         let task = tokio::spawn(h3s_apiserver::serve(
             listener,
@@ -106,6 +133,9 @@ impl Server {
         })
         .await
         .expect("default account controller did not converge");
+    }
+    pub fn endpoint(&self) -> String {
+        format!("https://{}", self.address)
     }
     pub fn admin(&self) -> rustls::ClientConfig {
         self.pki.client_config(Some(self.pki.admin())).unwrap()

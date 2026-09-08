@@ -12,7 +12,7 @@ use clap::{Args, Parser, Subcommand};
     about = "Hedronetes (h3s): Kubernetes-compatible cluster distribution in one Rust binary",
     long_about = "k3s, written in Rust, without embedding a Go control plane.\n\n\
          API foundation: use server --disable-agent. \
-         Workload runtime and worker agent are not yet implemented.",
+         Agents enroll and report NotReady; workload runtime and tunnel are not yet implemented.",
     multicall = true,
     subcommand_required = true,
     arg_required_else_help = true,
@@ -25,7 +25,7 @@ enum Multicall {
     H3s(H3sCli),
     /// Start the control plane + datastore + supervisor (embedded agent unless disabled).
     Server(ServerArgs),
-    /// Start a worker agent (kubelet + kube-proxy + CNI + tunnel client).
+    /// Enroll a worker and maintain Node/Lease status (workload runtime incomplete).
     Agent(AgentArgs),
 }
 
@@ -48,7 +48,7 @@ struct H3sCli {
 enum Command {
     /// Start the control plane + datastore + supervisor (embedded agent unless disabled).
     Server(ServerArgs),
-    /// Start a worker agent (kubelet + kube-proxy + CNI + tunnel client).
+    /// Enroll a worker and maintain Node/Lease status (workload runtime incomplete).
     Agent(AgentArgs),
 }
 
@@ -68,11 +68,42 @@ struct ServerArgs {
     /// Run the API without a local agent (required while node runtime is incomplete).
     #[arg(long)]
     disable_agent: bool,
+    /// Shared enrollment token; prefer --token-file over a command-line value.
+    #[arg(
+        long,
+        env = "H3S_TOKEN",
+        hide_env_values = true,
+        conflicts_with = "token_file"
+    )]
+    token: Option<h3s_auth::bootstrap::Token>,
+    #[arg(long)]
+    token_file: Option<std::path::PathBuf>,
 }
 
-/// P0 stub arguments for `h3s agent`.
+/// Native worker enrollment and lifecycle; runtime readiness is explicit.
 #[derive(Debug, Args)]
-struct AgentArgs {}
+struct AgentArgs {
+    #[arg(long)]
+    server: String,
+    /// Trusted CA copied through an authenticated operator channel.
+    #[arg(long)]
+    server_ca_file: std::path::PathBuf,
+    #[arg(long)]
+    node_name: String,
+    #[arg(long)]
+    node_ip: std::net::IpAddr,
+    #[arg(long, default_value = "/var/lib/hedronetes")]
+    data_dir: std::path::PathBuf,
+    #[arg(
+        long,
+        env = "H3S_TOKEN",
+        hide_env_values = true,
+        conflicts_with = "token_file"
+    )]
+    token: Option<h3s_auth::bootstrap::Token>,
+    #[arg(long)]
+    token_file: Option<std::path::PathBuf>,
+}
 
 fn install_rustls_provider() {
     // rustls 0.23 default crypto is aws-lc-rs. OpenSSL is not a default feature.
@@ -103,7 +134,24 @@ async fn run_server(args: ServerArgs) -> RunResult {
     sans.extend(args.tls_san);
     sans.sort();
     sans.dedup();
-    let pki = h3s_certs::ClusterPki::open_or_create(&server_dir.join("tls"), &sans)?;
+    let pki = std::sync::Arc::new(h3s_certs::ClusterPki::open_or_create(
+        &server_dir.join("tls"),
+        &sans,
+    )?);
+    let token = read_token(
+        args.token.as_ref(),
+        args.token_file.as_deref(),
+        Some(&server_dir),
+    )?
+    .expect("server token generated");
+    let ca_file = server_dir.join("ca.crt");
+    if ca_file.try_exists()? {
+        if h3s_certs::private::read(&ca_file, 1024 * 1024)? != pki.ca_pem().as_bytes() {
+            return Err("existing CA export differs from cluster PKI".into());
+        }
+    } else {
+        h3s_certs::private::write(&ca_file, pki.ca_pem().as_bytes(), false)?;
+    }
     let db_dir = server_dir.join("db");
     let mut builder = std::fs::DirBuilder::new();
     builder.recursive(true);
@@ -125,7 +173,9 @@ async fn run_server(args: ServerArgs) -> RunResult {
         }
     }
     let store = std::sync::Arc::new(h3s_storage::SqliteStore::open(db_dir.join("h3s.db")).await?);
-    let api = h3s_apiserver::Api::new(store).await?;
+    let api = h3s_apiserver::Api::new(store)
+        .await?
+        .with_bootstrap(pki.clone(), &token)?;
     let listener =
         tokio::net::TcpListener::bind((args.bind_address, args.https_listen_port)).await?;
     let local = listener.local_addr()?;
@@ -187,10 +237,65 @@ fn write_kubeconfig(path: &std::path::Path, contents: &str) -> RunResult {
     std::fs::File::open(parent)?.sync_all()?;
     Ok(())
 }
+fn read_token(
+    token: Option<&h3s_auth::bootstrap::Token>,
+    file: Option<&std::path::Path>,
+    server: Option<&std::path::Path>,
+) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+    let text = if let Some(token) = token {
+        Some(token.expose().to_owned())
+    } else if let Some(file) = file {
+        Some(
+            String::from_utf8(h3s_certs::private::read(file, 1024)?)
+                .map_err(|_| "token file is not UTF-8")?
+                .trim()
+                .to_owned(),
+        )
+    } else if let Some(dir) = server {
+        let _lock = h3s_certs::private::exclusive_process_lock(&dir.join(".node-token.lock"))?;
+        let path = dir.join("node-token");
+        if !path.try_exists()? {
+            let token = h3s_auth::bootstrap::random_secret()
+                .map_err(|_| "secure random source unavailable")?;
+            h3s_certs::private::write(&path, token.as_bytes(), false)?;
+        }
+        Some(
+            String::from_utf8(h3s_certs::private::read(&path, 1024)?)
+                .map_err(|_| "token file is not UTF-8")?
+                .trim()
+                .to_owned(),
+        )
+    } else {
+        None
+    };
+    if text
+        .as_deref()
+        .is_some_and(|v| !h3s_auth::bootstrap::valid_token(v))
+    {
+        return Err("join token must be 32-256 printable ASCII bytes".into());
+    }
+    Ok(text)
+}
+async fn run_agent(args: AgentArgs) -> RunResult {
+    let token = read_token(args.token.as_ref(), args.token_file.as_deref(), None)?;
+    let agent = h3s_kubelet::Agent::connect(h3s_kubelet::Config {
+        server: args.server,
+        ca_file: args.server_ca_file,
+        node_name: args.node_name,
+        node_ip: args.node_ip,
+        data_dir: args.data_dir,
+        token,
+    })
+    .await?;
+    agent.reconcile().await?;
+    eprintln!("h3s agent enrolled; Node is NotReady until workload runtime is available");
+    agent.run().await?;
+    Ok(())
+}
 async fn run_command(command: Command) -> RunResult {
     match command {
         Command::Server(args) => run_server(args).await,
-        Command::Agent(_) => Err("node agent is not implemented".into()),
+        Command::Agent(args) => run_agent(args).await,
     }
 }
 #[tokio::main]
@@ -199,7 +304,7 @@ async fn main() {
     let result = match Multicall::parse() {
         Multicall::H3s(cli) => run_command(cli.command).await,
         Multicall::Server(args) => run_server(args).await,
-        Multicall::Agent(_) => Err("node agent is not implemented".into()),
+        Multicall::Agent(args) => run_agent(args).await,
     };
     if let Err(error) = result {
         eprintln!("h3s: {error}");
@@ -252,7 +357,19 @@ mod tests {
 
     #[test]
     fn parses_agent_via_h3s_applet() {
-        let parsed = Multicall::try_parse_from(["h3s", "agent"]).expect("parse agent");
+        let parsed = Multicall::try_parse_from([
+            "h3s",
+            "agent",
+            "--server",
+            "https://server:6443",
+            "--server-ca-file",
+            "/tmp/ca.crt",
+            "--node-name",
+            "worker",
+            "--node-ip",
+            "192.0.2.2",
+        ])
+        .expect("parse agent");
         assert!(matches!(
             parsed,
             Multicall::H3s(H3sCli {

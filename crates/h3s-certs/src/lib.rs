@@ -15,6 +15,8 @@ use std::{fs, io::Write, path::Path, sync::Arc};
 use time::{Duration, OffsetDateTime};
 use x509_parser::prelude::{FromDer, X509Certificate};
 
+pub mod private;
+
 pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -40,6 +42,17 @@ pub struct Identity {
     private_key_pem: String,
 }
 impl Identity {
+    /// Parse a client-held key/certificate pair; callers must separately verify
+    /// its CA chain and expected subject before using it as a node identity.
+    pub fn from_pem(certificate_pem: String, private_key_pem: String) -> Result<Self> {
+        let identity = Self {
+            certificate_pem,
+            private_key_pem,
+        };
+        identity.validate_key_pair()?;
+        Ok(identity)
+    }
+
     pub fn certificate_pem(&self) -> &str {
         &self.certificate_pem
     }
@@ -297,6 +310,26 @@ impl ClusterPki {
             ExtendedKeyUsagePurpose::ClientAuth,
         )
     }
+    /// Verify CSR possession, then replace every requested certificate parameter
+    /// with the server's node policy. CSR subjects, CA bits, SANs and usages
+    /// never select privileges. Private keys remain on the worker.
+    pub fn sign_node_csr(&self, node: &str, csr_pem: &str) -> Result<String> {
+        if !h3s_api::valid_node_name(node) || csr_pem.len() > 8192 {
+            return Err(Error::Invalid("invalid node name or CSR length".into()));
+        }
+        let mut csr = rcgen::CertificateSigningRequestParams::from_pem(csr_pem)?;
+        let mut params = parameters(
+            &format!("system:node:{node}"),
+            Some("system:nodes"),
+            &[],
+            Duration::days(365),
+        )?;
+        params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ClientAuth];
+        params.use_authority_key_identifier_extension = true;
+        params.serial_number = Some(uuid::Uuid::new_v4().as_bytes().to_vec().into());
+        csr.params = params;
+        Ok(csr.signed_by(&self.issuer()?)?.pem())
+    }
     pub fn issue_serving(&self, name: &str, sans: &[String]) -> Result<Identity> {
         if sans.is_empty() {
             return Err(Error::Invalid("serving SAN required".into()));
@@ -361,7 +394,7 @@ fn parameters(
     lifetime: Duration,
 ) -> Result<CertificateParams> {
     if name.is_empty()
-        || name.len() > 253
+        || name.len() > 1024
         || name.chars().any(char::is_control)
         || group.is_some_and(|g| g.is_empty() || g.len() > 253 || g.chars().any(char::is_control))
     {
@@ -440,4 +473,43 @@ fn bundle_lock(directory: &Path) -> Result<fs::File> {
     }
     fs2::FileExt::lock_exclusive(&file)?;
     Ok(file)
+}
+
+/// Generate a worker private key and signed CSR. Never log the returned key.
+pub fn node_key_and_csr() -> Result<(String, String)> {
+    let key = KeyPair::generate()?;
+    let params = CertificateParams::new(Vec::<String>::new())?;
+    Ok((key.serialize_pem(), params.serialize_request(&key)?.pem()?))
+}
+
+/// Validate a worker identity against the configured CA and exact node subject.
+pub fn node_client_config(
+    ca_pem: &str,
+    identity: &Identity,
+    node: &str,
+) -> Result<rustls::ClientConfig> {
+    let mut roots = RootCertStore::empty();
+    let ca = CertificateDer::from_pem_slice(ca_pem.as_bytes())
+        .map_err(|_| Error::Invalid("node CA PEM".into()))?;
+    roots.add(ca)?;
+    let verifier = WebPkiClientVerifier::builder_with_provider(Arc::new(roots.clone()), provider())
+        .build()
+        .map_err(|_| Error::Invalid("node CA".into()))?;
+    let der = identity.certificate_der()?;
+    verifier.verify_client_cert(&der, &[], UnixTime::now())?;
+    let (_, cert) = X509Certificate::from_der(der.as_ref())
+        .map_err(|_| Error::Invalid("node certificate DER".into()))?;
+    let cn: Vec<_> = cert.subject().iter_common_name().collect();
+    let groups: Vec<_> = cert.subject().iter_organization().collect();
+    if cn.len() != 1
+        || cn[0].as_str().ok() != Some(format!("system:node:{node}").as_str())
+        || groups.len() != 1
+        || groups[0].as_str().ok() != Some("system:nodes")
+    {
+        return Err(Error::Invalid("unexpected node certificate subject".into()));
+    }
+    Ok(rustls::ClientConfig::builder_with_provider(provider())
+        .with_safe_default_protocol_versions()?
+        .with_root_certificates(roots)
+        .with_client_auth_cert(vec![der], identity.private_key_der()?)?)
 }

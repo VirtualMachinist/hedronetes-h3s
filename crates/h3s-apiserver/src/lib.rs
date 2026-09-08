@@ -1,6 +1,7 @@
 //! Authenticated Kubernetes API foundation. All registry access belongs here;
 //! future controllers and nodes must use this API rather than write its store.
 mod admission;
+mod bootstrap;
 mod nodes;
 mod patch;
 mod resources;
@@ -33,6 +34,7 @@ pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 #[derive(Clone)]
 pub struct Api {
     store: Arc<dyn Storage>,
+    bootstrap: Option<Arc<bootstrap::Bootstrap>>,
     admission_writes: Arc<tokio::sync::Mutex<()>>,
 }
 #[derive(Debug)]
@@ -131,6 +133,7 @@ impl Api {
     pub async fn new(store: Arc<dyn Storage>) -> std::result::Result<Self, h3s_storage::Error> {
         let api = Self {
             store,
+            bootstrap: None,
             admission_writes: Arc::new(tokio::sync::Mutex::new(())),
         };
         for namespace in ["default", "kube-system", "kube-public", "kube-node-lease"] {
@@ -163,6 +166,17 @@ impl Api {
             Ok(_) | Err(h3s_storage::Error::AlreadyExists(_)) => Ok(()),
             Err(e) => Err(e),
         }
+    }
+    pub fn with_bootstrap(
+        mut self,
+        pki: Arc<h3s_certs::ClusterPki>,
+        token: &str,
+    ) -> std::result::Result<Self, &'static str> {
+        if !h3s_auth::bootstrap::valid_token(token) {
+            return Err("join token must be 32-256 printable ASCII bytes");
+        }
+        self.bootstrap = Some(Arc::new(bootstrap::Bootstrap::new(pki, token)));
+        Ok(self)
     }
     pub fn router(self) -> Router {
         Router::new().fallback(handle).with_state(Arc::new(self))
@@ -248,6 +262,9 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             "Forbidden",
             "impersonation is not enabled",
         ));
+    }
+    if path == "/v1-h3s/join" {
+        return bootstrap::join(&api, request).await;
     }
     let user = peer.0.ok_or_else(|| {
         Failure::new(

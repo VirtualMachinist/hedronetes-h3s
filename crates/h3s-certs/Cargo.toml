@@ -9,6 +9,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+h3s-api = { path = "../h3s-api" }
 rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "x509-parser", "zeroize"] }
 rustls.workspace = true
 serde = { version = "1", features = ["derive"] }

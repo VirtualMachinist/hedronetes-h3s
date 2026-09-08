@@ -21,3 +21,6 @@ h3s-certs = { path = "../h3s-certs" }
 h3s-storage = { path = "../h3s-storage" }
 tempfile = "3"
 h3s-controllers = { path = "../h3s-controllers" }
+
+h3s-auth = { path = "../h3s-auth" }
+h3s-kubelet = { path = "../h3s-kubelet" }

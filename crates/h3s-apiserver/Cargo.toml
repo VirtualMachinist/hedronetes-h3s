@@ -9,6 +9,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+h3s-api = { path = "../h3s-api" }
+h3s-certs = { path = "../h3s-certs" }
 axum = { version = "0.8.9", features = ["http2"] }
 tokio.workspace = true
 rustls.workspace = true
@@ -35,9 +37,10 @@ ipnet = "2"
 percent-encoding = "2.3.2"
 
 [dev-dependencies]
+h3s-kubelet = { path = "../h3s-kubelet" }
+rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "x509-parser"] }
 hyper = { version = "1", features = ["client", "http1"] }
 http-body-util = "0.1"
-h3s-certs = { path = "../h3s-certs" }
 tempfile = "3"
 h3s-controllers = { path = "../h3s-controllers" }
 kube.workspace = true
