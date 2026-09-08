@@ -16,14 +16,18 @@ pub struct Bootstrap {
     pki: Arc<h3s_certs::ClusterPki>,
     token_hash: [u8; 32],
     slots: tokio::sync::Semaphore,
+    pub kubelet_client: Arc<rustls::ClientConfig>,
 }
 impl Bootstrap {
-    pub fn new(pki: Arc<h3s_certs::ClusterPki>, token: &str) -> Self {
-        Self {
+    pub fn new(pki: Arc<h3s_certs::ClusterPki>, token: &str) -> h3s_certs::Result<Self> {
+        let identity = pki.issue_client(h3s_api::KUBELET_CLIENT_ID, None)?;
+        let kubelet_client = Arc::new(pki.client_config(Some(&identity))?);
+        Ok(Self {
             pki,
             token_hash: digest(token),
             slots: tokio::sync::Semaphore::new(4),
-        }
+            kubelet_client,
+        })
     }
 }
 #[derive(Serialize, Deserialize)]
@@ -158,6 +162,89 @@ pub async fn join(api: &Api, request: Request<Body>) -> Result<Response> {
         },
         [("cache-control", "no-store")],
         Json(JoinResponse { certificate_pem }),
+    )
+        .into_response())
+}
+
+/// Only an existing native node may request its own dedicated serving identity.
+pub async fn serving(api: &Api, user: &h3s_auth::User, request: Request<Body>) -> Result<Response> {
+    let node = user
+        .node_name()
+        .filter(|n| h3s_api::valid_node_name(n))
+        .ok_or_else(|| {
+            Failure::new(
+                403,
+                "Forbidden",
+                "kubelet certificate requires a native node identity",
+            )
+        })?;
+    let state = api
+        .bootstrap
+        .as_ref()
+        .ok_or_else(|| Failure::new(404, "NotFound", "native bootstrap is not configured"))?;
+    if request.method() != "POST" || request.uri().query().is_some() {
+        return Err(Failure::new(
+            400,
+            "BadRequest",
+            "kubelet certificate requires POST without query",
+        ));
+    }
+    if request
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        != Some("application/json")
+    {
+        return Err(Failure::new(415, "UnsupportedMediaType", "JSON required"));
+    }
+    let _slot = state.slots.try_acquire().map_err(|_| {
+        Failure::new(
+            429,
+            "TooManyRequests",
+            "certificate signer capacity reached",
+        )
+    })?;
+    let bytes = tokio::time::timeout(
+        Duration::from_secs(10),
+        to_bytes(request.into_body(), 16 * 1024),
+    )
+    .await
+    .map_err(|_| Failure::new(408, "Timeout", "certificate body timed out"))?
+    .map_err(|_| {
+        Failure::new(
+            413,
+            "RequestEntityTooLarge",
+            "certificate body exceeds limit",
+        )
+    })?;
+    let csr: h3s_api::ServingRequest = serde_json::from_slice(&bytes)
+        .map_err(|_| Failure::new(400, "BadRequest", "invalid serving certificate request"))?;
+    if csr.csr_pem.len() > 8192 {
+        return Err(Failure::new(400, "BadRequest", "CSR exceeds limit"));
+    }
+    let _guard = api.admission_writes.lock().await;
+    for path in [
+        format!("/registry/nodes/{node}"),
+        format!("/registry/h3s-node-identities/{node}"),
+    ] {
+        if api.store.get(&key(path)?).await?.is_none() {
+            return Err(Failure::new(
+                403,
+                "Forbidden",
+                "registered native node required",
+            ));
+        }
+    }
+    let pki = state.pki.clone();
+    let node = node.to_owned();
+    let certificate_pem =
+        tokio::task::spawn_blocking(move || pki.sign_kubelet_csr(&node, &csr.csr_pem))
+            .await
+            .map_err(|_| Failure::new(500, "InternalError", "signer unavailable"))?
+            .map_err(|_| Failure::new(400, "BadRequest", "invalid kubelet CSR"))?;
+    Ok((
+        [("cache-control", "no-store")],
+        Json(h3s_api::ServingResponse { certificate_pem }),
     )
         .into_response())
 }

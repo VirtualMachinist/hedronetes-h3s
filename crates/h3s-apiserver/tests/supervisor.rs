@@ -35,6 +35,7 @@ async fn enrolled(s: &Server, dir: &Path) -> (Agent, Arc<rustls::ClientConfig>) 
     fs::write(dir.join("ca.pem"), s.pki.ca_pem()).unwrap();
     let agent = Agent::connect(Config {
         server: s.endpoint(),
+        kubelet_port: 0,
         ca_file: dir.join("ca.pem"),
         node_name: "worker".into(),
         node_ip: "192.0.2.2".parse().unwrap(),

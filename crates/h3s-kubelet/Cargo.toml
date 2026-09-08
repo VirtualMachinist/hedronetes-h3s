@@ -9,6 +9,11 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+tokio-rustls = "0.26.5"
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1"
 h3s-supervisor = { path = "../h3s-supervisor" }
 h3s-api = { path = "../h3s-api" }
 h3s-auth = { path = "../h3s-auth" }

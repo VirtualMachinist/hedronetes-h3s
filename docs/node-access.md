@@ -8,7 +8,8 @@ supply a node identity.
 
 The [native agent](worker-bootstrap.md) now uses these permissions for token/CSR
 enrollment, Node registration and Lease renewal. The [supervisor WebSocket transport](supervisor-tunnel.md) uses the same
-node certificate. Kubelet request integration and CRI workload runtime remain
+node certificate. Authorized node proxy health/readiness requests now reach
+the actual worker TLS API through that tunnel. CRI workload runtime remains
 unfinished. The agent reports NotReady;
 a Node registration or status test does not demonstrate container execution.
 
@@ -23,7 +24,8 @@ a Node registration or status test does not demonstrate container execution.
 | Service, EndpointSlice | Read/list/watch for the node's service-network implementation |
 
 There is no built-in grant to mutate workloads, bind Pods, read unrelated
-Secrets, list all Pods or Nodes, mutate RBAC, or delete the node itself. Discovery
+Secrets, list all Pods or Nodes, mutate RBAC, delete the node itself, or access `nodes/proxy`. That subresource requires
+explicit API RBAC and uses the API's separate kubelet client identity. Discovery
 uses the existing authenticated discovery binding. ServiceAccount TokenRequest
 and its Pod/audience binding checks will be added with token issuance.
 

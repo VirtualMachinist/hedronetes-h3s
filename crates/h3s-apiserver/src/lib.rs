@@ -2,6 +2,7 @@
 //! future controllers and nodes must use this API rather than write its store.
 mod admission;
 mod bootstrap;
+mod kubelet;
 mod nodes;
 mod patch;
 mod resources;
@@ -178,7 +179,10 @@ impl Api {
         if !h3s_auth::bootstrap::valid_token(token) {
             return Err("join token must be 32-256 printable ASCII bytes");
         }
-        self.bootstrap = Some(Arc::new(bootstrap::Bootstrap::new(pki, token)));
+        self.bootstrap = Some(Arc::new(
+            bootstrap::Bootstrap::new(pki, token)
+                .map_err(|_| "kubelet client credential setup failed")?,
+        ));
         Ok(self)
     }
     /// Internal handle for authorized kubelet requests and transport verification.
@@ -288,8 +292,14 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             "bearer authentication is not yet implemented",
         ));
     }
+    if path == "/v1-h3s/serving" {
+        return bootstrap::serving(&api, &user, request).await;
+    }
     if path == "/v1-h3s/connect" {
         return supervisor::connect(&api, &user, request).await;
+    }
+    if let Some((node, route)) = kubelet::route(&path) {
+        return kubelet::proxy(&api, &user, node, route, request).await;
     }
     let query: Vec<(String, String)> =
         serde_urlencoded::from_str(request.uri().query().unwrap_or(""))

@@ -947,6 +947,7 @@ dependencies = [
  "rustls",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "thiserror",
  "time",
@@ -983,10 +984,14 @@ version = "0.1.0-dev"
 name = "h3s-kubelet"
 version = "0.1.0-dev"
 dependencies = [
+ "bytes",
  "h3s-api",
  "h3s-auth",
  "h3s-certs",
  "h3s-supervisor",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
  "reqwest",
  "rustls",
  "serde",
@@ -994,6 +999,7 @@ dependencies = [
  "thiserror",
  "time",
  "tokio",
+ "tokio-rustls",
 ]
 
 [[package]]

@@ -83,6 +83,9 @@ struct ServerArgs {
 /// Native worker enrollment and lifecycle; runtime readiness is explicit.
 #[derive(Debug, Args)]
 struct AgentArgs {
+    /// Private loopback kubelet listener; never binds a reachable interface.
+    #[arg(long,default_value_t=10250,value_parser=clap::value_parser!(u16).range(1..))]
+    kubelet_port: u16,
     #[arg(long)]
     server: String,
     /// Trusted CA copied through an authenticated operator channel.
@@ -285,6 +288,7 @@ async fn run_agent(args: AgentArgs) -> RunResult {
         node_ip: args.node_ip,
         data_dir: args.data_dir,
         token,
+        kubelet_port: args.kubelet_port,
     })
     .await?;
     agent.reconcile().await?;

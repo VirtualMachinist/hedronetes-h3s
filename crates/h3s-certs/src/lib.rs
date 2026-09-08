@@ -330,6 +330,24 @@ impl ClusterPki {
         csr.params = params;
         Ok(csr.signed_by(&self.issuer()?)?.pem())
     }
+    /// Kubelet leaves use a dedicated name space, never a submitted node/IP SAN.
+    pub fn sign_kubelet_csr(&self, node: &str, csr_pem: &str) -> Result<String> {
+        if !h3s_api::valid_node_name(node) || csr_pem.len() > 8192 {
+            return Err(Error::Invalid("invalid kubelet CSR/name".into()));
+        }
+        let mut csr = rcgen::CertificateSigningRequestParams::from_pem(csr_pem)?;
+        let mut params = parameters(
+            &format!("system:node:{node}"),
+            None,
+            &[kubelet_dns_name(node)],
+            Duration::days(365),
+        )?;
+        params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ServerAuth];
+        params.use_authority_key_identifier_extension = true;
+        params.serial_number = Some(uuid::Uuid::new_v4().as_bytes().to_vec().into());
+        csr.params = params;
+        Ok(csr.signed_by(&self.issuer()?)?.pem())
+    }
     pub fn issue_serving(&self, name: &str, sans: &[String]) -> Result<Identity> {
         if sans.is_empty() {
             return Err(Error::Invalid("serving SAN required".into()));
@@ -512,4 +530,47 @@ pub fn node_client_config(
         .with_safe_default_protocol_versions()?
         .with_root_certificates(roots)
         .with_client_auth_cert(vec![der], identity.private_key_der()?)?)
+}
+
+/// Stable, non-resolving private TLS name. Hash labels fit DNS limits even for a
+/// maximum-length Node name and cannot collide with ordinary control-plane SANs.
+pub fn kubelet_dns_name(node: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let hex: String = Sha256::digest(node.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    format!("node-{}.{}.h3s.invalid", &hex[..32], &hex[32..])
+}
+pub fn kubelet_server_name(node: &str) -> ServerName<'static> {
+    ServerName::try_from(kubelet_dns_name(node)).expect("fixed hashed DNS name")
+}
+/// Validate the worker-held serving key/leaf against cluster trust and the
+/// expected node-specific TLS name before starting its localhost listener.
+pub fn kubelet_server_config(
+    ca_pem: &str,
+    identity: &Identity,
+    node: &str,
+) -> Result<rustls::ServerConfig> {
+    use rustls::client::danger::ServerCertVerifier;
+    let mut roots = RootCertStore::empty();
+    roots.add(
+        CertificateDer::from_pem_slice(ca_pem.as_bytes())
+            .map_err(|_| Error::Invalid("kubelet CA PEM".into()))?,
+    )?;
+    let verifier = rustls::client::WebPkiServerVerifier::builder_with_provider(
+        Arc::new(roots.clone()),
+        provider(),
+    )
+    .build()
+    .map_err(|_| Error::Invalid("kubelet CA".into()))?;
+    let der = identity.certificate_der()?;
+    verifier.verify_server_cert(&der, &[], &kubelet_server_name(node), &[], UnixTime::now())?;
+    let client_verifier = WebPkiClientVerifier::builder_with_provider(Arc::new(roots), provider())
+        .build()
+        .map_err(|_| Error::Invalid("kubelet client trust".into()))?;
+    Ok(rustls::ServerConfig::builder_with_provider(provider())
+        .with_safe_default_protocol_versions()?
+        .with_client_cert_verifier(client_verifier)
+        .with_single_cert(vec![der], identity.private_key_der()?)?)
 }

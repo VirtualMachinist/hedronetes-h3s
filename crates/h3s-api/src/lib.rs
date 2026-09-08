@@ -28,3 +28,17 @@ pub fn valid_node_name(name: &str) -> bool {
                     .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
         })
 }
+
+/// Serving certificate request authenticated by the existing node client identity.
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ServingRequest {
+    pub csr_pem: String,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ServingResponse {
+    pub certificate_pem: String,
+}
+/// Only this API-server client identity may call the private kubelet HTTP API.
+pub const KUBELET_CLIENT_ID: &str = "system:h3s:kubelet-client";

@@ -5,10 +5,9 @@ registers its own Node, and renews its own Lease every ten seconds. The worker
 creates and retains its private key locally. The server signs a verified CSR;
 neither the CA key nor an administrator credential is sent to the worker.
 
-This implements enrollment and identity persistence. The [supervisor transport](supervisor-tunnel.md) now connects automatically;
-its kubelet request integration, CRI/Pod execution, CNI, service networking and
-DNS remain unfinished. The agent
-reports `Ready=False`, reason `RuntimeNotReady`; enrollment does not demonstrate
+This implements enrollment and identity persistence. The [supervisor transport](supervisor-tunnel.md) connects automatically and carries mutually authenticated
+health/readiness requests to the worker's real loopback API. CRI/Pod execution,
+CNI, service networking and DNS remain unfinished. The agent reports `Ready=False`, reason `RuntimeNotReady`; enrollment does not demonstrate
 running workloads. The server still requires `--disable-agent`.
 
 ## Operator configuration
@@ -57,6 +56,14 @@ origin, CA, node name, private key, signed CSR, random node password, and issued
 certificate. A process lock prevents concurrent agents using this directory.
 Pending enrollment is saved atomically before the network exchange, so a lost
 response can be retried without losing the original node password.
+
+A separate `<data-dir>/agent/serving.json` persists the worker-generated kubelet
+serving key, CSR, node/CA binding and signed certificate with the same private
+file protections. The node client certificate obtains this ServerAuth-only
+leaf after registration. It does not reuse the client key. The listener binds
+only `127.0.0.1`, with port 10250 by default (`--kubelet-port` selects another
+local port). See [the private kubelet API](supervisor-tunnel.md#private-kubelet-api)
+for TLS names, access control, proxy commands and recovery limits.
 
 The API stores only the node password's SHA-256 hash under its internal
 `/registry/h3s-node-identities/<name>` key. This key is not a Kubernetes resource.

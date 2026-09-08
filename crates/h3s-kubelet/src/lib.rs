@@ -1,5 +1,6 @@
 //! Native agent enrollment and Node/Lease lifecycle. CRI and Pod execution are
 //! not implemented yet; this agent explicitly reports RuntimeNotReady.
+mod service;
 use h3s_api::{JoinRequest, JoinResponse};
 use h3s_auth::bootstrap::{random_secret, valid_password, valid_token};
 use h3s_certs::{private, Identity};
@@ -30,6 +31,7 @@ pub struct Config {
     pub node_ip: IpAddr,
     pub data_dir: PathBuf,
     pub token: Option<String>,
+    pub kubelet_port: u16,
 }
 /// Private on-disk state: no Debug, never included in Node status or log output.
 #[derive(Serialize, Deserialize)]
@@ -52,6 +54,9 @@ pub struct Agent {
     ip: IpAddr,
     tunnel_tls: Arc<rustls::ClientConfig>,
     tunnel_url: String,
+    ca_pem: String,
+    agent_dir: PathBuf,
+    kubelet_port: std::sync::atomic::AtomicU16,
 }
 fn invalid(message: &'static str) -> Error {
     Error::Configuration(message)
@@ -206,6 +211,9 @@ impl Agent {
             ip: config.node_ip,
             tunnel_tls: Arc::new(tls),
             tunnel_url: tunnel_endpoint.to_string(),
+            ca_pem: ca,
+            agent_dir: dir,
+            kubelet_port: std::sync::atomic::AtomicU16::new(config.kubelet_port),
         })
     }
     async fn request(
@@ -252,6 +260,10 @@ impl Agent {
         node["status"] = json!({"addresses":[{"type":"InternalIP","address":self.ip.to_string()},{"type":"Hostname","address":self.name}],
             "conditions":[{"type":"Ready","status":"False","reason":"RuntimeNotReady","message":"agent enrolled; CRI workload runtime is not implemented",
                 "lastHeartbeatTime":time,"lastTransitionTime":transition}]});
+        let port = self.kubelet_port.load(std::sync::atomic::Ordering::Relaxed);
+        if port != 0 {
+            node["status"]["daemonEndpoints"] = json!({"kubeletEndpoint":{"Port":port}});
+        }
         let (code, updated) = self
             .request(Method::PUT, &format!("{path}/status"), Some(node))
             .await?;
@@ -295,6 +307,18 @@ impl Agent {
         Ok(())
     }
     pub async fn run(&self) -> Result<()> {
+        self.reconcile().await?;
+        let tls = service::configuration(self).await?;
+        let listener = tokio::net::TcpListener::bind((
+            std::net::Ipv4Addr::LOCALHOST,
+            self.kubelet_port.load(std::sync::atomic::Ordering::Relaxed),
+        ))
+        .await?;
+        let target = listener.local_addr()?;
+        self.kubelet_port
+            .store(target.port(), std::sync::atomic::Ordering::Relaxed);
+        eprintln!("h3s kubelet listening on https://{target}; runtime remains NotReady");
+        let serving = service::serve(listener, tls, self.name.clone());
         let heartbeats = async {
             let mut interval = tokio::time::interval(Duration::from_secs(10));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -309,12 +333,9 @@ impl Agent {
             let mut delay = 1;
             loop {
                 let started = tokio::time::Instant::now();
-                let result = h3s_supervisor::run_worker(
-                    &self.tunnel_url,
-                    self.tunnel_tls.clone(),
-                    "127.0.0.1:10250".parse().expect("fixed loopback endpoint"),
-                )
-                .await;
+                let result =
+                    h3s_supervisor::run_worker(&self.tunnel_url, self.tunnel_tls.clone(), target)
+                        .await;
                 if started.elapsed() > Duration::from_secs(60) {
                     delay = 1;
                 }
@@ -330,6 +351,7 @@ impl Agent {
         // a tunnel outage must not stop direct authenticated Node/Lease updates.
         tokio::select! {
             _=tokio::signal::ctrl_c()=>Ok(()),
+            result=serving=>result,
             _=heartbeats=>Ok(()),
             _=tunnel=>Ok(()),
         }
