@@ -1,0 +1,11 @@
+[package]
+name = "h3s-supervisor"
+description = "Agent supervisor tunnel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]

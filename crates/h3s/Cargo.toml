@@ -1,0 +1,18 @@
+[package]
+name = "h3s"
+description = "Hedronetes multicall binary (server / agent)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "h3s"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+rustls.workspace = true
+tokio.workspace = true

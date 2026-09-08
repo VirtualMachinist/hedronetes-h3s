@@ -6,6 +6,8 @@
 
 Status: **0.1.0-draft** · License: Apache-2.0 · API target: Kubernetes **v1.34** · Platform: Linux amd64 / arm64
 
+Repo: [VirtualMachinist/hedronetes-h3s](https://github.com/VirtualMachinist/hedronetes-h3s)
+
 ## What this is
 
 Hedronetes copies k3s’s *product* shape — one binary, `server` / `agent`, SQLite by default, HA when you need it, stock `kubectl` and Helm — and reimplements the control plane as native Rust (Tokio), with a typed kubelet FSM, a pluggable store, **youki** as the default OCI runtime, and **nftables**-first kube-proxy.
@@ -16,16 +18,22 @@ It does **not** embed upstream Go Kubernetes.
 
 - Full product specification: [`SPEC.md`](./SPEC.md)
 
-## Binary (planned)
+## Binary (P0 stub)
 
 ```text
 h3s server   # control plane + datastore + supervisor (+ embedded agent)
 h3s agent    # kubelet + kube-proxy + CNI + runtime + tunnel client
 ```
 
+```bash
+cargo run -p h3s -- --help
+cargo run -p h3s -- server --help
+cargo run -p h3s -- agent --help
+```
+
 ## Status
 
-Founding seed only. Implementation has not started. Spec is normative for design review.
+P0 workspace: empty crates compile. `h3s --help` / `h3s server --help` / `h3s agent --help` are clap multicall stubs. API server and kubelet are not implemented. Spec is normative for design review.
 
 ## License
 

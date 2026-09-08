@@ -1,0 +1,11 @@
+[package]
+name = "h3s-deploy"
+description = "Auto-apply manifests (k3s AddOn analog)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]

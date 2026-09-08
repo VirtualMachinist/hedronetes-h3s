@@ -858,7 +858,7 @@ members = [
 [workspace.package]
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/hedronetes/hedronetes"
+repository = "https://github.com/VirtualMachinist/hedronetes-h3s"
 version = "0.1.0-dev"
 
 [workspace.dependencies]
