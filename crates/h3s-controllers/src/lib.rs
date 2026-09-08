@@ -3,14 +3,22 @@ mod node_cidrs;
 mod workload;
 use futures_util::StreamExt;
 pub use h3s_api::network::NODE_CIDR_CONTROLLER_ID;
-use k8s_openapi::api::core::v1::{ConfigMap, Namespace, ServiceAccount};
+use k8s_openapi::api::{
+    apps::v1::{Deployment, ReplicaSet},
+    coordination::v1::Lease,
+    core::v1::{ConfigMap, Namespace, Pod, Secret, Service, ServiceAccount},
+    discovery::v1::EndpointSlice,
+    rbac::v1::{Role, RoleBinding},
+};
+use kube::core::NamespaceResourceScope;
 use kube::{
-    api::{ObjectMeta, PostParams},
+    api::{DeleteParams, ListParams, ObjectMeta, PostParams},
     config::{KubeConfigOptions, Kubeconfig},
     runtime::{controller::Action, reflector::ObjectRef, watcher, Controller},
-    Api, Client, Config, ResourceExt,
+    Api, Client, Config, Resource, ResourceExt,
 };
 pub use node_cidrs::{node_cidrs_once, run_node_cidr_controller};
+use serde::de::DeserializeOwned;
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 pub use workload::{
     deployment_once, endpoint_gc_once, endpoints_once, gc_once, replicaset_once,
@@ -103,7 +111,7 @@ async fn reconcile_namespace(
     if current.metadata.deletion_timestamp.is_some()
         || current.status.as_ref().and_then(|s| s.phase.as_deref()) == Some("Terminating")
     {
-        return Ok(Action::await_change());
+        return collect_terminating_namespace(&name, ctx).await;
     }
     let accounts = Api::<ServiceAccount>::namespaced(ctx.client.clone(), &name);
     if accounts.get_opt("default").await?.is_none() {
@@ -148,4 +156,56 @@ async fn reconcile_namespace(
         }
     }
     Ok(Action::requeue(Duration::from_secs(300)))
+}
+
+async fn collect_terminating_namespace(name: &str, ctx: Arc<Context>) -> Result<Action, Error> {
+    let remaining = gc_namespaced::<Deployment>(&ctx.client, name).await?
+        + gc_namespaced::<ReplicaSet>(&ctx.client, name).await?
+        + gc_namespaced::<Pod>(&ctx.client, name).await?
+        + gc_namespaced::<Service>(&ctx.client, name).await?
+        + gc_namespaced::<EndpointSlice>(&ctx.client, name).await?
+        + gc_namespaced::<ConfigMap>(&ctx.client, name).await?
+        + gc_namespaced::<Secret>(&ctx.client, name).await?
+        + gc_namespaced::<ServiceAccount>(&ctx.client, name).await?
+        + gc_namespaced::<Role>(&ctx.client, name).await?
+        + gc_namespaced::<RoleBinding>(&ctx.client, name).await?
+        + gc_namespaced::<Lease>(&ctx.client, name).await?;
+    if remaining > 0 {
+        return Ok(Action::requeue(Duration::from_secs(2)));
+    }
+    let namespaces = Api::<Namespace>::all(ctx.client.clone());
+    let Some(mut current) = namespaces.get_opt(name).await? else {
+        return Ok(Action::await_change());
+    };
+    if current
+        .metadata
+        .finalizers
+        .as_ref()
+        .is_none_or(|f| f.is_empty())
+    {
+        return Ok(Action::await_change());
+    }
+    current.metadata.finalizers = Some(Vec::new());
+    namespaces
+        .replace(name, &PostParams::default(), &current)
+        .await?;
+    Ok(Action::await_change())
+}
+
+async fn gc_namespaced<K>(client: &Client, ns: &str) -> Result<usize, Error>
+where
+    K: Clone + std::fmt::Debug + DeserializeOwned + Resource<Scope = NamespaceResourceScope>,
+    <K as Resource>::DynamicType: Default,
+{
+    let api = Api::<K>::namespaced(client.clone(), ns);
+    let list = api.list(&ListParams::default()).await?;
+    let mut deleted = 0;
+    for item in list.items {
+        match api.delete(&item.name_any(), &DeleteParams::default()).await {
+            Ok(_) => deleted += 1,
+            Err(kube::Error::Api(error)) if error.code == 404 => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Ok(deleted)
 }

@@ -150,10 +150,15 @@ impl Api {
         api.bootstrap("/registry/clusterroles/h3s-discovery".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-discovery"},"rules":[{"verbs":["get"],"nonResourceURLs":["/api","/api/*","/apis","/apis/*"]}]})).await?;
         api.bootstrap("/registry/clusterrolebindings/h3s-discovery".into(),json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-discovery"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-discovery"},"subjects":[{"kind":"Group","apiGroup":"rbac.authorization.k8s.io","name":"system:authenticated"}]})).await?;
         api.bootstrap("/registry/clusterroles/h3s-namespace-controller".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-namespace-controller"},"rules":[
-            {"apiGroups":[""],"resources":["namespaces"],"verbs":["get","list","watch"]},
-            {"apiGroups":[""],"resources":["serviceaccounts"],"verbs":["get","list","watch"],"resourceNames":["default"]},
-            {"apiGroups":[""],"resources":["configmaps"],"verbs":["get","list","watch","update"],"resourceNames":["kube-root-ca.crt"]},
-            {"apiGroups":[""],"resources":["serviceaccounts","configmaps"],"verbs":["create"]}
+            {"apiGroups":[""],"resources":["namespaces"],"verbs":["get","list","watch","update"]},
+            {"apiGroups":[""],"resources":["serviceaccounts"],"verbs":["get","watch"],"resourceNames":["default"]},
+            {"apiGroups":[""],"resources":["configmaps"],"verbs":["get","watch","update"],"resourceNames":["kube-root-ca.crt"]},
+            {"apiGroups":[""],"resources":["serviceaccounts","configmaps"],"verbs":["create"]},
+            {"apiGroups":[""],"resources":["pods","services","configmaps","secrets","serviceaccounts"],"verbs":["list","delete"]},
+            {"apiGroups":["apps"],"resources":["deployments","replicasets"],"verbs":["list","delete"]},
+            {"apiGroups":["discovery.k8s.io"],"resources":["endpointslices"],"verbs":["list","delete"]},
+            {"apiGroups":["rbac.authorization.k8s.io"],"resources":["roles","rolebindings"],"verbs":["list","delete"]},
+            {"apiGroups":["coordination.k8s.io"],"resources":["leases"],"verbs":["list","delete"]}
         ]})).await?;
         api.bootstrap("/registry/clusterrolebindings/h3s-namespace-controller".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"name":"h3s-namespace-controller"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"h3s-namespace-controller"},"subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"system:h3s:namespace-controller"}]})).await?;
         api.bootstrap("/registry/clusterroles/h3s-scheduler".into(), json!({"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"h3s-scheduler"},"rules":[
@@ -737,11 +742,7 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             ));
         }
         if target.resource.kind == "Namespace" {
-            return Err(Failure::new(
-                405,
-                "MethodNotAllowed",
-                "namespace deletion controller is not implemented",
-            ));
+            return delete_namespace(&api, k, current, obj).await;
         }
         if value["propagationPolicy"]
             .as_str()
@@ -910,11 +911,21 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             node_cidrs::admit(&api.store, configured, &value, old_value.as_ref()).await?;
         }
     }
-    let obj = stored(k, &value)?;
+    let obj = stored(k.clone(), &value)?;
     let result = match expected {
         Some(rv) => api.store.update(obj, rv).await?,
         None => api.store.create(obj).await?,
     };
+    if target.resource.kind == "Namespace" && expected.is_some() {
+        let stored = object(result.clone())?;
+        if namespace_deletion_requested(&stored) && !namespace_finalizers_pending(&stored) {
+            api.store.delete(&k, result.revision).await?;
+            return Ok(Json(
+                json!({"apiVersion":"v1","kind":"Status","status":"Success","code":200}),
+            )
+            .into_response());
+        }
+    }
     Ok((
         if expected.is_some() {
             StatusCode::OK
@@ -924,6 +935,59 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         Json(object(result)?),
     )
         .into_response())
+}
+fn namespace_deletion_requested(obj: &Value) -> bool {
+    obj["metadata"]["deletionTimestamp"]
+        .as_str()
+        .is_some_and(|s| !s.is_empty())
+}
+fn namespace_finalizers_pending(obj: &Value) -> bool {
+    obj["metadata"]["finalizers"]
+        .as_array()
+        .is_some_and(|a| a.iter().any(|v| v.as_str().is_some_and(|s| !s.is_empty())))
+}
+const NAMESPACE_FINALIZER: &str = "kubernetes";
+const PROTECTED_NAMESPACES: &[&str] = &["default", "kube-system", "kube-public", "kube-node-lease"];
+async fn delete_namespace(
+    api: &Api,
+    k: h3s_storage::StoreKey,
+    current: h3s_storage::StoredObject,
+    mut obj: Value,
+) -> Result<Response> {
+    let name = obj["metadata"]["name"].as_str().unwrap_or("");
+    if PROTECTED_NAMESPACES.contains(&name) {
+        return Err(Failure::new(
+            403,
+            "Forbidden",
+            "this namespace cannot be deleted",
+        ));
+    }
+    if namespace_deletion_requested(&obj) && !namespace_finalizers_pending(&obj) {
+        api.store.delete(&k, current.revision).await?;
+        return Ok(
+            Json(json!({"apiVersion":"v1","kind":"Status","status":"Success","code":200}))
+                .into_response(),
+        );
+    }
+    if namespace_deletion_requested(&obj) {
+        return Ok((StatusCode::OK, Json(obj)).into_response());
+    }
+    obj["metadata"]["deletionTimestamp"] = now().into();
+    obj["status"]["phase"] = "Terminating".into();
+    let mut finalizers: Vec<String> = obj["metadata"]["finalizers"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_str().filter(|s| !s.is_empty()).map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default();
+    if !finalizers.iter().any(|f| f == NAMESPACE_FINALIZER) {
+        finalizers.push(NAMESPACE_FINALIZER.into());
+    }
+    obj["metadata"]["finalizers"] = json!(finalizers);
+    let result = api.store.update(stored(k, &obj)?, current.revision).await?;
+    Ok((StatusCode::OK, Json(object(result)?)).into_response())
 }
 async fn bind(api: &Api, target: &Target, value: Value) -> Result<Response> {
     if value["kind"] != "Binding" || value["apiVersion"] != "v1" {

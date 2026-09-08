@@ -132,6 +132,11 @@ async fn controller_credentials_have_only_required_api_access() {
         "/api/v1/namespaces",
         "/api/v1/serviceaccounts?fieldSelector=metadata.name%3Ddefault",
         "/api/v1/configmaps?fieldSelector=metadata.name%3Dkube-root-ca.crt",
+        "/api/v1/secrets",
+        "/api/v1/pods",
+        "/api/v1/configmaps",
+        "/api/v1/serviceaccounts",
+        "/api/v1/services",
     ] {
         assert_eq!(
             s.json(client(), "GET", path, json!({})).await.0,
@@ -139,12 +144,23 @@ async fn controller_credentials_have_only_required_api_access() {
             "{path}"
         );
     }
+    for resource in [
+        "secrets",
+        "pods",
+        "configmaps",
+        "serviceaccounts",
+        "services",
+    ] {
+        let path = format!("/api/v1/namespaces/team-a/{resource}/gc-probe");
+        assert_eq!(
+            s.json(client(), "DELETE", &path, json!({})).await.0,
+            404,
+            "{path}"
+        );
+    }
     for path in [
-        "/api/v1/secrets",
-        "/api/v1/pods",
-        "/api/v1/configmaps",
-        "/api/v1/serviceaccounts",
         "/apis/rbac.authorization.k8s.io/v1/clusterroles",
+        "/api/v1/namespaces/team-a/secrets/gc-probe",
     ] {
         assert_eq!(
             s.json(client(), "GET", path, json!({})).await.0,
@@ -152,28 +168,6 @@ async fn controller_credentials_have_only_required_api_access() {
             "{path}"
         );
     }
-    assert_eq!(
-        s.json(
-            client(),
-            "DELETE",
-            "/api/v1/namespaces/team-a/serviceaccounts/default",
-            json!({})
-        )
-        .await
-        .0,
-        403
-    );
-    assert_eq!(
-        s.patch(
-            client(),
-            "/api/v1/namespaces/team-a",
-            "application/merge-patch+json",
-            json!({"metadata":{"labels":{"pod-security.kubernetes.io/enforce":"privileged"}}})
-        )
-        .await
-        .0,
-        403
-    );
     assert_eq!(
         s.json(
             client(),
