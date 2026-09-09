@@ -838,24 +838,33 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
     let k = key(format!("{prefix}{name}"))?;
     let mut old_value = None;
     let expected = if matches!(verb, "update" | "patch") {
-        let rv = value["metadata"]["resourceVersion"]
-            .as_str()
-            .ok_or_else(|| bad("update requires metadata.resourceVersion"))?
-            .parse::<u64>()
-            .map_err(|_| bad("invalid resourceVersion"))?;
-        let old = api
+        let old_stored = api
             .store
             .get(&k)
             .await?
             .ok_or_else(|| Failure::new(404, "NotFound", "object not found"))?;
-        if old.revision != rv {
-            return Err(Failure::new(
-                409,
-                "Conflict",
-                "resourceVersion precondition failed",
-            ));
-        }
-        let old = object(old)?;
+        // Kubernetes PUT/PATCH may omit resourceVersion for an unconditional
+        // write of the latest object. Helm's release driver relies on that.
+        let rv = match value["metadata"]["resourceVersion"]
+            .as_str()
+            .filter(|s| !s.is_empty())
+        {
+            Some(s) => {
+                let rv = s
+                    .parse::<u64>()
+                    .map_err(|_| bad("invalid resourceVersion"))?;
+                if old_stored.revision != rv {
+                    return Err(Failure::new(
+                        409,
+                        "Conflict",
+                        "resourceVersion precondition failed",
+                    ));
+                }
+                rv
+            }
+            None => old_stored.revision,
+        };
+        let old = object(old_stored)?;
         if value["metadata"]["uid"]
             .as_str()
             .is_some_and(|uid| Some(uid) != old["metadata"]["uid"].as_str())

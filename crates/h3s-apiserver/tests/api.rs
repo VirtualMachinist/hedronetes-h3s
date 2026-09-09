@@ -140,6 +140,43 @@ async fn durable_crud_conflicts_delete_preconditions_and_restart() {
     );
     assert_eq!(s.json(s.admin(), "GET", path, json!({})).await.0, 404);
 }
+
+#[tokio::test]
+async fn configmap_put_without_resource_version_updates_latest() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = Server::start(dir.path()).await;
+    s.namespace("team-a").await;
+    let created = s.configmap("release", "pending-install").await;
+    let path = "/api/v1/namespaces/team-a/configmaps/release";
+    let mut helm_update = json!({
+        "apiVersion":"v1",
+        "kind":"ConfigMap",
+        "metadata":{
+            "name":"release",
+            "namespace":"team-a",
+            "labels":{"owner":"helm","status":"deployed","name":"release","version":"1"}
+        },
+        "data":{"value":"deployed","release":"blob"}
+    });
+    let (code, updated) = s.json(s.admin(), "PUT", path, helm_update.clone()).await;
+    assert_eq!(code, 200, "{updated}");
+    assert_eq!(updated["metadata"]["uid"], created["metadata"]["uid"]);
+    assert_eq!(updated["metadata"]["labels"]["status"], "deployed");
+    assert_eq!(updated["data"]["value"], "deployed");
+    assert_ne!(
+        updated["metadata"]["resourceVersion"],
+        created["metadata"]["resourceVersion"]
+    );
+    helm_update["data"]["value"] = "upgraded".into();
+    helm_update["metadata"]["labels"]["status"] = "deployed".into();
+    helm_update["metadata"]["labels"]["version"] = "2".into();
+    let (code, upgraded) = s.json(s.admin(), "PUT", path, helm_update).await;
+    assert_eq!(code, 200, "{upgraded}");
+    assert_eq!(upgraded["data"]["value"], "upgraded");
+    assert_eq!(upgraded["metadata"]["labels"]["version"], "2");
+    let stale = created.clone();
+    assert_eq!(s.json(s.admin(), "PUT", path, stale).await.0, 409);
+}
 #[tokio::test]
 async fn paginated_list_keeps_snapshot_and_watch_replays_json_events() {
     let dir = tempfile::tempdir().unwrap();
