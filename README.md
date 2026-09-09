@@ -20,7 +20,7 @@ Hedronetes is the vehicle for your agent fleet. Whether you're running coding ag
 
 *This is a Kubernetes-compatible cluster distribution in one Rust binary.*
 
-> k3s, written in Rust, without embedding a Go control plane. Your 
+> k3s, written in Rust, without embedding a Go control plane.
 
 Status: **0.9.0** · License: Apache-2.0 · API target: Kubernetes **v1.34** · Platform: Linux amd64 / arm64
 
