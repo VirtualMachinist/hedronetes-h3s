@@ -568,22 +568,22 @@ checksum = "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34"
 
 [[package]]
 name = "enum-ordinalize"
-version = "4.3.2"
+version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a1091a7bb1f8f2c4b28f1fe2cef4980ca2d410a3d727d67ecc3178c9b0800f0"
+checksum = "89dd01549b09589510cf0647475075d12071456586d70f5c75c98ae2a5537677"
 dependencies = [
  "enum-ordinalize-derive",
 ]
 
 [[package]]
 name = "enum-ordinalize-derive"
-version = "4.3.2"
+version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ca9601fb2d62598ee17836250842873a413586e5d7ed88b356e38ddbb0ec631"
+checksum = "a65863d15a4ce2888bd2f0f543cc963d3879c3a022c8ee43f6141d479a3ac815"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "h3s"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "clap",
  "h3s-api",
@@ -889,7 +889,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-api"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "ipnet",
  "serde",
@@ -897,7 +897,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-apiserver"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "async-stream",
  "axum",
@@ -938,7 +938,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-auth"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "getrandom 0.4.3",
  "h3s-certs",
@@ -953,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-certs"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "base64 0.22.1",
  "fs2",
@@ -975,11 +975,11 @@ dependencies = [
 
 [[package]]
 name = "h3s-cni"
-version = "0.1.0-dev"
+version = "0.9.0"
 
 [[package]]
 name = "h3s-controllers"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "chrono",
  "futures-util",
@@ -996,7 +996,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-cri"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "hyper-util",
  "prost",
@@ -1015,11 +1015,11 @@ dependencies = [
 
 [[package]]
 name = "h3s-deploy"
-version = "0.1.0-dev"
+version = "0.9.0"
 
 [[package]]
 name = "h3s-kubelet"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -1048,11 +1048,11 @@ dependencies = [
 
 [[package]]
 name = "h3s-packaging"
-version = "0.1.0-dev"
+version = "0.9.0"
 
 [[package]]
 name = "h3s-proxy"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "h3s-api",
  "h3s-certs",
@@ -1067,7 +1067,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-scheduler"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "chrono",
  "h3s-api",
@@ -1080,7 +1080,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-storage"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-supervisor"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "bytes",
  "futures-util",
@@ -2342,11 +2342,11 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "reqwest"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "219c5811de6525e5416c7d5d53bb656d3afdbc6c5af816e0802bcfa42dbdc1c3"
+checksum = "16a1cfa75cc186dd73d5818e510e042e40927bccc9c236b061cea97e1eb08029"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "bytes",
  "futures-core",
  "http",
@@ -3616,18 +3616,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.56"
+version = "0.8.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "556764e583adb45a9f8d413c2a147fa7e8d821e48e12b14fd560b607998b75eb"
+checksum = "d35102a9f36d089ccae9e4c6802bc118be4487b80aaffc0ab4e0cf5ce92d2873"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.56"
+version = "0.8.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2ab42fc20575779bd240faa45f94a74256f755c0fa9e89f0ede20d91d0cdfc1"
+checksum = "146c01f5ab44258da43cf276c74a2763db2ff3969c9c652c3f2de07041d0b2bc"
 dependencies = [
  "proc-macro2",
  "quote",
