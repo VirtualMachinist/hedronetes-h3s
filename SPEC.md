@@ -2,7 +2,7 @@
 
 **A Kubernetes-compatible cluster distribution in one Rust binary.**
 
-Version 0.1.0-draft · 8 September 2026 · Apache-2.0
+Version 1.0.0 · M1 · 9 September 2026 · Apache-2.0
 
 Tagline: *k3s, written in Rust, without embedding a Go control plane.*
 
@@ -930,7 +930,7 @@ members = [
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/VirtualMachinist/hedronetes-h3s"
-version = "0.1.0-dev"
+version = "1.0.0"
 
 [workspace.dependencies]
 tokio = { version = "1", features = ["full"] }
