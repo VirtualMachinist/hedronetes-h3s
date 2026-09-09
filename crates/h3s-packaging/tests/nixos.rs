@@ -19,6 +19,24 @@ fn shipped_nixos_module_encodes_persistence_contract() {
         assert!(NIXOS_MODULE.contains(name), "missing worker unit {name}");
     }
     assert!(!NIXOS_MODULE.contains("builder"));
+    assert!(
+        NIXOS_MODULE.contains("h3s server"),
+        "module must encode h3s server ExecStart, not an empty unit stub"
+    );
+    assert!(
+        NIXOS_MODULE.contains("h3s agent"),
+        "module must encode h3s agent ExecStart"
+    );
+    assert!(NIXOS_MODULE.contains("--cluster-dns"));
+    assert!(NIXOS_MODULE.contains("--container-runtime-endpoint"));
+    assert!(
+        NIXOS_MODULE.contains("/bin/containerd"),
+        "module must start project containerd"
+    );
+    assert!(
+        NIXOS_MODULE.contains("/bin/flannel"),
+        "module must start patched flannel"
+    );
 }
 
 #[test]
