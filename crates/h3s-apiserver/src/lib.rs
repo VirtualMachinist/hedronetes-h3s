@@ -496,7 +496,9 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
         ) {
             return Err(Failure::new(403, "Forbidden", "OpenAPI access denied"));
         }
-        return Ok(openapi::v2());
+        return Ok(openapi::v2(
+            request.headers().get(axum::http::header::ACCEPT),
+        ));
     }
     let target = Target::parse(&path).ok_or_else(|| {
         Failure::new(
