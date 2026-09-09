@@ -175,7 +175,11 @@ pub fn validate(p: &Value, node: &str) -> Result<()> {
         let uid = sc["runAsUser"]
             .as_i64()
             .or(s["securityContext"]["runAsUser"].as_i64());
+        let gid = sc["runAsGroup"]
+            .as_i64()
+            .or(s["securityContext"]["runAsGroup"].as_i64());
         if !uid.is_some_and(|u| u > 0 && u <= u32::MAX as i64)
+            || gid.is_some_and(|g| g <= 0 || g > u32::MAX as i64)
             || sc["allowPrivilegeEscalation"] != false
         {
             return Err(invalid(
@@ -341,10 +345,15 @@ pub fn security(p: &Value, c: &Value) -> LinuxContainerSecurityContext {
                 .or(ps["runAsUser"].as_i64())
                 .expect("validated UID"),
         }),
-        run_as_group: sc["runAsGroup"]
-            .as_i64()
-            .or(ps["runAsGroup"].as_i64())
-            .map(|value| Int64Value { value }),
+        // youki/CRI treat a missing GID as 0; that fails OCI create for a non-root UID.
+        run_as_group: Some(Int64Value {
+            value: sc["runAsGroup"]
+                .as_i64()
+                .or(ps["runAsGroup"].as_i64())
+                .or(sc["runAsUser"].as_i64())
+                .or(ps["runAsUser"].as_i64())
+                .expect("validated UID"),
+        }),
         masked_paths: masked_paths(),
         readonly_paths: [
             "/proc/bus",
@@ -420,14 +429,17 @@ mod tests {
     fn validates_assignment_and_rejects_unimplemented_security_semantics() {
         let p = fixture();
         validate(&p, "worker").unwrap();
-        let security = security(&p, &p["spec"]["containers"][0]);
-        assert!(security.masked_paths.contains(&"/proc/kcore".into()));
-        assert!(security.readonly_paths.contains(&"/proc/sys".into()));
+        let ctx = security(&p, &p["spec"]["containers"][0]);
+        assert_eq!(ctx.run_as_user.as_ref().map(|v| v.value), Some(65534));
+        assert_eq!(ctx.run_as_group.as_ref().map(|v| v.value), Some(65534));
+        assert!(ctx.masked_paths.contains(&"/proc/kcore".into()));
+        assert!(ctx.readonly_paths.contains(&"/proc/sys".into()));
         assert!(validate(&p, "foreign").is_err());
         for (pointer, value) in [
             ("/spec/hostNetwork", json!(true)),
             ("/spec/containers/0/securityContext/privileged", json!(true)),
             ("/spec/containers/0/securityContext/runAsUser", json!(0)),
+            ("/spec/containers/0/securityContext/runAsGroup", json!(0)),
             (
                 "/spec/containers/0/securityContext/allowPrivilegeEscalation",
                 json!(true),
@@ -462,6 +474,15 @@ mod tests {
         }
         assert!(!owned(&labels("other", "uid"), "worker"));
         assert!(!owned(&labels("worker", ".."), "worker"));
+        let mut grouped = p.clone();
+        grouped["spec"]["containers"][0]["securityContext"]["runAsGroup"] = json!(1000);
+        assert_eq!(
+            super::security(&grouped, &grouped["spec"]["containers"][0])
+                .run_as_group
+                .as_ref()
+                .map(|v| v.value),
+            Some(1000)
+        );
     }
     #[test]
     fn quantities_preserve_cpu_and_memory_limits_without_float_rounding() {
