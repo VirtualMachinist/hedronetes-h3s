@@ -843,8 +843,9 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
             .get(&k)
             .await?
             .ok_or_else(|| Failure::new(404, "NotFound", "object not found"))?;
-        // Kubernetes PUT/PATCH may omit resourceVersion for an unconditional
-        // write of the latest object. Helm's release driver relies on that.
+        // Kubernetes ConfigMap and Secret strategies allow unconditional
+        // updates. Helm's release drivers rebuild these objects without a
+        // resourceVersion when recording a new release state.
         let rv = match value["metadata"]["resourceVersion"]
             .as_str()
             .filter(|s| !s.is_empty())
@@ -862,7 +863,8 @@ async fn dispatch(api: Arc<Api>, peer: Peer, request: Request<Body>) -> Result<R
                 }
                 rv
             }
-            None => old_stored.revision,
+            None if matches!(target.resource.kind, "ConfigMap" | "Secret") => old_stored.revision,
+            None => return Err(bad("update requires metadata.resourceVersion")),
         };
         let old = object(old_stored)?;
         if value["metadata"]["uid"]
