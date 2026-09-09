@@ -37,12 +37,18 @@ pub fn required_unit_names(role: &str) -> &'static [&'static str] {
     }
 }
 
-/// True when the shipped NixOS module encodes the bbe7c56 persistence contract.
+/// True when the shipped NixOS module encodes the persistence contract,
+/// including real ExecStart for server/agent rather than empty unit stubs.
 pub fn nixos_module_encodes_persistence() -> bool {
     NIXOS_MODULE.contains(DHCP_DENY_INTERFACES)
         && NIXOS_MODULE.contains(BRIDGE_MODULE)
         && NIXOS_MODULE.contains(BRIDGE_SYSCTL)
         && NIXOS_MODULE.contains("hedronetes.h3s")
+        && NIXOS_MODULE.contains("h3s server")
+        && NIXOS_MODULE.contains("h3s agent")
+        && NIXOS_MODULE.contains("ExecStart")
+        && NIXOS_MODULE.contains("--cluster-dns")
+        && NIXOS_MODULE.contains("--container-runtime-endpoint")
         && required_unit_names("server")
             .iter()
             .all(|name| NIXOS_MODULE.contains(name))
