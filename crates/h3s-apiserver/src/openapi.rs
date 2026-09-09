@@ -19,11 +19,12 @@ const PROTOBUF_MEDIA_TYPE: &str = "application/com.github.proto-openapi.spec.v2.
 fn protobuf_content_type(accept: &str) -> Option<&'static str> {
     accept.split(',').find_map(|part| {
         let value = part.split(';').next().unwrap_or("").trim();
-        if value == PROTOBUF_DEPRECATED {
-            Some(PROTOBUF_DEPRECATED)
-        } else if value == PROTOBUF_MEDIA_TYPE
+        if value == PROTOBUF_DEPRECATED
+            || value == PROTOBUF_MEDIA_TYPE
             || (value.contains("proto-openapi.spec.v2") && value.contains("protobuf"))
         {
+            // Never echo the deprecated `@v1.0` Accept as Content-Type;
+            // Go's mime parser rejects `@` ("unexpected content after media subtype").
             Some(PROTOBUF_MEDIA_TYPE)
         } else {
             None
