@@ -2,7 +2,7 @@
 use axum::{
     body::Body,
     http::{
-        header::{ACCEPT, CONTENT_TYPE, VARY},
+        header::{CONTENT_TYPE, VARY},
         HeaderValue, StatusCode,
     },
     response::{IntoResponse, Response},
@@ -16,16 +16,31 @@ gMyLjASDgoDaDNzEgd2MS4zNC4wQgBK0AoK3AIKHGlvLms4cy5hcGkuY29yZS52MS5Db25maWdNYXASu
 const PROTOBUF_DEPRECATED: &str = "application/com.github.proto-openapi.spec.v2@v1.0+protobuf";
 const PROTOBUF_MEDIA_TYPE: &str = "application/com.github.proto-openapi.spec.v2.v1.0+protobuf";
 
+fn protobuf_content_type(accept: &str) -> Option<&'static str> {
+    accept.split(',').find_map(|part| {
+        let value = part.split(';').next().unwrap_or("").trim();
+        if value == PROTOBUF_DEPRECATED {
+            Some(PROTOBUF_DEPRECATED)
+        } else if value == PROTOBUF_MEDIA_TYPE
+            || (value.contains("proto-openapi.spec.v2") && value.contains("protobuf"))
+        {
+            Some(PROTOBUF_MEDIA_TYPE)
+        } else {
+            None
+        }
+    })
+}
+
 pub fn v2(accept: Option<&HeaderValue>) -> Response {
     let accept = accept
         .and_then(|value| value.to_str().ok())
         .unwrap_or("*/*");
-    if accept.contains(PROTOBUF_DEPRECATED) || accept.contains(PROTOBUF_MEDIA_TYPE) {
+    if let Some(content_type) = protobuf_content_type(accept) {
         let body = STANDARD
             .decode(PROTOBUF)
             .expect("embedded OpenAPI protobuf must be valid base64");
         return (
-            [(CONTENT_TYPE, PROTOBUF_MEDIA_TYPE), (VARY, ACCEPT.as_str())],
+            [(CONTENT_TYPE, content_type), (VARY, "Accept")],
             Body::from(body),
         )
             .into_response();

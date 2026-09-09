@@ -49,9 +49,15 @@ async fn openapi_v2_serves_the_protobuf_stock_helm_requests() {
     assert_eq!(response.status(), 200);
     assert_eq!(
         response.headers()["content-type"],
-        "application/com.github.proto-openapi.spec.v2.v1.0+protobuf"
+        "application/com.github.proto-openapi.spec.v2@v1.0+protobuf"
     );
-    assert_eq!(response.headers()["vary"], "Accept");
+    assert_eq!(
+        response.headers()["vary"]
+            .to_str()
+            .unwrap()
+            .to_ascii_lowercase(),
+        "accept"
+    );
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let document = OpenApiDocument::decode(body).unwrap();
     assert_eq!(document.swagger, "2.0");
