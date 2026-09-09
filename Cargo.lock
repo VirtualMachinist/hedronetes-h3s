@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "h3s"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "clap",
  "h3s-api",
@@ -889,7 +889,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-api"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "ipnet",
  "serde",
@@ -897,7 +897,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-apiserver"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "async-stream",
  "axum",
@@ -938,7 +938,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-auth"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "getrandom 0.4.3",
  "h3s-certs",
@@ -953,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-certs"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "base64 0.22.1",
  "fs2",
@@ -975,11 +975,11 @@ dependencies = [
 
 [[package]]
 name = "h3s-cni"
-version = "0.1.0-dev"
+version = "0.9.0"
 
 [[package]]
 name = "h3s-controllers"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "chrono",
  "futures-util",
@@ -996,7 +996,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-cri"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "hyper-util",
  "prost",
@@ -1015,11 +1015,11 @@ dependencies = [
 
 [[package]]
 name = "h3s-deploy"
-version = "0.1.0-dev"
+version = "0.9.0"
 
 [[package]]
 name = "h3s-kubelet"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -1048,11 +1048,11 @@ dependencies = [
 
 [[package]]
 name = "h3s-packaging"
-version = "0.1.0-dev"
+version = "0.9.0"
 
 [[package]]
 name = "h3s-proxy"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "h3s-api",
  "h3s-certs",
@@ -1067,7 +1067,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-scheduler"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "chrono",
  "h3s-api",
@@ -1080,7 +1080,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-storage"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "h3s-supervisor"
-version = "0.1.0-dev"
+version = "0.9.0"
 dependencies = [
  "bytes",
  "futures-util",

@@ -6,7 +6,8 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-C9A227?style=flat&colorA=111111" alt="Apache-2.0" /></a>
-  <a href="https://github.com/VirtualMachinist/hedronetes-h3s/releases/tag/v0.1.0"><img src="https://img.shields.io/badge/Release-v0.1.0-C9A227?style=flat&colorA=111111" alt="Release v0.1.0" /></a>
+  <a href="https://github.com/VirtualMachinist/hedronetes-h3s/releases/tag/v0.9.0"><img src="https://img.shields.io/badge/Release-v0.9.0-C9A227?style=flat&colorA=111111" alt="Release v0.9.0" /></a>
+  <a href="https://github.com/VirtualMachinist/hedronetes-h3s/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/VirtualMachinist/hedronetes-h3s/ci.yml?style=flat&label=CI&colorA=111111&color=C9A227" alt="CI" /></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-0042DB?style=flat&colorA=111111&logo=rust&logoColor=C9A227" alt="Rust" /></a>
 </p>
 
@@ -14,13 +15,13 @@
 
 > k3s, written in Rust, without embedding a Go control plane.
 
-Status: **0.1.0-draft** · License: Apache-2.0 · API target: Kubernetes **v1.34** · Platform: Linux amd64 / arm64
+Status: **0.9.0 · M1** · License: Apache-2.0 · API target: Kubernetes **v1.34** · Platform: Linux amd64 / arm64
 
 Repo: [VirtualMachinist/hedronetes-h3s](https://github.com/VirtualMachinist/hedronetes-h3s)
 
 ## What this is
 
-Hedronetes copies k3s’s *product* shape — one binary, `server` / `agent`, SQLite by default, HA when you need it, stock `kubectl` and Helm — and reimplements the control plane as native Rust (Tokio), with a typed kubelet FSM, a pluggable store, **youki** as the default OCI runtime, and **nftables**-first kube-proxy.
+Hedronetes copies k3s’s *product* shape — one binary, `server` / `agent`, SQLite by default, HA when you need it (M2), stock `kubectl` and Helm — and reimplements the control plane as native Rust (Tokio), with a typed kubelet FSM, a pluggable store, **youki** as the default OCI runtime, and **nftables**-first kube-proxy.
 
 It does **not** embed upstream Go Kubernetes.
 
@@ -28,7 +29,7 @@ It does **not** embed upstream Go Kubernetes.
 
 - Full product specification: [`SPEC.md`](./SPEC.md). The spec covers adjacent agentic planes (cluster / retrieve / record) as a product constraint, not a shipped feature.
 
-## Binary (M1 API foundation)
+## Binary
 
 ```text
 h3s server   # control plane + datastore + supervisor (+ embedded agent)
@@ -43,11 +44,13 @@ cargo run -p h3s -- agent --help
 
 ## Status
 
-M1 implementation is underway. The SQLite registry provides durable CRUD/CAS, revisioned snapshot pagination, replayable watch streams, compaction, and leases. Contract tests cover concurrent writers, reopen, slow watches, and invalid/foreign databases. Cluster PKI now persists a private CA/serving/admin bundle and validates TLS identities. RBAC evaluates Kubernetes v1.34 roles and bindings. The server now wires these libraries into an authenticated API. See [the security foundation](docs/security-foundation.md) and [the executable API checkpoint](docs/api-foundation.md).
+**v0.9.0 is the first release that actually runs a cluster.** v0.1.0 was the P0 scaffold (`h3s --help`). M1 is done. **v1.0.0 ships with M2** (HA and Kubernetes conformance).
 
-`h3s server --disable-agent` now serves core workload, apps, EndpointSlice, Lease, and RBAC resources over TLS with durable state, status boundaries, and Pod binding. The [native worker agent](docs/worker-bootstrap.md) now enrolls through a trusted CA/token/CSR exchange, registers a scoped Node and renews its Lease. It reports NotReady: the [supervisor tunnel](docs/supervisor-tunnel.md) carries authorized health/readiness requests to the worker's actual loopback TLS API. Workload runtime, workload controllers and cluster networking remain incomplete. This API checkpoint does not demonstrate a functioning workload cluster. The [native CRI client and runtime tooling](docs/cri-runtime.md) are now implemented for direct containerd/youki integration; kubelet Pod reconciliation remains unfinished.
+A two-node h3s cluster — native `server` + separate `agent` — runs workloads with stock `kubectl` and Helm. Proven on NixOS (full six-component integration) and as a portable Linux install on Debian 13 and Fedora 43 (no Nix at runtime). Overlay is Flannel VXLAN; ClusterIP traffic is native nftables; ClusterFirst DNS is CoreDNS. Runtime is containerd + youki.
 
-For the pinned ARM64 NixOS development shell and Tower guest definitions, see [integration/tower](integration/tower/README.md) and [the toolchain notes](integration/tower/TOOLCHAIN.md). NixOS is the full M1 integration target; Debian and Fedora will exercise the portable Linux path. Full HA and Kubernetes conformance remain later milestones.
+It is **not** a certified Kubernetes distribution and **not** HA. The API target remains Kubernetes **v1.34** for the documented subset.
+
+See [security](docs/security-foundation.md), [API](docs/api-foundation.md), [worker bootstrap](docs/worker-bootstrap.md), [service networking](docs/service-networking.md), [CRI](docs/cri-runtime.md), and [Tower integration](integration/tower/README.md).
 
 ## License
 
