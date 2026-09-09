@@ -51,7 +51,7 @@ cargo run -p h3s -- agent --help
 
 **v0.9.0 is the first release that actually runs a cluster.** This product works, and further stress testing is needed before this is recommended for professional environments despite this being used internally at Hedronite. **Durable high availability with Kubernetes conformance ships with v1.0.0**
 
-A 3-node h3s cluster — native `server` + separate `agent` — runs workloads with stock `kubectl` and Helm. Proven on colima VMs running a mix of NixOS, Debian and Fedora. 
+A multi-node h3s cluster — native `server` + separate `agent` — runs workloads with stock `kubectl` and Helm. Proven on colima VMs running a mix of NixOS, Debian and Fedora. 
 
 
 ## License
