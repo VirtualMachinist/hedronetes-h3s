@@ -4,6 +4,7 @@
 set -euo pipefail
 [[ $(id -u) == 0 ]]
 H3S_ROOT="${H3S_ROOT:-/var/lib/hedronetes}"
+H3S_RUN="${H3S_RUN:-/run/hedronetes}"
 [[ -d "$H3S_ROOT" ]]
 [[ -e /etc/NIXOS ]]
 runtime_tools=${1:?pass the built project runtime-tools store path}
@@ -23,35 +24,36 @@ done
 "$runtime_tools/bin/youki" features | "$runtime_tools/bin/jq" -e '.linux.cgroup.v2 == true and .linux.cgroup.systemd == true'
 "$runtime_tools/bin/youki" --version | "$runtime_tools/bin/jq" -R -s -e 'test("(?m)^libseccomp: [0-9]+[.][0-9]+[.][0-9]+$")'
 # Replacing CNI under live sandboxes would strand their cleanup state.
-if [[ -S /run/hedronetes-m1/containerd/containerd.sock ]]; then
-  [[ -z $("$runtime_tools/bin/ctr" --address /run/hedronetes-m1/containerd/containerd.sock --namespace k8s.io tasks list --quiet) ]]
-  [[ -z $("$runtime_tools/bin/ctr" --address /run/hedronetes-m1/containerd/containerd.sock --namespace k8s.io containers list --quiet) ]]
+runtime_socket="$H3S_RUN/containerd/containerd.sock"
+if [[ -S "$runtime_socket" ]]; then
+  [[ -z $("$runtime_tools/bin/ctr" --address "$runtime_socket" --namespace k8s.io tasks list --quiet) ]]
+  [[ -z $("$runtime_tools/bin/ctr" --address "$runtime_socket" --namespace k8s.io containers list --quiet) ]]
 fi
 install -d -m 0700 "$backup_dir"
-for previous in /var/lib/hedronetes-m1/containerd/config.toml /var/lib/hedronetes-m1/cni/net.d/10-h3s-runtime.conflist /run/systemd/system/h3s-containerd-runtime.service; do
+for previous in "$H3S_ROOT/containerd/config.toml" "$H3S_ROOT/cni/net.d/10-h3s-runtime.conflist" /run/systemd/system/h3s-containerd-runtime.service; do
   if [[ -e "$previous" ]]; then
     cp -p "$previous" "$backup_dir/$(basename "$previous")"
   fi
 done
-install -d -m 0700 /var/lib/hedronetes-m1/cni/flannel /var/lib/hedronetes-m1/containerd /var/lib/hedronetes-m1/cni/net.d /var/lib/hedronetes-m1/cni/ipam
+install -d -m 0700 "$H3S_ROOT/cni/flannel" "$H3S_ROOT/containerd" "$H3S_ROOT/cni/net.d" "$H3S_ROOT/cni/ipam"
 umask 077
-cat > /var/lib/hedronetes-m1/containerd/config.toml <<EOF
+cat > "$H3S_ROOT/containerd/config.toml" <<EOF
 version = 4
-root = "/var/lib/hedronetes-m1/containerd/root"
-state = "/run/hedronetes-m1/containerd/state"
+root = "$H3S_ROOT/containerd/root"
+state = "$H3S_RUN/containerd/state"
 imports = []
 [plugins."io.containerd.server.v1.grpc"]
-  address = "/run/hedronetes-m1/containerd/containerd.sock"
+  address = "$H3S_RUN/containerd/containerd.sock"
   uid = 0
   gid = 0
 [plugins."io.containerd.server.v1.ttrpc"]
-  address = "/run/hedronetes-m1/containerd/containerd.sock.ttrpc"
+  address = "$H3S_RUN/containerd/containerd.sock.ttrpc"
   uid = 0
   gid = 0
 [plugins."io.containerd.server.v1.grpc-tcp"]
   address = ""
 [plugins."io.containerd.internal.v1.opt"]
-  path = "/var/lib/hedronetes-m1/containerd/opt"
+  path = "$H3S_ROOT/containerd/opt"
 [plugins."io.containerd.nri.v1.nri"]
   disable = true
 [plugins."io.containerd.grpc.v1.cri"]
@@ -73,23 +75,23 @@ imports = []
       [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.youki.options]
         BinaryName = "$runtime_tools/bin/youki"
         SystemdCgroup = true
-        Root = "/run/hedronetes-m1/youki"
+        Root = "$H3S_RUN/youki"
   [plugins."io.containerd.cri.v1.runtime".cni]
     bin_dirs = ["$flannel_cni/bin", "$runtime_tools/share/hedronetes/cni-bin"]
-    conf_dir = "/var/lib/hedronetes-m1/cni/net.d"
+    conf_dir = "$H3S_ROOT/cni/net.d"
     max_conf_num = 1
 EOF
-cat > /var/lib/hedronetes-m1/cni/net.d/10-h3s-runtime.conflist <<'EOF'
+cat > "$H3S_ROOT/cni/net.d/10-h3s-runtime.conflist" <<EOF
 {
   "cniVersion": "1.1.0",
   "name": "h3s-runtime",
   "plugins": [{
     "type": "flannel",
-    "subnetFile": "/run/hedronetes-m1/flannel/subnet.env",
-    "dataDir": "/var/lib/hedronetes-m1/cni/flannel",
+    "subnetFile": "$H3S_RUN/flannel/subnet.env",
+    "dataDir": "$H3S_ROOT/cni/flannel",
     "ipam": {
       "type": "host-local",
-      "dataDir": "/var/lib/hedronetes-m1/cni/ipam",
+      "dataDir": "$H3S_ROOT/cni/ipam",
       "routes": [{"dst": "0.0.0.0/0"}]
     },
     "delegate": {
@@ -109,17 +111,17 @@ if "$runtime_tools/bin/ip" link show h3s-test0 >/dev/null 2>&1; then
 fi
 cat > /run/systemd/system/h3s-containerd-runtime.service <<EOF
 [Unit]
-Description=Hedronetes M1 project containerd with youki
+Description=Hedronetes project containerd with youki
 After=network.target
 [Service]
 Type=simple
-ExecStart=$runtime_tools/bin/containerd --config /var/lib/hedronetes-m1/containerd/config.toml
+ExecStart=$runtime_tools/bin/containerd --config $H3S_ROOT/containerd/config.toml
 Environment=PATH=$runtime_tools/bin:/run/current-system/sw/bin
 Restart=on-failure
 RestartSec=2
 Delegate=yes
 KillMode=process
-RuntimeDirectory=hedronetes-m1/containerd
+RuntimeDirectory=hedronetes/containerd
 RuntimeDirectoryMode=0700
 RuntimeDirectoryPreserve=yes
 LimitNOFILE=1048576
@@ -130,7 +132,6 @@ systemctl restart h3s-containerd-runtime.service
 systemctl is-active h3s-containerd-runtime.service
 # A running daemon can still ignore an obsolete socket setting. Require the
 # configured private socket and a successful RPC before reporting provisioned.
-runtime_socket=/run/hedronetes-m1/containerd/containerd.sock
 for ((runtime_attempt=0; runtime_attempt<30; runtime_attempt++)); do
   if [[ -S "$runtime_socket" ]] && "$runtime_tools/bin/ctr" --address "$runtime_socket" --timeout 1s version; then
     [[ $(stat -c '%u:%g' "$runtime_socket") == 0:0 ]]

@@ -10,7 +10,7 @@ h3s server --data-dir /var/lib/hedronetes \
   --write-kubeconfig /etc/hedronetes/h3s.yaml \
   --tls-san 192.168.104.1 \
   --node-name hedronetes-server --node-ip 192.168.104.1 \
-  --container-runtime-endpoint unix:///run/hedronetes-m1/containerd/containerd.sock
+  --container-runtime-endpoint unix:///run/hedronetes/containerd/containerd.sock
 ```
 
 The local agent enrolls concurrently with API serving. It consumes the public

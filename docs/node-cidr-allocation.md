@@ -57,7 +57,7 @@ metadata. Status strategy restores the stored spec; agent heartbeats preserve
 network conditions. Topology read access does not grant Secret or allocation
 ledger access.
 
-## Migrating the existing Tower fixture
+## Migrating the existing tower lab fixture
 
 The initial worker runtime uses a local bridge configured for `10.42.2.0/24`.
 Before installing this server version, inspect the actual CNI configuration and
