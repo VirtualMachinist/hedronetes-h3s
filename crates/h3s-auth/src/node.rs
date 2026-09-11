@@ -26,7 +26,7 @@ pub fn node_allows(
             "list" | "watch" => selected_node == Some(node) || related,
             // Admission checks assignment. Mirror creation remains explicitly
             // unsupported by the M1 API, even if an RBAC role grants create.
-            "delete" => true,
+            "delete" => related,
             _ => false,
         },
         ("", "configmaps" | "secrets", None) => read && related,

@@ -208,9 +208,8 @@ impl Write<'_> {
             return Ok((None, None));
         }
         let old_stored = fetch(self.api, k, "object not found").await?;
-        // Kubernetes ConfigMap and Secret strategies allow unconditional
-        // updates. Helm's release drivers rebuild these objects without a
-        // resourceVersion when recording a new release state.
+        // Only Helm-owned ConfigMaps and Secrets accept unconditional PUT.
+        // Other writes must carry the revision they observed.
         let rv = match value["metadata"]["resourceVersion"]
             .as_str()
             .filter(|s| !s.is_empty())
@@ -228,7 +227,10 @@ impl Write<'_> {
                 }
                 rv
             }
-            None if matches!(self.target.resource.kind, "ConfigMap" | "Secret") => {
+            None
+                if matches!(self.target.resource.kind, "ConfigMap" | "Secret")
+                    && strategy::helm_owned(value, self.target.resource.kind) =>
+            {
                 old_stored.revision
             }
             None => return Err(bad("update requires metadata.resourceVersion")),

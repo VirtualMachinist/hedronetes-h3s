@@ -1,3 +1,4 @@
+// ST-09: replace cpu: bool with apimachinery Quantity + as_milli_cpu()/as_bytes().
 /// Exact fixed-point quantity conversion; round fractional units up like Kubernetes.
 pub fn quantity(s: &str, cpu: bool) -> Option<i64> {
     let split = s

@@ -19,6 +19,27 @@ fn one_of(value: &Value, choices: &[&str], field: &str) -> Result<()> {
     }
     Ok(())
 }
+
+/// Helm release drivers rebuild ConfigMaps and Secrets without resourceVersion.
+pub(crate) fn helm_owned(value: &Value, kind: &str) -> bool {
+    if kind == "Secret"
+        && value.get("type").and_then(Value::as_str) == Some("helm.sh/release.v1")
+    {
+        return true;
+    }
+    if value["metadata"]["labels"]["owner"].as_str() == Some("helm") {
+        return true;
+    }
+    if kind == "Secret" {
+        if let Some(name) = value["metadata"]["name"].as_str() {
+            if name.starts_with("sh.helm.release.v1.") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 /// Copy `key` from `from`, leaving it absent rather than null when unset so
 /// the once-normalized object stays canonical without another round-trip.
 fn copy(value: &mut Value, key: &str, from: &Value) {

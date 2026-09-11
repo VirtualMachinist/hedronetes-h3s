@@ -89,20 +89,31 @@ pub(crate) async fn resource(
         .rbac()
         .await?
         .allows(user, &AuthRequest::Resource(attrs.clone()));
-    let node_allowed = !rbac_allowed
-        && match user.node_name() {
-            Some(node) => {
-                let related = nodes::related(api, node, target, attrs.name).await?;
-                h3s_auth::node_allows(
-                    user,
-                    &attrs,
-                    selection.exact_field("spec.nodeName"),
-                    related,
-                )
-            }
-            None => false,
-        };
-    if !rbac_allowed && !node_allowed {
+    let node_allowed = if let Some(node) = user.node_name() {
+        let related = nodes::related(api, node, target, attrs.name).await?;
+        h3s_auth::node_allows(
+            user,
+            &attrs,
+            selection.exact_field("spec.nodeName"),
+            related,
+        )
+    } else {
+        false
+    };
+    let node_constrained = user.node_name().is_some()
+        && matches!(target.resource.kind, "Pod" | "Secret" | "ConfigMap");
+    if node_constrained {
+        if !node_allowed {
+            return Err(Failure::new(
+                403,
+                "Forbidden",
+                format!(
+                    "user {} cannot {verb} {}",
+                    user.name, target.resource.plural
+                ),
+            ));
+        }
+    } else if !rbac_allowed && !node_allowed {
         return Err(Failure::new(
             403,
             "Forbidden",

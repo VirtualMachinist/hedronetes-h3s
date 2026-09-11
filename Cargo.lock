@@ -893,6 +893,7 @@ version = "0.9.0"
 dependencies = [
  "ipnet",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

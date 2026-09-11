@@ -218,6 +218,24 @@ async fn helm_release_put_without_resource_version_updates_latest() {
         created["metadata"]["resourceVersion"]
     );
 
+    let plain_path = "/api/v1/namespaces/team-a/configmaps/plain";
+    s.configmap("plain", "one").await;
+    let (code, error) = s
+        .json(
+            s.admin(),
+            "PUT",
+            plain_path,
+            json!({
+                "apiVersion":"v1",
+                "kind":"ConfigMap",
+                "metadata":{"name":"plain","namespace":"team-a"},
+                "data":{"value":"two"}
+            }),
+        )
+        .await;
+    assert_eq!(code, 400, "{error}");
+    assert_eq!(error["message"], "update requires metadata.resourceVersion");
+
     let account_path = "/api/v1/namespaces/team-a/serviceaccounts/default";
     let account_update = json!({
         "apiVersion":"v1",

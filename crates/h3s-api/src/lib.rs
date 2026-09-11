@@ -44,5 +44,6 @@ pub struct ServingResponse {
 pub const KUBELET_CLIENT_ID: &str = "system:h3s:kubelet-client";
 
 pub mod quantity;
+pub mod service_forwarding;
 
 pub mod network;
