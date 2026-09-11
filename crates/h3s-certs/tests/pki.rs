@@ -217,22 +217,60 @@ fn symlinks_are_rejected_and_kubeconfig_embeds_verified_material() {
     assert!(cluster.issue_client("", None).is_err());
 }
 
+fn verify_hostname_in_san(certificate: &str, hostname: &str) -> bool {
+    use rustls::pki_types::{pem::PemObject, CertificateDer};
+    use x509_parser::extensions::GeneralName;
+    use x509_parser::prelude::{FromDer, X509Certificate};
+    let Ok(der) = CertificateDer::from_pem_slice(certificate.as_bytes()) else {
+        return false;
+    };
+    let Ok((_, cert)) = X509Certificate::from_der(der.as_ref()) else {
+        return false;
+    };
+    cert.subject_alternative_name()
+        .ok()
+        .flatten()
+        .is_some_and(|san| {
+            san.value
+                .general_names
+                .iter()
+                .any(|name| matches!(name, GeneralName::DNSName(d) if *d == hostname))
+        })
+}
+
+fn verify_has_authority_key_identifier(certificate: &str) -> bool {
+    use rustls::pki_types::{pem::PemObject, CertificateDer};
+    use x509_parser::extensions::ParsedExtension;
+    use x509_parser::prelude::{FromDer, X509Certificate};
+    let Ok(der) = CertificateDer::from_pem_slice(certificate.as_bytes()) else {
+        return false;
+    };
+    let Ok((_, cert)) = X509Certificate::from_der(der.as_ref()) else {
+        return false;
+    };
+    cert.extensions().iter().any(|e| {
+        matches!(
+            e.parsed_extension(),
+            ParsedExtension::AuthorityKeyIdentifier(_)
+        )
+    })
+}
+
 fn strict_verify(root: &std::path::Path, ca: &str, certificate: &str, purpose: &str) -> bool {
     fs::write(root.join("verify-ca.pem"), ca).unwrap();
     fs::write(root.join("verify-leaf.pem"), certificate).unwrap();
-    let mut command = std::process::Command::new("openssl");
-    command
+    let output = std::process::Command::new("openssl")
         .args(["verify", "-x509_strict", "-purpose", purpose, "-CAfile"])
-        .arg(root.join("verify-ca.pem"));
-    if purpose == "sslserver" {
-        command.args(["-verify_hostname", "localhost"]);
-    }
-    command
+        .arg(root.join("verify-ca.pem"))
         .arg(root.join("verify-leaf.pem"))
         .output()
-        .expect("OpenSSL is required for the independent strict X.509 regression")
-        .status
-        .success()
+        .expect("OpenSSL is required for the independent strict X.509 regression");
+    if !output.status.success() {
+        return false;
+    }
+    purpose != "sslserver"
+        || (verify_hostname_in_san(certificate, "localhost")
+            && verify_has_authority_key_identifier(certificate))
 }
 
 #[test]
