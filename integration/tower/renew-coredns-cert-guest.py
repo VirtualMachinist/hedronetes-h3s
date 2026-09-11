@@ -2,7 +2,7 @@
 """Replace the three-day CoreDNS client cert with a 365-day leaf. Guest-local only."""
 import base64, datetime, json, os, pathlib, subprocess, tempfile, uuid
 
-ROOT = pathlib.Path("/home/abdul-qadir.guest/hedronetes-m1")
+ROOT = pathlib.Path(os.environ.get("H3S_ROOT", "/var/lib/hedronetes"))
 NS, NAME = "kube-system", "h3s-coredns-m1"
 KUBE = [str(ROOT / "bin/kubectl"), "--kubeconfig", str(ROOT / "runtime/server/admin.kubeconfig")]
 os.umask(0o077)

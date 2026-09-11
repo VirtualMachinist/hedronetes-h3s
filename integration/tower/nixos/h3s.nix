@@ -24,7 +24,7 @@ in
     };
     runtimeRoot = lib.mkOption {
       type = lib.types.path;
-      default = "/home/abdul-qadir.guest/hedronetes-m1";
+      default = "/var/lib/hedronetes";
       description = "Guest project root; credentials stay here, never in the Nix store.";
     };
     package = lib.mkOption {

@@ -3,13 +3,14 @@
 # Caller must stop scheduling/agents and verify the API has no live workloads.
 set -euo pipefail
 [[ $(id -u) == 0 ]]
-[[ -d /home/abdul-qadir.guest/hedronetes-m1 ]]
+H3S_ROOT="${H3S_ROOT:-/var/lib/hedronetes}"
+[[ -d "$H3S_ROOT" ]]
 [[ -e /etc/NIXOS ]]
 runtime_tools=${1:?pass the built project runtime-tools store path}
 flannel_cni=${2:?pass the built project Flannel CNI store path}
 backup_dir=${3:?pass a new private project backup directory}
 case "$flannel_cni" in /nix/store/*-hedronetes-flannel-cni-1.9.1-flannel3) ;; *) exit 2 ;; esac
-case "$backup_dir" in /home/abdul-qadir.guest/hedronetes-m1/network/*) ;; *) exit 2 ;; esac
+case "$backup_dir" in "$H3S_ROOT"/network/*) ;; *) exit 2 ;; esac
 [[ -x "$flannel_cni/bin/flannel" ]]
 [[ ! -e "$backup_dir" ]]
 case "$runtime_tools" in /nix/store/*-hedronetes-runtime-tools) ;; *) exit 2 ;; esac
