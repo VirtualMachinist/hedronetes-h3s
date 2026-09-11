@@ -35,6 +35,7 @@ pub enum Error {
     Status(u16),
 }
 type Result<T> = std::result::Result<T, Error>;
+#[derive(Clone)]
 pub struct Config {
     pub server: String,
     pub ca_file: PathBuf,
