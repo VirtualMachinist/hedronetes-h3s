@@ -118,7 +118,8 @@ fn project_token(spec: &mut Value) {
     });
     let mut needed = false;
     for field in ["containers", "initContainers"] {
-        if let Some(containers) = spec[field].as_array_mut() {
+        // Look up, never index-insert: a missing list must stay absent, not null.
+        if let Some(containers) = spec.get_mut(field).and_then(Value::as_array_mut) {
             for container in containers {
                 if items(&container["volumeMounts"]).any(|m| m["mountPath"] == PATH) {
                     continue;
