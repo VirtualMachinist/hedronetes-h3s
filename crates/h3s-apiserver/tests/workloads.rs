@@ -4,17 +4,17 @@ use http_body_util::BodyExt;
 use serde_json::{json, Value};
 
 fn pod(name: &str) -> Value {
-    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
+    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
 }
 fn deployment(kind: &str, name: &str) -> Value {
-    json!({"apiVersion":"apps/v1","kind":kind,"metadata":{"name":name},"spec":{"selector":{"matchLabels":{"app":"web"}},"template":{"metadata":{"labels":{"app":"web"}},"spec":{"containers":[{"name":"web","image":"example.invalid/web:v1"}]}}}})
+    json!({"apiVersion":"apps/v1","kind":kind,"metadata":{"name":name},"spec":{"selector":{"matchLabels":{"app":"web"}},"template":{"metadata":{"labels":{"app":"web"}},"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}}}})
 }
 fn service(name: &str) -> Value {
     json!({"apiVersion":"v1","kind":"Service","metadata":{"name":name},"spec":{"selector":{"app":"web"},"ports":[{"port":80}]}})
 }
 
 #[tokio::test]
-async fn stock_kubectl_protobuf_deployment_applies_empty_scalar_defaults() {
+async fn stock_kubectl_protobuf_deployment_is_decoded_then_refused_by_the_runtime_profile() {
     let dir = tempfile::tempdir().unwrap();
     let s = Server::start(dir.path()).await;
     s.namespace("api-smoke").await;
@@ -30,6 +30,51 @@ async fn stock_kubectl_protobuf_deployment_applies_empty_scalar_defaults() {
     let code = response.status().as_u16();
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
     let object: Value = serde_json::from_slice(&bytes).unwrap();
+    // A stock template names no runtime identity, so the node could not run
+    // it. Reaching the profile proves the Protobuf envelope decoded and the
+    // strategy ran; nothing is persisted.
+    assert_eq!(code, 422, "{object}");
+    assert!(
+        object["message"]
+            .as_str()
+            .unwrap()
+            .contains("runtime profile"),
+        "{object}"
+    );
+    let (_, list) = s
+        .json(
+            s.admin(),
+            "GET",
+            "/apis/apps/v1/namespaces/api-smoke/deployments",
+            json!({}),
+        )
+        .await;
+    assert_eq!(list["items"], json!([]));
+}
+
+#[tokio::test]
+async fn empty_scalars_default_like_protobuf_before_the_profile_is_checked() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = Server::start(dir.path()).await;
+    s.namespace("api-smoke").await;
+    // Protobuf decoding yields "" for unset strings; the strategy must treat
+    // those as absent before the profile sees the template.
+    let mut value = deployment("Deployment", "web");
+    value["spec"]["replicas"] = json!(2);
+    value["spec"]["strategy"] = json!({"type":""});
+    let template = &mut value["spec"]["template"]["spec"];
+    template["restartPolicy"] = json!("");
+    template["dnsPolicy"] = json!("");
+    template["schedulerName"] = json!("");
+    template["containers"][0]["imagePullPolicy"] = json!("");
+    let (code, object) = s
+        .json(
+            s.admin(),
+            "POST",
+            "/apis/apps/v1/namespaces/api-smoke/deployments",
+            value,
+        )
+        .await;
     assert_eq!(code, 201, "{object}");
     assert_eq!(object["spec"]["replicas"], 2);
     assert_eq!(object["spec"]["strategy"]["type"], "RollingUpdate");
@@ -38,6 +83,8 @@ async fn stock_kubectl_protobuf_deployment_applies_empty_scalar_defaults() {
     assert_eq!(spec["dnsPolicy"], "ClusterFirst");
     assert_eq!(spec["schedulerName"], "default-scheduler");
     assert_eq!(spec["containers"][0]["imagePullPolicy"], "IfNotPresent");
+    assert_eq!(spec["automountServiceAccountToken"], false);
+    assert_eq!(spec["enableServiceLinks"], false);
 }
 
 #[tokio::test]

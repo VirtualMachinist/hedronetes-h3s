@@ -1,6 +1,7 @@
 //! In-process admission at the API write boundary. Kubernetes v1.34 policy
 //! reference: https://v1-34.docs.kubernetes.io/docs/concepts/security/pod-security-standards/
 use crate::{Failure, Result};
+use h3s_api::pod_profile::PodRuntimeProfile;
 use serde_json::Value;
 
 const PREFIX: &str = "pod-security.kubernetes.io/";
@@ -49,6 +50,21 @@ pub fn lifecycle(namespace: &Value, create: bool) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+/// The runtime profile is not a Pod Security level: no namespace label can
+/// admit a Pod the node cannot execute, and nothing forbidden is persisted.
+pub fn runtime(pod: &Value) -> Result<()> {
+    PodRuntimeProfile.check(&pod["spec"]).map_err(|e| {
+        Failure::new(
+            422,
+            "Invalid",
+            format!(
+                "Pod cannot run under the {} runtime profile: {e}",
+                PodRuntimeProfile::NAME
+            ),
+        )
+    })
 }
 
 pub fn pod(namespace: &Value, pod: &Value) -> Result<()> {

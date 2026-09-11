@@ -43,6 +43,8 @@ pub struct ServingResponse {
 /// Only this API-server client identity may call the private kubelet HTTP API.
 pub const KUBELET_CLIENT_ID: &str = "system:h3s:kubelet-client";
 
+pub mod pod_profile;
 pub mod quantity;
+pub mod service_forwarding;
 
 pub mod network;

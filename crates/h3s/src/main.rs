@@ -25,7 +25,7 @@ enum Multicall {
     H3s(H3sCli),
     /// Start the control plane + datastore + supervisor (embedded agent unless disabled).
     Server(ServerArgs),
-    /// Enroll a worker and maintain Node/Lease status (workload runtime incomplete).
+    /// Enroll a worker and maintain Node/Lease status.
     Agent(AgentArgs),
     /// Inspect the configured local CRI v1 runtime without changing workloads.
     RuntimeInfo(RuntimeArgs),
@@ -50,7 +50,7 @@ struct H3sCli {
 enum Command {
     /// Start the control plane + datastore + supervisor (embedded agent unless disabled).
     Server(ServerArgs),
-    /// Enroll a worker and maintain Node/Lease status (workload runtime incomplete).
+    /// Enroll a worker and maintain Node/Lease status.
     Agent(AgentArgs),
     /// Inspect the configured local CRI v1 runtime without changing workloads.
     RuntimeInfo(RuntimeArgs),
@@ -288,6 +288,16 @@ async fn run_server(args: ServerArgs) -> RunResult {
             return Err("registry directory requires mode 0700".into());
         }
     }
+    // One server per registry. The lock lives here, not in SqliteStore::open,
+    // which keeps allowing several connections inside one process. Held for
+    // the life of run_server; a second server against this h3s.db fails closed.
+    let _registry_lock = h3s_certs::private::exclusive_process_lock(&db_dir.join(".registry.lock"))
+        .map_err(|error| {
+            format!(
+                "registry {} is locked by another h3s server: {error}",
+                db_dir.display()
+            )
+        })?;
     let store = std::sync::Arc::new(h3s_storage::SqliteStore::open(db_dir.join("h3s.db")).await?);
     let api = h3s_apiserver::Api::new(store)
         .await?
@@ -316,39 +326,55 @@ async fn run_server(args: ServerArgs) -> RunResult {
         "h3s API listening on https://{local}; kubeconfig: {}",
         args.write_kubeconfig.display()
     );
-    let identity = pki.issue_client(h3s_controllers::NAMESPACE_CONTROLLER_ID, None)?;
-    let controller_config = pki.kubeconfig(&endpoint, &identity)?;
-    let client = h3s_controllers::client_from_kubeconfig(&controller_config).await?;
-    let scheduler_identity = pki.issue_client(h3s_scheduler::SCHEDULER_ID, None)?;
-    let scheduler_config = pki.kubeconfig(&endpoint, &scheduler_identity)?;
-    let scheduler_client = h3s_controllers::client_from_kubeconfig(&scheduler_config).await?;
-    let mut workload_clients = Vec::new();
-    for identity in [
-        h3s_controllers::DEPLOYMENT_CONTROLLER_ID,
-        h3s_controllers::REPLICASET_CONTROLLER_ID,
-        h3s_controllers::WORKLOAD_GC_ID,
-        h3s_controllers::ENDPOINT_CONTROLLER_ID,
-        h3s_controllers::NODE_CIDR_CONTROLLER_ID,
-    ] {
-        let identity = pki.issue_client(identity, None)?;
-        let config = pki.kubeconfig(&endpoint, &identity)?;
-        workload_clients.push(h3s_controllers::client_from_kubeconfig(&config).await?);
-    }
-    let node_cidr_client = workload_clients.pop().unwrap();
-    let endpoint_client = workload_clients.pop().unwrap();
-    let gc_client = workload_clients.pop().unwrap();
-    let rs_client = workload_clients.pop().unwrap();
-    let deployment_client = workload_clients.pop().unwrap();
     let server = h3s_apiserver::serve(listener, pki.server_config()?, api.router(), async {
         let _ = tokio::signal::ctrl_c().await;
     });
-    // Enrollment must be polled alongside serving: awaiting it before the API
-    // is driven would deadlock this process against its own TLS listener.
-    let local_agent = async {
-        let Some((node_name, node_ip)) = node else {
-            return std::future::pending::<RunResult>().await;
-        };
-        run_native_agent(h3s_kubelet::Config {
+    // Every controller and the local agent is a supervised child: it restarts
+    // with backoff and never ends this process. Only the API and shutdown do.
+    let namespace_client =
+        client_for(&pki, &endpoint, h3s_controllers::NAMESPACE_CONTROLLER_ID).await?;
+    let ca_pem = pki.ca_pem().to_owned();
+    let mut children = tokio::task::JoinSet::new();
+    children.spawn(supervise("namespace controller", move || {
+        h3s_controllers::run_namespace_controller(namespace_client.clone(), ca_pem.clone())
+    }));
+    macro_rules! controller {
+        ($name:literal, $id:expr, $run:path) => {{
+            let client = client_for(&pki, &endpoint, $id).await?;
+            children.spawn(supervise($name, move || $run(client.clone())));
+        }};
+    }
+    controller!(
+        "node CIDR controller",
+        h3s_controllers::NODE_CIDR_CONTROLLER_ID,
+        h3s_controllers::run_node_cidr_controller
+    );
+    controller!(
+        "endpoint controller",
+        h3s_controllers::ENDPOINT_CONTROLLER_ID,
+        h3s_controllers::run_endpoint_controller
+    );
+    controller!(
+        "deployment controller",
+        h3s_controllers::DEPLOYMENT_CONTROLLER_ID,
+        h3s_controllers::run_deployment_controller
+    );
+    controller!(
+        "replicaset controller",
+        h3s_controllers::REPLICASET_CONTROLLER_ID,
+        h3s_controllers::run_replicaset_controller
+    );
+    controller!(
+        "workload gc",
+        h3s_controllers::WORKLOAD_GC_ID,
+        h3s_controllers::run_workload_gc
+    );
+    controller!("scheduler", h3s_scheduler::SCHEDULER_ID, h3s_scheduler::run);
+    // Enrollment is polled alongside serving: awaiting it before the API is
+    // driven would deadlock this process against its own TLS listener. The
+    // agent may die and come back; the API does not follow it down.
+    if let Some((node_name, node_ip)) = node {
+        let config = h3s_kubelet::Config {
             server: endpoint,
             ca_file,
             node_name,
@@ -359,21 +385,49 @@ async fn run_server(args: ServerArgs) -> RunResult {
             runtime_endpoint: args.container_runtime_endpoint,
             service_proxy_nft: args.service_proxy_nft,
             cluster_dns,
-        })
-        .await
-    };
-    tokio::select! {
-        result = server => result?,
-        result = local_agent => result?,
-        result = h3s_controllers::run_node_cidr_controller(node_cidr_client) => result?,
-        result = h3s_controllers::run_endpoint_controller(endpoint_client) => result?,
-        result = h3s_controllers::run_deployment_controller(deployment_client) => result?,
-        result = h3s_controllers::run_replicaset_controller(rs_client) => result?,
-        result = h3s_controllers::run_workload_gc(gc_client) => result?,
-        result = h3s_scheduler::run(scheduler_client) => result?,
-        result = h3s_controllers::run_namespace_controller(client, pki.ca_pem().to_owned()) => result?,
+        };
+        children.spawn(supervise("local agent", move || {
+            run_native_agent(config.clone())
+        }));
     }
+    // Parent join: the API, whose shutdown future is Ctrl-C. Children are
+    // dropped with the process when it returns.
+    server.await?;
+    children.abort_all();
     Ok(())
+}
+async fn client_for(
+    pki: &h3s_certs::ClusterPki,
+    endpoint: &str,
+    id: &str,
+) -> Result<kube::Client, Box<dyn std::error::Error + Send + Sync>> {
+    let identity = pki.issue_client(id, None)?;
+    let config = pki.kubeconfig(endpoint, &identity)?;
+    h3s_controllers::client_from_kubeconfig(&config).await
+}
+/// Copied from the kubelet tunnel loop: a child that returns or fails is
+/// restarted after a delay that doubles up to 30s and resets once a run has
+/// stayed up for a minute. Nothing a child does ends the process.
+async fn supervise<F, Fut, E>(name: &'static str, mut start: F)
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<(), E>>,
+    E: std::fmt::Display,
+{
+    let mut delay = 1;
+    loop {
+        let started = tokio::time::Instant::now();
+        let result = start().await;
+        if started.elapsed() > std::time::Duration::from_secs(60) {
+            delay = 1;
+        }
+        match result {
+            Ok(()) => eprintln!("h3s {name} stopped; restarting in {delay}s"),
+            Err(error) => eprintln!("h3s {name}: {error}; restarting in {delay}s"),
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+        delay = (delay * 2).min(30);
+    }
 }
 fn write_kubeconfig(path: &std::path::Path, contents: &str) -> RunResult {
     use std::io::Write;
@@ -557,6 +611,31 @@ mod tests {
                 command: Command::Agent(_)
             })
         ));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn supervise_restarts_failed_and_stopped_children_with_capped_backoff() {
+        use std::sync::{Arc, Mutex};
+        let starts = Arc::new(Mutex::new(Vec::new()));
+        let observed = starts.clone();
+        let child = tokio::spawn(supervise("child", move || {
+            let observed = observed.clone();
+            async move {
+                let mut starts = observed.lock().unwrap();
+                starts.push(tokio::time::Instant::now());
+                match starts.len() {
+                    1 => Err("controller stream ended unexpectedly"),
+                    2 => Ok(()),
+                    _ => Err("still failing"),
+                }
+            }
+        }));
+        // 1s, 2s, 4s, 8s, 16s, 30s, 30s: the delay caps rather than growing.
+        tokio::time::sleep(std::time::Duration::from_secs(120)).await;
+        child.abort();
+        let starts = starts.lock().unwrap();
+        let gaps: Vec<u64> = starts.windows(2).map(|w| (w[1] - w[0]).as_secs()).collect();
+        assert_eq!(gaps, vec![1, 2, 4, 8, 16, 30, 30], "{gaps:?}");
     }
 
     #[test]

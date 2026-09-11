@@ -1,5 +1,6 @@
 //! Resource strategies for the M1 workload API. Runtime admission is separate.
 use super::{resources::Resource, Failure, Result};
+use h3s_api::pod_profile::PodRuntimeProfile;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 
@@ -19,34 +20,65 @@ fn one_of(value: &Value, choices: &[&str], field: &str) -> Result<()> {
     }
     Ok(())
 }
+
+/// Helm release drivers rebuild ConfigMaps and Secrets without resourceVersion.
+pub(crate) fn helm_owned(value: &Value, kind: &str) -> bool {
+    if kind == "Secret" && value.get("type").and_then(Value::as_str) == Some("helm.sh/release.v1") {
+        return true;
+    }
+    if value["metadata"]["labels"]["owner"].as_str() == Some("helm") {
+        return true;
+    }
+    if kind == "Secret" {
+        if let Some(name) = value["metadata"]["name"].as_str() {
+            if name.starts_with("sh.helm.release.v1.") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Copy `key` from `from`, leaving it absent rather than null when unset so
+/// the once-normalized object stays canonical without another round-trip.
+fn copy(value: &mut Value, key: &str, from: &Value) {
+    match from.get(key).filter(|v| !v.is_null()) {
+        Some(v) => value[key] = v.clone(),
+        None => {
+            if let Some(object) = value.as_object_mut() {
+                object.remove(key);
+            }
+        }
+    }
+}
+/// `value` is already normalized by the write pipeline; every default and
+/// copy below keeps it typed so no further k8s-openapi round-trip is needed.
 pub(crate) fn prepare(
     resource: Resource,
-    value: Value,
+    mut value: Value,
     old: Option<&Value>,
     status: bool,
 ) -> Result<Value> {
-    let mut value = resource.normalize(value)?;
     if status {
         let old = old.expect("status updates require an existing object");
         let rv = value["metadata"]["resourceVersion"].clone();
         // Node status writers (including Flannel) update labels/annotations.
         // Node admission still enforces ownership and administrative labels.
         // Other status resources retain the existing frozen metadata boundary.
-        value["spec"] = old["spec"].clone();
+        copy(&mut value, "spec", old);
         if resource.kind != "Node" {
             value["metadata"] = old["metadata"].clone();
         }
         value["metadata"]["resourceVersion"] = rv;
     } else if resource.has_status() {
         value["status"] = old
-            .map(|v| v["status"].clone())
+            .and_then(|v| v.get("status").filter(|s| !s.is_null()).cloned())
             .unwrap_or_else(|| match resource.kind {
                 "Namespace" => json!({"phase":"Active"}),
                 "Pod" => json!({"phase":"Pending"}),
                 _ => json!({}),
             });
     }
-    let mut value = resource.normalize(value)?;
     if status {
         if resource.kind == "Pod" && !value["status"]["phase"].is_null() {
             one_of(
@@ -76,6 +108,14 @@ pub(crate) fn prepare(
             if template["spec"]["restartPolicy"] != "Always" {
                 return Err(invalid("workload template restartPolicy must be Always"));
             }
+            // A template the node cannot execute is refused here, never
+            // persisted to fail one replica at a time.
+            PodRuntimeProfile.check(&template["spec"]).map_err(|e| {
+                invalid(&format!(
+                    "template cannot run under the {} runtime profile: {e}",
+                    PodRuntimeProfile::NAME
+                ))
+            })?;
             selector_matches(&spec["selector"], &spec["template"]["metadata"]["labels"])?;
             if resource.kind == "Deployment" {
                 default(spec, "revisionHistoryLimit", json!(10));
@@ -126,8 +166,6 @@ pub(crate) fn prepare(
         }
         _ => {}
     }
-    // Normalize optional nulls introduced while applying defaults before comparison.
-    value = resource.normalize(value)?;
     if let Some(old) = old {
         if matches!(resource.kind, "Deployment" | "ReplicaSet")
             && value["spec"]["selector"] != old["spec"]["selector"]
@@ -190,7 +228,7 @@ pub(crate) fn prepare(
             .checked_add(i64::from(changed))
             .ok_or_else(|| invalid("generation overflow"))?);
     }
-    resource.normalize(value).map_err(Into::into)
+    Ok(value)
 }
 
 fn pod(spec: &mut Value) -> Result<()> {
@@ -219,7 +257,7 @@ fn pod(spec: &mut Value) -> Result<()> {
     default(spec, "serviceAccountName", json!("default"));
     spec["serviceAccount"] = spec["serviceAccountName"].clone();
     default(spec, "terminationGracePeriodSeconds", json!(30));
-    default(spec, "enableServiceLinks", json!(true));
+    PodRuntimeProfile.defaults(spec);
     one_of(
         &spec["restartPolicy"],
         &["Always", "OnFailure", "Never"],
@@ -238,7 +276,7 @@ fn pod(spec: &mut Value) -> Result<()> {
     }
     let mut names = BTreeSet::new();
     for field in ["containers", "initContainers"] {
-        if let Some(containers) = spec[field].as_array_mut() {
+        if let Some(containers) = spec.get_mut(field).and_then(Value::as_array_mut) {
             for container in containers {
                 let name = container["name"].as_str().unwrap_or("");
                 if !super::resources::valid_label_name(name) || !names.insert(name.to_owned()) {
@@ -267,7 +305,7 @@ fn pod(spec: &mut Value) -> Result<()> {
                     &["Always", "IfNotPresent", "Never"],
                     "invalid imagePullPolicy",
                 )?;
-                if let Some(ports) = container["ports"].as_array_mut() {
+                if let Some(ports) = container.get_mut("ports").and_then(Value::as_array_mut) {
                     for port in ports {
                         valid_port(&port["containerPort"])?;
                         default(port, "protocol", json!("TCP"));
@@ -366,8 +404,9 @@ fn service(spec: &mut Value) -> Result<()> {
         &["Cluster", "Local"],
         "invalid internalTrafficPolicy",
     )?;
-    let ports = spec["ports"]
-        .as_array_mut()
+    let ports = spec
+        .get_mut("ports")
+        .and_then(Value::as_array_mut)
         .filter(|v| !v.is_empty())
         .ok_or_else(|| invalid("Service ports are required"))?;
     let multiple = ports.len() > 1;
@@ -427,7 +466,7 @@ fn endpoints(value: &mut Value) -> Result<()> {
             }
         }
     }
-    if let Some(ports) = value["ports"].as_array_mut() {
+    if let Some(ports) = value.get_mut("ports").and_then(Value::as_array_mut) {
         for port in ports {
             if !port["port"].is_null() {
                 valid_port(&port["port"])?;

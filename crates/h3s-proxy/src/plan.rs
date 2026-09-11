@@ -156,19 +156,9 @@ pub fn plan(
     for service in services {
         let spec = &service["spec"];
         if !service["metadata"]["deletionTimestamp"].is_null()
-            || spec["type"] == "ExternalName"
-            || spec["clusterIP"] == "None"
+            || h3s_api::service_forwarding::ServiceForwarding::classify(spec).skip_in_plan()
         {
             continue;
-        }
-        if spec["type"].as_str().is_some_and(|s| s != "ClusterIP")
-            || spec["sessionAffinity"]
-                .as_str()
-                .is_some_and(|s| s != "None")
-            || values(&spec["externalIPs"]).next().is_some()
-            || !spec["trafficDistribution"].is_null()
-        {
-            return Err(Error::Invalid("unsupported Service forwarding policy"));
         }
         let uid = text(&service["metadata"], "uid")?;
         let name = text(&service["metadata"], "name")?;
@@ -551,7 +541,10 @@ mod tests {
         }
         let mut s = service();
         s["spec"]["sessionAffinity"] = json!("ClientIP");
-        assert!(plan(&[s], &[slice()], &nodes(), "server").is_err());
+        assert!(plan(&[s], &[slice()], &nodes(), "server")
+            .unwrap()
+            .services
+            .is_empty());
         assert!(plan(&[service()], &[slice()], &[], "server").is_err());
         let mut headless = service();
         headless["spec"]["clusterIP"] = json!("None");

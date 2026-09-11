@@ -279,22 +279,73 @@ async fn disable_agent_serves_api_without_node_identity_or_local_listener() {
 }
 
 #[tokio::test]
-async fn local_agent_listener_failure_terminates_the_composed_server() {
+async fn local_agent_failure_is_restarted_with_backoff_and_never_drops_the_api() {
     let dir = tempfile::tempdir().unwrap();
     let occupied = TcpListener::bind("127.0.0.1:0").unwrap();
     let args = server_args(dir.path(), port(), occupied.local_addr().unwrap().port());
     let mut server = Process::start(dir.path(), &args);
+    // The API serves while the local agent cannot bind its kubelet listener.
+    let client = client(dir.path(), &mut server).await;
+    let restarts = timeout(Duration::from_secs(40), async {
+        loop {
+            server.assert_running();
+            let log = fs::read_to_string(&server.log).unwrap();
+            let restarts = log
+                .lines()
+                .filter(|l| l.contains("h3s local agent: agent I/O") && l.contains("restarting in"))
+                .count();
+            if restarts >= 2 {
+                return log;
+            }
+            sleep(Duration::from_millis(200)).await;
+        }
+    })
+    .await
+    .expect("local agent was not restarted");
+    assert!(restarts.contains("restarting in 1s"), "{restarts}");
+    assert!(restarts.contains("restarting in 2s"), "{restarts}");
+    let namespaces = Api::<k8s_openapi::api::core::v1::Namespace>::all(client.clone())
+        .list(&ListParams::default())
+        .await
+        .unwrap();
+    assert!(namespaces
+        .items
+        .iter()
+        .any(|n| n.metadata.name.as_deref() == Some("kube-system")));
+    server.assert_running();
+    // Freeing the port lets the next restart succeed without any intervention.
+    drop(occupied);
+    let _ = node(&client, &mut server, "server-node", "192.0.2.10").await;
+    health(&client, &mut server, "server-node").await;
+}
+
+#[tokio::test]
+async fn second_server_on_the_same_registry_fails_closed() {
+    let dir = tempfile::tempdir().unwrap();
+    let args = server_args(dir.path(), port(), port());
+    let mut server = Process::start(dir.path(), &args);
+    let client = client(dir.path(), &mut server).await;
+    let mut second_args = server_args(dir.path(), port(), port());
+    second_args.push("--disable-agent".into());
+    let mut second = Process::start(dir.path(), &second_args);
     let exit = timeout(Duration::from_secs(40), async {
         loop {
-            if let Some(exit) = server.child.try_wait().unwrap() {
+            if let Some(exit) = second.child.try_wait().unwrap() {
                 return exit;
             }
             sleep(Duration::from_millis(100)).await;
         }
     })
     .await
-    .expect("failed local agent left the API process running");
+    .expect("second server against the same registry kept running");
     assert!(!exit.success());
-    let log = fs::read_to_string(&server.log).unwrap();
-    assert!(log.contains("agent I/O"), "{log}");
+    let log = fs::read_to_string(&second.log).unwrap();
+    assert!(log.contains("is locked by another h3s server"), "{log}");
+    assert!(dir.path().join("runtime/server/db/.registry.lock").exists());
+    // The first server is untouched and still serving.
+    server.assert_running();
+    assert!(Api::<Node>::all(client)
+        .list(&ListParams::default())
+        .await
+        .is_ok());
 }

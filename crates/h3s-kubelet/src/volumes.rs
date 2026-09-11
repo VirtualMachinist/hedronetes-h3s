@@ -1,5 +1,7 @@
 //! ConfigMap/Secret directory projections. Only the root-owned agent writes here;
 //! containers receive read-only bind mounts. Payloads never enter errors or logs.
+//! Which volumes and mounts are legal is decided by the runtime profile before
+//! any of this runs; here the admitted spec is only parsed and projected.
 use crate::{inputs, invalid, pod, Agent, Result};
 use h3s_certs::private;
 use h3s_cri::v1::Mount;
@@ -76,84 +78,25 @@ fn paths<'a>(paths: impl Iterator<Item = &'a str>) -> Result<()> {
     }
     Ok(())
 }
+/// Volume sources as the runtime profile already admitted them.
 fn sources(p: &Value) -> Result<Vec<Source<'_>>> {
-    let volumes = array(&p["spec"]["volumes"])?;
-    if volumes.len() > 32 {
-        return Err(invalid("too many Pod volumes"));
-    }
     let mut out = vec![];
-    let mut names = BTreeSet::new();
-    for v in volumes {
-        pod::fields(v, &["name", "configMap", "secret"])?;
-        let name = pod::text(v, "name")?;
-        if !pod::safe_component(name) || name.starts_with('.') || !names.insert(name) {
-            return Err(invalid("invalid or duplicate volume name"));
-        }
-        let (spec, kind, field) = match (v["configMap"].is_null(), v["secret"].is_null()) {
-            (false, true) => (&v["configMap"], "configmaps", "name"),
-            (true, false) => (&v["secret"], "secrets", "secretName"),
-            _ => {
-                return Err(invalid(
-                    "exactly one ConfigMap or Secret volume source is required",
-                ))
-            }
+    for v in array(&p["spec"]["volumes"])? {
+        let (spec, kind, field) = if v["configMap"].is_null() {
+            (&v["secret"], "secrets", "secretName")
+        } else {
+            (&v["configMap"], "configmaps", "name")
         };
-        pod::fields(spec, &[field, "items", "defaultMode", "optional"])?;
-        let object = pod::text(spec, field)?;
-        if !pod::safe_component(object)
-            || (!spec["optional"].is_null() && !spec["optional"].is_boolean())
-        {
-            return Err(invalid("invalid volume object reference"));
-        }
-        let default = mode(&spec["defaultMode"], 0o644)?;
-        let items = array(&spec["items"])?;
-        if items.len() > 1024 {
-            return Err(invalid("too many projected files"));
-        }
-        let mut item_paths = vec![];
-        for item in items {
-            pod::fields(item, &["key", "path", "mode"])?;
-            pod::text(item, "key")?;
-            item_paths.push(pod::text(item, "path")?);
-            mode(&item["mode"], default)?;
-        }
-        paths(item_paths.into_iter())?;
         out.push(Source {
-            name,
-            object,
+            name: pod::text(v, "name")?,
+            object: pod::text(spec, field)?,
             kind,
             spec,
             optional: spec["optional"] == true,
-            mode: default,
+            mode: mode(&spec["defaultMode"], 0o644)?,
         });
     }
     Ok(out)
-}
-pub fn validate(p: &Value) -> Result<()> {
-    let sources = sources(p)?;
-    for c in array(&p["spec"]["containers"])? {
-        let mut destinations = BTreeSet::new();
-        for m in array(&c["volumeMounts"])? {
-            pod::fields(m, &["name", "mountPath", "readOnly"])?;
-            if !sources.iter().any(|s| Some(s.name) == m["name"].as_str()) {
-                return Err(invalid("mount references an undefined volume"));
-            }
-            let path = pod::text(m, "mountPath")?;
-            if !path.starts_with('/')
-                || !relative(&path[1..])
-                || ["/proc", "/sys", "/dev"]
-                    .iter()
-                    .any(|p| path == *p || path.starts_with(&format!("{p}/")))
-                || !destinations.insert(path)
-                || (!m["readOnly"].is_null() && !m["readOnly"].is_boolean())
-            {
-                return Err(invalid("invalid container mount path or options"));
-            }
-        }
-        // Nested mount destinations obscure a portion of a projected volume.
-        paths(destinations.iter().map(|p| &p[1..]))?;
-    }
-    Ok(())
 }
 fn payload(source: &Source<'_>, mut data: BTreeMap<String, Vec<u8>>) -> Result<Payload> {
     let mut out = Payload::new();
@@ -525,58 +468,22 @@ mod tests {
             .collect()
     }
     #[test]
-    fn validates_sources_paths_permissions_and_readonly_cri_mounts() {
+    fn admitted_volumes_become_private_readonly_cri_mounts() {
         let p = fixture();
-        validate(&p).unwrap();
         let mounts = mounts(&p["spec"]["containers"][0], Path::new("/private/uid")).unwrap();
         assert_eq!(mounts[0].host_path, "/private/uid/volumes/config");
+        assert_eq!(mounts[0].container_path, "/etc/project/config");
         assert!(mounts.iter().all(|m| m.readonly));
-        for path in [
-            "",
-            "../escape",
-            "/absolute",
-            "..data",
-            "..h3s-reserved",
-            "a/../b",
-            "a/./b",
-            "a//b",
-            "a/",
-            "x\0y",
-        ] {
-            let mut bad = p.clone();
-            bad["spec"]["volumes"][0]["configMap"]["items"][0]["path"] = json!(path);
-            assert!(validate(&bad).is_err(), "{path:?}");
-        }
-        for path in [
-            "/",
-            "/proc",
-            "/sys/a",
-            "/dev/shm",
-            "/etc/../proc",
-            "relative",
-        ] {
-            let mut bad = p.clone();
-            bad["spec"]["containers"][0]["volumeMounts"][0]["mountPath"] = json!(path);
-            assert!(validate(&bad).is_err());
-        }
-        for value in [json!(-1), json!(512), json!("0444"), json!(true)] {
-            let mut bad = p.clone();
-            bad["spec"]["volumes"][0]["configMap"]["defaultMode"] = value;
-            assert!(validate(&bad).is_err());
-        }
-        let mut bad = p.clone();
-        bad["spec"]["containers"][0]["volumeMounts"][0]["subPath"] = json!("nested/mode");
-        assert!(validate(&bad).is_err());
-        let mut bad = p.clone();
-        bad["spec"]["volumes"][0]["secret"] = json!({"secretName":"credentials"});
-        assert!(validate(&bad).is_err());
-        let mut bad = p.clone();
-        bad["spec"]["volumes"][1]["name"] = json!("config");
-        assert!(validate(&bad).is_err());
-        let mut bad = p;
-        bad["spec"]["volumes"][0]["configMap"]["items"] =
-            json!([{"key":"a","path":"nested"},{"key":"b","path":"nested/mode"}]);
-        assert!(validate(&bad).is_err());
+        let parsed = sources(&p).unwrap();
+        assert_eq!(parsed.len(), 2);
+        assert_eq!(
+            (parsed[0].kind, parsed[0].object, parsed[0].mode),
+            ("configmaps", "settings", 292)
+        );
+        assert_eq!(
+            (parsed[1].kind, parsed[1].object, parsed[1].mode),
+            ("secrets", "credentials", 0o644)
+        );
     }
     #[test]
     fn item_selection_optional_keys_binary_bytes_and_limits() {

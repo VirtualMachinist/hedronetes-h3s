@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 
 fn pod(name: &str) -> Value {
     json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{
-        "securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},
+        "securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},
         "containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]
     }})
 }
@@ -123,21 +123,46 @@ async fn restricted_inheritance_and_allowed_overrides_work() {
     let dir = tempfile::tempdir().unwrap();
     let s = Server::start(dir.path()).await;
     s.namespace("secure").await;
+    // Pod Security inheritance: the container states its own identity and
+    // seccomp profile; the Pod level carries only a group.
     let mut value = pod("per-container");
-    value["spec"]["securityContext"] = json!({"sysctls":[{"name":"net.ipv4.tcp_rmem","value":"4096 131072 6291456"},{"name":"net/ipv4/tcp_wmem","value":"4096 16384 4194304"}]});
+    value["spec"]["securityContext"] = json!({"runAsGroup":1000});
     let context = &mut value["spec"]["containers"][0]["securityContext"];
     context["runAsNonRoot"] = json!(true);
     context["runAsUser"] = json!(1000);
-    context["seccompProfile"] =
-        json!({"type":"Localhost","localhostProfile":"profiles/workload.json"});
-    context["capabilities"]["add"] = json!(["NET_BIND_SERVICE"]);
-    context["seLinuxOptions"] = json!({"type":"container_engine_t"});
-    value["spec"]["initContainers"] = json!([value["spec"]["containers"][0].clone()]);
-    value["spec"]["initContainers"][0]["name"] = json!("init");
-    value["spec"]["volumes"] =
-        json!([{"name":"tmp","emptyDir":{}},{"name":"config","configMap":{"name":"config"}}]);
+    context["seccompProfile"] = json!({"type":"RuntimeDefault"});
+    value["spec"]["volumes"] = json!([{"name":"config","configMap":{"name":"config"}}]);
     let (code, response) = create(&s, "secure", value.clone()).await;
     assert_eq!(code, 201, "{response}");
+    // Restricted allows these; the node cannot execute them, so the runtime
+    // profile refuses them after policy has had its say.
+    for (i, (pointer, patch)) in [
+        ("/spec/securityContext", json!({"sysctls":[{"name":"net.ipv4.tcp_rmem","value":"4096 131072 6291456"}]})),
+        ("/spec/containers/0/securityContext/seccompProfile", json!({"type":"Localhost","localhostProfile":"profiles/workload.json"})),
+        ("/spec/containers/0/securityContext/capabilities/add", json!(["NET_BIND_SERVICE"])),
+        ("/spec/containers/0/securityContext/seLinuxOptions", json!({"type":"container_engine_t"})),
+        ("/spec/volumes", json!([{"name":"tmp","emptyDir":{}}])),
+        ("/spec/initContainers", json!([{"name":"init","image":"example.invalid/init:v1","securityContext":{"runAsNonRoot":true,"runAsUser":1000,"seccompProfile":{"type":"RuntimeDefault"},"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}])),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut unsupported = value.clone();
+        unsupported["metadata"]["name"] = json!(format!("unsupported-{i}"));
+        let (parent, key) = pointer.rsplit_once('/').unwrap();
+        unsupported
+            .pointer_mut(parent)
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .insert(key.into(), patch);
+        let (code, response) = create(&s, "secure", unsupported).await;
+        assert_eq!(code, 422, "{pointer}: {response}");
+        assert!(
+            response["message"].as_str().unwrap().contains("runtime profile"),
+            "{pointer}: {response}"
+        );
+    }
     value["metadata"]["name"] = json!("missing-seccomp");
     value["spec"]["containers"][0]["securityContext"]["seccompProfile"] = Value::Null;
     assert_eq!(create(&s, "secure", value.clone()).await.0, 403);
@@ -153,9 +178,10 @@ async fn namespace_policy_is_configurable_persistent_and_applies_to_admin() {
     let dir = tempfile::tempdir().unwrap();
     let s = Server::start(dir.path()).await;
     s.namespace("secure").await;
+    // Inside the runtime profile (explicit UID), outside restricted Pod
+    // Security (no runAsNonRoot): only the namespace policy objects.
     let mut insecure = pod("insecure");
-    insecure["spec"]["securityContext"] = Value::Null;
-    insecure["spec"]["containers"][0]["securityContext"] = Value::Null;
+    insecure["spec"]["securityContext"]["runAsNonRoot"] = Value::Null;
     assert_eq!(create(&s, "secure", insecure.clone()).await.0, 403);
     assert_eq!(create(&s, "default", insecure.clone()).await.0, 403);
     assert_eq!(create(&s, "kube-system", insecure.clone()).await.0, 201);
@@ -207,7 +233,17 @@ async fn namespace_policy_is_configurable_persistent_and_applies_to_admin() {
         .0,
         200
     );
-    assert_eq!(create(&s, "secure", insecure).await.0, 201);
+    // Privileged Pod Security no longer objects, but the node cannot run a
+    // privileged container: the runtime profile refuses it instead.
+    let (code, refused) = create(&s, "secure", insecure).await;
+    assert_eq!(code, 422, "{refused}");
+    assert!(
+        refused["message"]
+            .as_str()
+            .unwrap()
+            .contains("runtime profile"),
+        "{refused}"
+    );
 }
 
 #[tokio::test]

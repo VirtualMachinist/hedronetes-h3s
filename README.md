@@ -34,6 +34,56 @@ It does **not** embed upstream Go Kubernetes.
 
 - Full product specification: [`SPEC.md`](./SPEC.md).
 
+
+## Implemented API
+
+Stock `kubectl` and Helm work against these kinds only (Kubernetes **v1.34** wire format):
+
+| Group | Version | Kind | Scope |
+| --- | --- | --- | --- |
+| core | v1 | Namespace | cluster |
+| core | v1 | ConfigMap | namespaced |
+| core | v1 | Secret | namespaced |
+| core | v1 | Pod | namespaced |
+| core | v1 | Node | cluster |
+| core | v1 | Service | namespaced |
+| core | v1 | ServiceAccount | namespaced |
+| apps | v1 | Deployment | namespaced |
+| apps | v1 | ReplicaSet | namespaced |
+| discovery.k8s.io | v1 | EndpointSlice | namespaced |
+| coordination.k8s.io | v1 | Lease | namespaced |
+| rbac.authorization.k8s.io | v1 | Role | namespaced |
+| rbac.authorization.k8s.io | v1 | RoleBinding | namespaced |
+| rbac.authorization.k8s.io | v1 | ClusterRole | cluster |
+| rbac.authorization.k8s.io | v1 | ClusterRoleBinding | cluster |
+
+StatefulSet, Job, DaemonSet, PVC, and NetworkPolicy are not implemented.
+
+## Supported workloads
+
+### Pod (`restricted-v1`)
+
+The API server and kubelet enforce one runtime profile on every Pod:
+
+- `automountServiceAccountToken: false`
+- `enableServiceLinks: false`
+- Explicit non-root UID with dropped ALL capabilities, `allowPrivilegeEscalation: false`, and RuntimeDefault seccomp
+
+Published example:
+
+```bash
+kubectl apply -f examples/supported-pod.yaml
+```
+
+### Service
+
+| Type | Admitted | Dataplane |
+| --- | --- | --- |
+| ClusterIP | yes | IPv4 TCP/UDP nftables proxy |
+| Headless (`clusterIP: None`) | yes | no virtual IP |
+| ExternalName | yes | no dataplane rules |
+| NodePort / LoadBalancer | no | — |
+
 ## Binary
 
 ```text
