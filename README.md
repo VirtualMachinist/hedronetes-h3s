@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-C9A227?style=flat&colorA=111111" alt="Apache-2.0" /></a>
-  <a href="https://github.com/VirtualMachinist/hedronetes-h3s/releases/tag/v0.9.0"><img src="https://img.shields.io/badge/Release-v0.9.0-C9A227?style=flat&colorA=111111" alt="Release v0.9.0" /></a>
+  <a href="https://github.com/VirtualMachinist/hedronetes-h3s/releases/tag/v0.9.1"><img src="https://img.shields.io/badge/Release-v0.9.1-C9A227?style=flat&colorA=111111" alt="Release v0.9.1" /></a>
   <a href="https://github.com/VirtualMachinist/hedronetes-h3s/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/VirtualMachinist/hedronetes-h3s/ci.yml?style=flat&label=CI&colorA=111111&color=C9A227" alt="CI" /></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-0042DB?style=flat&colorA=111111&logo=rust&logoColor=C9A227" alt="Rust" /></a>
 </p>
@@ -22,7 +22,7 @@ Hedronetes is the vehicle for your agent fleet. Whether you're running coding ag
 
 > k3s, written in Rust, without embedding a Go control plane.
 
-Status: **0.9.0** · License: Apache-2.0 · API target: Kubernetes **v1.34** · Platform: Linux amd64 / arm64
+Status: **0.9.1** · License: Apache-2.0 · API target: Kubernetes **v1.34** · Platform: Linux amd64 / arm64
 
 ## What this is
 
@@ -99,7 +99,7 @@ cargo run -p h3s -- agent --help
 
 ## Status
 
-**v0.9.0 is the first release that actually runs a cluster.** This product works, and further stress testing is needed before this is recommended for professional environments despite this being used internally at Hedronite. **Durable high availability with Kubernetes conformance ships with v1.0.0**
+**v0.9.0 is the first release that actually runs a cluster.** **v0.9.1** is the structure substrate (split API dispatch, one PodRuntimeProfile, restarting supervisor). This product works, and further stress testing is needed before this is recommended for professional environments despite this being used internally at Hedronite. **Durable high availability with Kubernetes conformance ships with v1.0.0**
 
 A multi-node h3s cluster — native `server` + separate `agent` — runs workloads with stock `kubectl` and Helm. Proven on colima VMs running a mix of NixOS, Debian and Fedora. 
 

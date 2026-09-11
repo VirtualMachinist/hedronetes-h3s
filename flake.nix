@@ -133,7 +133,7 @@
       };
       h3s = rustPlatform.buildRustPackage {
         pname = "h3s";
-        version = "0.1.0-dev";
+        version = "0.9.1";
         src = pkgs.lib.cleanSourceWith {
           src = self;
           filter = path: type:
