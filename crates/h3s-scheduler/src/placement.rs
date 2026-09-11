@@ -74,10 +74,7 @@ fn requests(p: &Value) -> Option<Resources> {
                     q.as_bytes()
                 }
             };
-            let limit = r["limits"][key]
-                .as_str()
-                .map(convert)
-                .transpose_option()?;
+            let limit = r["limits"][key].as_str().map(convert).transpose_option()?;
             let request = r["requests"][key]
                 .as_str()
                 .map(convert)

@@ -24,7 +24,9 @@ impl ServiceForwarding {
             "ClusterIP" => {}
             _ => return Self::UnsupportedType,
         }
-        if spec["sessionAffinity"].as_str().is_some_and(|s| s != "None")
+        if spec["sessionAffinity"]
+            .as_str()
+            .is_some_and(|s| s != "None")
             || spec["externalIPs"]
                 .as_array()
                 .is_some_and(|values| !values.is_empty())
@@ -60,11 +62,15 @@ mod tests {
         assert!(ServiceForwarding::UnsupportedType.skip_in_plan());
         assert!(ServiceForwarding::UnsupportedPolicy.skip_in_plan());
         assert_eq!(
-            ServiceForwarding::classify(&json!({"type":"ExternalName","externalName":"example.invalid"})),
+            ServiceForwarding::classify(
+                &json!({"type":"ExternalName","externalName":"example.invalid"})
+            ),
             ServiceForwarding::ExternalName
         );
         assert_eq!(
-            ServiceForwarding::classify(&json!({"type":"ClusterIP","clusterIP":"None","ports":[{"port":80}]})),
+            ServiceForwarding::classify(
+                &json!({"type":"ClusterIP","clusterIP":"None","ports":[{"port":80}]})
+            ),
             ServiceForwarding::Headless
         );
         assert_eq!(
@@ -72,7 +78,9 @@ mod tests {
             ServiceForwarding::UnsupportedType
         );
         assert_eq!(
-            ServiceForwarding::classify(&json!({"sessionAffinity":"ClientIP","ports":[{"port":80}]})),
+            ServiceForwarding::classify(
+                &json!({"sessionAffinity":"ClientIP","ports":[{"port":80}]})
+            ),
             ServiceForwarding::UnsupportedPolicy
         );
     }
