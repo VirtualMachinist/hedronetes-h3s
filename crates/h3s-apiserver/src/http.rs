@@ -193,7 +193,11 @@ fn discovery(path: &str) -> Option<Value> {
         if resource.kind != "Namespace" {
             verbs.push("delete");
         }
-        entries.push(json!({"name":resource.plural,"singularName":resource.kind.to_ascii_lowercase(),"namespaced":resource.namespaced,"kind":resource.kind,"verbs":verbs}));
+        let mut entry = json!({"name":resource.plural,"singularName":resource.kind.to_ascii_lowercase(),"namespaced":resource.namespaced,"kind":resource.kind,"verbs":verbs,"shortNames":[]});
+        if resource.kind == "Namespace" {
+            entry["shortNames"] = json!(["ns"]);
+        }
+        entries.push(entry);
         if resource.kind == "Pod" {
             entries.push(json!({"name":"pods/binding","singularName":"","namespaced":true,"kind":"Binding","verbs":["create"]}));
             entries.push(json!({"name":"pods/log","singularName":"","namespaced":true,"kind":"Pod","verbs":["get"]}));

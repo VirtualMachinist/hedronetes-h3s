@@ -12,6 +12,7 @@ spec:
     - name: pause
       image: registry.k8s.io/pause:3.10
       securityContext:
+        runAsNonRoot: true
         runAsUser: 65534
         allowPrivilegeEscalation: false
         capabilities:

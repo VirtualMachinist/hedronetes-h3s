@@ -107,3 +107,24 @@ async fn namespace_controller_deletes_children_and_removes_namespace() {
         .await;
     assert_eq!(code, 404, "{cm}");
 }
+
+#[tokio::test]
+async fn discovery_advertises_namespace_short_name_ns() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = Server::start(dir.path()).await;
+    let (code, discovery) = s.json(s.admin(), "GET", "/api/v1", json!({})).await;
+    assert_eq!(code, 200, "{discovery}");
+    let ns = discovery["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["kind"] == "Namespace")
+        .expect("Namespace in /api/v1");
+    let short_names: Vec<_> = ns["shortNames"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    assert!(short_names.contains(&"ns"), "{ns}");
+}
