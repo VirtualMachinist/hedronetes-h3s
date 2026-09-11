@@ -1,0 +1,21 @@
+# Supported Pod for the restricted-v1 runtime profile (PodRuntimeProfile).
+# kubectl apply -f examples/supported-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: supported-pod
+spec:
+  automountServiceAccountToken: false
+  enableServiceLinks: false
+  dnsPolicy: Default
+  containers:
+    - name: pause
+      image: registry.k8s.io/pause:3.10
+      securityContext:
+        runAsUser: 65534
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
