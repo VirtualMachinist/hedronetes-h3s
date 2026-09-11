@@ -2,7 +2,8 @@
 # Run only inside an approved Hedronetes NixOS guest, as root.
 set -euo pipefail
 [[ $(id -u) == 0 ]]
-[[ -d /home/abdul-qadir.guest/hedronetes-m1 ]]
+H3S_ROOT="${H3S_ROOT:-/var/lib/hedronetes}"
+[[ -d "$H3S_ROOT" ]]
 [[ -e /etc/NIXOS ]]
 runtime_tools=${1:?pass the built project runtime-tools store path}
 case "$runtime_tools" in /nix/store/*-hedronetes-runtime-tools) ;; *) exit 2 ;; esac

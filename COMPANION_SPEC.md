@@ -247,7 +247,7 @@ Probe Apache-2.0. Integration MUST keep that split visible in NOTICE.
 
 - Not an apiserver, kubelet, or Storage backend.
 - Not HedronDB. `lattice-hedron` is an optional second data plane that
-  *projects* into HedronDB; it is apiary-only until pin alignment.
+  *projects* into HedronDB; it is internal-only until pin alignment.
 - Not Herdr. Facet records which pane a call came from; it does not own
   PTYs.
 - Not kubectl. Humans still use kubectl. Agents SHOULD use Facet when
@@ -400,7 +400,7 @@ artifact until a LICENSE file exists. Prefer MIT or Apache-2.0.
 ### C6.4 Facet coexistence
 
 Facet feature `lattice-hedron` is the existing design for a projection
-from Lattice runs into HedronDB. It is **apiary-only** until:
+from Lattice runs into HedronDB. It is **internal-only** until:
 
 - rusqlite 0.40 pin alignment on `hedron-core`
 - projection adapters exist

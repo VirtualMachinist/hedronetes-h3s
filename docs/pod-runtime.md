@@ -85,6 +85,6 @@ exit, observe replacement, and delete the Pod with scoped runtime cleanup.
 The live acceptance manifest records the tested commit/package and the exact
 configuration. Temporary Tower root service installation is not the final
 NixOS module or a portability result. The complete 24-check contract remains
-in Atrium.
+in the acceptance lab.
 
 Proc policy source: [Kubernetes v1.34 security-context utilities](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/securitycontext/util.go), Apache-2.0.

@@ -59,7 +59,7 @@ candidates, selector denial, leaving another scheduler's Pod alone, reconstructi
 after API/process restart, release after deletion and forbidden API operations.
 Placement tests cover stale/wrong-owner Leases, missing capacity, cordon/pressure,
 selectors, affinity, taints, gates, unsupported constraints and resource limits.
-Installed Linux proof is recorded separately in the Atrium acceptance manifests;
+Installed Linux proof is recorded separately in the acceptance lab manifests;
 a passing unit test is not a two-node runtime claim.
 
 Kubernetes references: [assignment constraints](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/),
