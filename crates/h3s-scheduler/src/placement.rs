@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use h3s_api::quantity::quantity;
+use h3s_api::quantity::Quantity;
 use serde_json::Value;
 fn array(v: &Value) -> impl Iterator<Item = &Value> {
     v.as_array().into_iter().flatten()
@@ -66,13 +66,21 @@ fn requests(p: &Value) -> Option<Resources> {
         }
         let mut values = [0, 0];
         for (i, key) in ["cpu", "memory"].iter().enumerate() {
+            let convert = |s: &str| {
+                let q = Quantity::parse(s)?;
+                if i == 0 {
+                    q.as_milli_cpu()
+                } else {
+                    q.as_bytes()
+                }
+            };
             let limit = r["limits"][key]
                 .as_str()
-                .map(|s| quantity(s, i == 0))
+                .map(convert)
                 .transpose_option()?;
             let request = r["requests"][key]
                 .as_str()
-                .map(|s| quantity(s, i == 0))
+                .map(convert)
                 .transpose_option()?
                 .or(limit)
                 .unwrap_or(0);
@@ -97,12 +105,12 @@ fn requests(p: &Value) -> Option<Resources> {
     total.add(Resources {
         cpu: overhead["cpu"]
             .as_str()
-            .map(|s| quantity(s, true))
+            .map(|s| Quantity::parse(s).and_then(|q| q.as_milli_cpu()))
             .transpose_option()?
             .unwrap_or(0),
         memory: overhead["memory"]
             .as_str()
-            .map(|s| quantity(s, false))
+            .map(|s| Quantity::parse(s).and_then(|q| q.as_bytes()))
             .transpose_option()?
             .unwrap_or(0),
         pods: 0,
@@ -122,8 +130,8 @@ impl<T> TransposeOption<T> for Option<Option<T>> {
 fn capacity(n: &Value) -> Option<Resources> {
     let a = &n["status"]["allocatable"];
     Some(Resources {
-        cpu: quantity(a["cpu"].as_str()?, true)?,
-        memory: quantity(a["memory"].as_str()?, false)?,
+        cpu: Quantity::parse(a["cpu"].as_str()?)?.as_milli_cpu()?,
+        memory: Quantity::parse(a["memory"].as_str()?)?.as_bytes()?,
         pods: a["pods"].as_str()?.parse().ok().filter(|v| *v > 0)?,
     })
 }

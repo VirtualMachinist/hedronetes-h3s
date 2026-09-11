@@ -3,6 +3,7 @@
 //! identity and turns the profile's decisions into CRI structures.
 use crate::{invalid, Result};
 use h3s_api::pod_profile::PodRuntimeProfile;
+use h3s_api::quantity::Quantity;
 pub use h3s_api::pod_profile::{fields, safe_component, text};
 use h3s_cri::v1::*;
 use serde_json::Value;
@@ -30,27 +31,38 @@ pub fn validate(p: &Value, node: &str) -> Result<()> {
     }
     Ok(())
 }
-/// Shared checked conversion keeps scheduler reservations and runtime limits aligned.
-pub fn quantity(s: &str, cpu: bool) -> Result<i64> {
-    h3s_api::quantity::quantity(s, cpu)
-        .ok_or_else(|| invalid("unsupported or overflowing resource quantity"))
+fn quantity_err() -> crate::Error {
+    invalid("unsupported or overflowing resource quantity")
 }
+
 pub fn resources(c: &Value) -> Result<LinuxContainerResources> {
     let limits = &c["resources"]["limits"];
     let requests = &c["resources"]["requests"];
     let cpu = limits["cpu"]
         .as_str()
-        .map(|s| quantity(s, true))
+        .map(|s| {
+            Quantity::parse(s)
+                .and_then(|q| q.as_milli_cpu())
+                .ok_or_else(quantity_err)
+        })
         .transpose()?
         .unwrap_or(0);
     let memory = limits["memory"]
         .as_str()
-        .map(|s| quantity(s, false))
+        .map(|s| {
+            Quantity::parse(s)
+                .and_then(|q| q.as_bytes())
+                .ok_or_else(quantity_err)
+        })
         .transpose()?
         .unwrap_or(0);
     let request = requests["cpu"]
         .as_str()
-        .map(|s| quantity(s, true))
+        .map(|s| {
+            Quantity::parse(s)
+                .and_then(|q| q.as_milli_cpu())
+                .ok_or_else(quantity_err)
+        })
         .transpose()?
         .unwrap_or(cpu);
     Ok(LinuxContainerResources {
@@ -225,24 +237,37 @@ mod tests {
     }
     #[test]
     fn quantities_preserve_cpu_and_memory_limits_without_float_rounding() {
-        for (s, cpu, expected) in [
-            ("100m", true, 100),
-            ("0.1", true, 100),
-            ("0.0001", true, 1),
-            ("64Mi", false, 67108864),
-            ("1.5Gi", false, 1610612736),
-            ("1000m", false, 1),
+        for (s, expected) in [
+            ("100m", 100),
+            ("0.1", 100),
+            ("0.0001", 1),
         ] {
-            assert_eq!(quantity(s, cpu).unwrap(), expected);
+            assert_eq!(
+                Quantity::parse(s).unwrap().as_milli_cpu(),
+                Some(expected),
+                "{s}"
+            );
         }
-        for s in [
-            "-1",
-            "not-a-number",
-            "1.2.3",
-            "999999999999999999999999999999999999999Gi",
+        for (s, expected) in [
+            ("64Mi", 67108864),
+            ("1.5Gi", 1610612736),
+            ("1000m", 1),
         ] {
-            assert!(quantity(s, false).is_err());
+            assert_eq!(
+                Quantity::parse(s).unwrap().as_bytes(),
+                Some(expected),
+                "{s}"
+            );
         }
+        for s in ["-1", "not-a-number", "1.2.3"] {
+            assert!(Quantity::parse(s).is_none(), "{s}");
+        }
+        assert!(
+            Quantity::parse("999999999999999999999999999999999999999Gi")
+                .unwrap()
+                .as_bytes()
+                .is_none()
+        );
         let r=resources(&json!({"resources":{"limits":{"cpu":"100m","memory":"64Mi"},"requests":{"cpu":"50m"}}})).unwrap();
         assert_eq!(r.cpu_quota, 10000);
         assert_eq!(r.cpu_period, 100000);
