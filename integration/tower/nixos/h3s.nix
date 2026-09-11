@@ -12,7 +12,7 @@ let
   cfg = config.hedronetes.h3s;
   toolsBin = "${cfg.runtimeTools}/bin";
   kubeconfig = "${cfg.runtimeRoot}/runtime/server/admin.kubeconfig";
-  cri = "unix:///run/hedronetes-m1/containerd/containerd.sock";
+  cri = "unix:///run/hedronetes/containerd/containerd.sock";
   commonPath = "${toolsBin}:/run/current-system/sw/bin";
 in
 {
@@ -80,13 +80,13 @@ in
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${cfg.runtimeTools}/bin/containerd --config /var/lib/hedronetes-m1/containerd/config.toml";
+        ExecStart = "${cfg.runtimeTools}/bin/containerd --config /var/lib/hedronetes/containerd/config.toml";
         Environment = "PATH=${commonPath}";
         Restart = "on-failure";
         RestartSec = 2;
         Delegate = "yes";
         KillMode = "process";
-        RuntimeDirectory = "hedronetes-m1/containerd";
+        RuntimeDirectory = "hedronetes/containerd";
         RuntimeDirectoryMode = "0700";
         RuntimeDirectoryPreserve = "yes";
         LimitNOFILE = 1048576;
@@ -108,9 +108,9 @@ in
       };
       serviceConfig = {
         Type = "notify";
-        RuntimeDirectory = "hedronetes-m1/flannel";
+        RuntimeDirectory = "hedronetes/flannel";
         RuntimeDirectoryMode = "0700";
-        ExecStart = "${cfg.flannel}/bin/flannel --kube-subnet-mgr --kubeconfig-file=${cfg.runtimeRoot}/network/flannel/node.kubeconfig --net-config-path=${cfg.runtimeRoot}/network/flannel/net-conf.json --subnet-file=/run/hedronetes-m1/flannel/subnet.env --iface=${cfg.nodeIp} --public-ip=${cfg.nodeIp} --ip-masq --healthz-ip=127.0.0.1 --healthz-port=19091";
+        ExecStart = "${cfg.flannel}/bin/flannel --kube-subnet-mgr --kubeconfig-file=${cfg.runtimeRoot}/network/flannel/node.kubeconfig --net-config-path=${cfg.runtimeRoot}/network/flannel/net-conf.json --subnet-file=/run/hedronetes/flannel/subnet.env --iface=${cfg.nodeIp} --public-ip=${cfg.nodeIp} --ip-masq --healthz-ip=127.0.0.1 --healthz-port=19091";
         Restart = "on-failure";
         RestartSec = 3;
         TimeoutStartSec = 90;
@@ -153,8 +153,8 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.iptables}/bin/iptables -I nixos-fw 3 -i enp0s1 -s ${cfg.peerIp}/32 -d ${cfg.nodeIp}/32 -p tcp --dport 6443 -m comment --comment hedronetes-m1-api -j nixos-fw-accept";
-        ExecStop = "-${pkgs.iptables}/bin/iptables -D nixos-fw -i enp0s1 -s ${cfg.peerIp}/32 -d ${cfg.nodeIp}/32 -p tcp --dport 6443 -m comment --comment hedronetes-m1-api -j nixos-fw-accept";
+        ExecStart = "${pkgs.iptables}/bin/iptables -I nixos-fw 3 -i enp0s1 -s ${cfg.peerIp}/32 -d ${cfg.nodeIp}/32 -p tcp --dport 6443 -m comment --comment hedronetes-api -j nixos-fw-accept";
+        ExecStop = "-${pkgs.iptables}/bin/iptables -D nixos-fw -i enp0s1 -s ${cfg.peerIp}/32 -d ${cfg.nodeIp}/32 -p tcp --dport 6443 -m comment --comment hedronetes-api -j nixos-fw-accept";
       };
     };
 
@@ -165,8 +165,8 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.iptables}/bin/iptables -I nixos-fw 3 -i enp0s1 -s ${cfg.peerIp}/32 -p udp --dport 8472 -m comment --comment hedronetes-m1-vxlan -j nixos-fw-accept";
-        ExecStop = "-${pkgs.iptables}/bin/iptables -D nixos-fw -i enp0s1 -s ${cfg.peerIp}/32 -p udp --dport 8472 -m comment --comment hedronetes-m1-vxlan -j nixos-fw-accept";
+        ExecStart = "${pkgs.iptables}/bin/iptables -I nixos-fw 3 -i enp0s1 -s ${cfg.peerIp}/32 -p udp --dport 8472 -m comment --comment hedronetes-vxlan -j nixos-fw-accept";
+        ExecStop = "-${pkgs.iptables}/bin/iptables -D nixos-fw -i enp0s1 -s ${cfg.peerIp}/32 -p udp --dport 8472 -m comment --comment hedronetes-vxlan -j nixos-fw-accept";
       };
     };
 
@@ -188,8 +188,8 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.iptables}/bin/iptables -I nixos-fw 3 -s 10.42.0.0/16 -d ${cfg.nodeIp}/32 -p tcp --dport 6443 -m comment --comment hedronetes-m1-pod-api -j nixos-fw-accept";
-        ExecStop = "-${pkgs.iptables}/bin/iptables -D nixos-fw -s 10.42.0.0/16 -d ${cfg.nodeIp}/32 -p tcp --dport 6443 -m comment --comment hedronetes-m1-pod-api -j nixos-fw-accept";
+        ExecStart = "${pkgs.iptables}/bin/iptables -I nixos-fw 3 -s 10.42.0.0/16 -d ${cfg.nodeIp}/32 -p tcp --dport 6443 -m comment --comment hedronetes-pod-api -j nixos-fw-accept";
+        ExecStop = "-${pkgs.iptables}/bin/iptables -D nixos-fw -s 10.42.0.0/16 -d ${cfg.nodeIp}/32 -p tcp --dport 6443 -m comment --comment hedronetes-pod-api -j nixos-fw-accept";
       };
     };
   };

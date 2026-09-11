@@ -17,10 +17,10 @@ socket with the existing youki security settings. It is not the final native
 runtime supervisor or declarative NixOS module.
 
 Containerd supplies both plugin directories. Flannel CNI reads
-`/run/hedronetes-m1/flannel/subnet.env`, delegates to the bridge plugin, and
+`/run/hedronetes/flannel/subnet.env`, delegates to the bridge plugin, and
 derives IPAM ranges and MTU from the daemon's assigned subnet. Its private
-scratch records live under `/var/lib/hedronetes-m1/cni/flannel`; host-local
-allocations remain under `/var/lib/hedronetes-m1/cni/ipam`. Explicit default
+scratch records live under `/var/lib/hedronetes/cni/flannel`; host-local
+allocations remain under `/var/lib/hedronetes/cni/ipam`. Explicit default
 routes and hairpin mode support Pod traffic; Flannel owns masquerading.
 The existing project bridge `h3s-test0` is reused to avoid overlapping routes.
 The fixture uses a 1500-byte underlay and 1450-byte VXLAN MTU. This is an IPv4

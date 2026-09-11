@@ -41,7 +41,7 @@ Existing annotations and informer cache ownership are preserved. The custom
 `integration/tower/flannel.nix` package pins upstream source and vendored modules,
 installs the patch and Apache license, and wraps the daemon with explicit
 iptables/ip6tables and nftables helpers. Flannel's nftables mode still calls the
-iptables cleanup manager on startup. No helpers are discovered on Tower or sent
+iptables cleanup manager on startup. No helpers are discovered on the lab host or sent
 to protected builders.
 
 The Linux package regression first reverses the patch and requires the original

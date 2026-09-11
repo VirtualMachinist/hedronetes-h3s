@@ -20,7 +20,7 @@ linkage inspection before using it as a portable artifact. Debian/Fedora runs
 must install and verify their own declared helpers without Nix; the Nix wrapper
 itself is not a portable installation.
 
-## Actual Tower configuration
+## Tower lab configuration
 
 The worker daemon runs as the root `h3s-flannel-runtime.service`, using its own
 node certificate in a mode-0600 kubeconfig under the private project network
@@ -29,7 +29,7 @@ identity. No admin credential, join token or secret is placed in the Nix store.
 
 The configuration selects `10.42.0.0/16`, IPv4, nftables and VXLAN VNI 1/UDP 8472.
 `NODE_NAME=hedronetes-worker`, explicit kubeconfig, interface/public IP and
-`--subnet-file=/run/hedronetes-m1/flannel/subnet.env` avoid host discovery.
+`--subnet-file=/run/hedronetes/flannel/subnet.env` avoid host discovery.
 The health listener binds only `127.0.0.1:19091`. The daemon consumes the actual
 worker `10.42.2.0/24` Node allocation, publishes its own VXLAN metadata and
 NetworkUnavailable condition, and creates its VXLAN device and Flannel nftables

@@ -16,7 +16,7 @@ The server now includes a [native local agent](server-agent.md) by default;
 ## Operator configuration
 
 Start the server with a stable private data directory and the actual reachable
-server address in its TLS SANs. Example for the isolated Tower pair:
+server address in its TLS SANs. Example for the isolated tower lab pair:
 
 ```sh
 h3s server --disable-agent --data-dir /var/lib/hedronetes \

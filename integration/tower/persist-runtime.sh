@@ -2,7 +2,8 @@
 # Persist live transient units via /var/lib + tmpfiles.d (NixOS /etc/systemd/system is a static symlink).
 # Do not restart h3s/flannel/containerd. Do not reboot.
 set -euo pipefail
-DEST=/var/lib/hedronetes-m1/systemd
+H3S_ROOT="${H3S_ROOT:-/var/lib/hedronetes}"
+DEST="$H3S_ROOT/systemd"
 mkdir -p "$DEST" "$DEST/dhcpcd.service.d"
 for u in /run/systemd/system/h3s-*.service /run/systemd/system/hedronetes-*.service; do
   [ -f "$u" ] || continue
@@ -24,12 +25,12 @@ fi
       echo "C /run/systemd/system/dhcpcd.service.d/$(basename "$u") 0644 root root - $u"
     done
   fi
-} > /etc/tmpfiles.d/90-hedronetes-m1.conf
-printf 'net.bridge.bridge-nf-call-iptables = 1\n' > /etc/sysctl.d/90-hedronetes-m1.conf
-printf 'br_netfilter\n' > /etc/modules-load.d/90-hedronetes-m1.conf
+} > /etc/tmpfiles.d/90-hedronetes.conf
+printf 'net.bridge.bridge-nf-call-iptables = 1\n' > /etc/sysctl.d/90-hedronetes.conf
+printf 'br_netfilter\n' > /etc/modules-load.d/90-hedronetes.conf
 sysctl -w net.bridge.bridge-nf-call-iptables=1 >/dev/null
 modprobe br_netfilter || true
-systemd-tmpfiles --create /etc/tmpfiles.d/90-hedronetes-m1.conf >/dev/null
+systemd-tmpfiles --create /etc/tmpfiles.d/90-hedronetes.conf >/dev/null
 echo PERSIST_OK
 ls "$DEST"/*.service | wc -l
-cat /etc/tmpfiles.d/90-hedronetes-m1.conf | wc -l
+cat /etc/tmpfiles.d/90-hedronetes.conf | wc -l

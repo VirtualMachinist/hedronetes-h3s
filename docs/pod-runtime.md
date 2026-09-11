@@ -5,7 +5,7 @@ native CRI reconciler alongside independent Node/Lease heartbeats and the
 supervisor tunnel. Without the endpoint it still enrolls, but remains NotReady.
 The endpoint must identify a local Unix socket. With runtime execution enabled,
 run the agent with the privileges required by the configured runtime socket and
-private Pod state; the Tower fixture uses a root systemd service.
+private Pod state; the tower lab fixture uses a root systemd service.
 
 The node identity lists only Pods assigned to its node through the authenticated
 API. A complete, validated list is required before orphan cleanup. Sandboxes and
@@ -83,7 +83,7 @@ consumption without leaking values, restart the agent/runtime, force a container
 exit, observe replacement, and delete the Pod with scoped runtime cleanup.
 
 The live acceptance manifest records the tested commit/package and the exact
-configuration. Temporary Tower root service installation is not the final
+configuration. Temporary tower lab root service installation is not the final
 NixOS module or a portability result. The complete 24-check contract remains
 in the acceptance lab.
 

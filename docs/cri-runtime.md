@@ -20,7 +20,7 @@ The multicall binary exposes read-only inspection:
 
 ```sh
 sudo h3s runtime-info --container-runtime-endpoint \
-  unix:///run/hedronetes-m1/containerd/containerd.sock
+  unix:///run/hedronetes/containerd/containerd.sock
 ```
 
 It prints actual runtime/version/condition fields. This does not mark the node
@@ -57,12 +57,12 @@ binary. It retains seccomp and sets the default profile to runtime/default.
 The pause image is pinned by manifest digest. Streaming endpoints bind loopback.
 
 The initial CNI fixture allocates 10.42.2.0/24 on bridge `h3s-test0`, with IPAM
-state under `/var/lib/hedronetes-m1/cni/ipam`. This is a local runtime fixture;
+state under `/var/lib/hedronetes/cni/ipam`. This is a local runtime fixture;
 node CIDR allocation, cross-node routes, Service/DNS and final CNI integration
 remain required. Do not apply the same fixed subnet to both nodes.
 
-The service uses project paths under `/var/lib/hedronetes-m1` and
-`/run/hedronetes-m1`. Containerd uses its native version 4 configuration: gRPC
+The service uses project paths under `/var/lib/hedronetes` and
+`/run/hedronetes`. Containerd uses its native version 4 configuration: gRPC
 and ttrpc addresses belong to `io.containerd.server.v1.grpc` and
 `io.containerd.server.v1.ttrpc`; the obsolete top-level `[grpc]` setting was
 ignored during a real run and the CRI probe could not connect. Streaming fields
@@ -98,8 +98,8 @@ labelled runtime queries to find those resources as well.
 ```sh
 cargo test -p h3s-cri --locked
 cargo build -p h3s-cri --example runtime-probe --locked
-sudo /path/to/runtime-probe unix:///run/hedronetes-m1/containerd/containerd.sock \
-  /var/lib/hedronetes-m1/runtime-probes \
+sudo /path/to/runtime-probe unix:///run/hedronetes/containerd/containerd.sock \
+  /var/lib/hedronetes/runtime-probes \
   docker.io/library/busybox@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
 ```
 
