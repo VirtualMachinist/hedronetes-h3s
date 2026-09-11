@@ -369,7 +369,29 @@ async fn run_server(args: ServerArgs) -> RunResult {
         h3s_controllers::WORKLOAD_GC_ID,
         h3s_controllers::run_workload_gc
     );
-    controller!("scheduler", h3s_scheduler::SCHEDULER_ID, h3s_scheduler::run);
+    let scheduler = client_for(&pki, &endpoint, h3s_scheduler::SCHEDULER_ID).await?;
+    children.spawn(supervise("scheduler", move || {
+        let client = scheduler.clone();
+        async move {
+            #[cfg(unix)]
+            {
+                let mut usr1 =
+                    tokio::signal::unix::signal(tokio::signal::unix::SignalKind::user_defined1())
+                        .expect("SIGUSR1");
+                tokio::select! {
+                    result = h3s_scheduler::run(client) => result,
+                    _ = usr1.recv() => {
+                        eprintln!("h3s scheduler received SIGUSR1; stopping for supervisor restart");
+                        Ok(())
+                    }
+                }
+            }
+            #[cfg(not(unix))]
+            {
+                h3s_scheduler::run(client).await
+            }
+        }
+    }));
     // Enrollment is polled alongside serving: awaiting it before the API is
     // driven would deadlock this process against its own TLS listener. The
     // agent may die and come back; the API does not follow it down.
