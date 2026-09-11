@@ -25,7 +25,7 @@ enum Multicall {
     H3s(H3sCli),
     /// Start the control plane + datastore + supervisor (embedded agent unless disabled).
     Server(ServerArgs),
-    /// Enroll a worker and maintain Node/Lease status (workload runtime incomplete).
+    /// Enroll a worker and maintain Node/Lease status.
     Agent(AgentArgs),
     /// Inspect the configured local CRI v1 runtime without changing workloads.
     RuntimeInfo(RuntimeArgs),
@@ -50,7 +50,7 @@ struct H3sCli {
 enum Command {
     /// Start the control plane + datastore + supervisor (embedded agent unless disabled).
     Server(ServerArgs),
-    /// Enroll a worker and maintain Node/Lease status (workload runtime incomplete).
+    /// Enroll a worker and maintain Node/Lease status.
     Agent(AgentArgs),
     /// Inspect the configured local CRI v1 runtime without changing workloads.
     RuntimeInfo(RuntimeArgs),

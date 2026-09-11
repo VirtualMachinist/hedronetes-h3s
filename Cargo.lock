@@ -975,10 +975,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "h3s-cni"
-version = "0.9.0"
-
-[[package]]
 name = "h3s-controllers"
 version = "0.9.0"
 dependencies = [
@@ -1013,10 +1009,6 @@ dependencies = [
  "tower",
  "uuid",
 ]
-
-[[package]]
-name = "h3s-deploy"
-version = "0.9.0"
 
 [[package]]
 name = "h3s-kubelet"
