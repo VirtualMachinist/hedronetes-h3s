@@ -1,5 +1,6 @@
 //! Resource strategies for the M1 workload API. Runtime admission is separate.
 use super::{resources::Resource, Failure, Result};
+use h3s_api::pod_profile::PodRuntimeProfile;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 
@@ -22,9 +23,7 @@ fn one_of(value: &Value, choices: &[&str], field: &str) -> Result<()> {
 
 /// Helm release drivers rebuild ConfigMaps and Secrets without resourceVersion.
 pub(crate) fn helm_owned(value: &Value, kind: &str) -> bool {
-    if kind == "Secret"
-        && value.get("type").and_then(Value::as_str) == Some("helm.sh/release.v1")
-    {
+    if kind == "Secret" && value.get("type").and_then(Value::as_str) == Some("helm.sh/release.v1") {
         return true;
     }
     if value["metadata"]["labels"]["owner"].as_str() == Some("helm") {
@@ -109,6 +108,14 @@ pub(crate) fn prepare(
             if template["spec"]["restartPolicy"] != "Always" {
                 return Err(invalid("workload template restartPolicy must be Always"));
             }
+            // A template the node cannot execute is refused here, never
+            // persisted to fail one replica at a time.
+            PodRuntimeProfile.check(&template["spec"]).map_err(|e| {
+                invalid(&format!(
+                    "template cannot run under the {} runtime profile: {e}",
+                    PodRuntimeProfile::NAME
+                ))
+            })?;
             selector_matches(&spec["selector"], &spec["template"]["metadata"]["labels"])?;
             if resource.kind == "Deployment" {
                 default(spec, "revisionHistoryLimit", json!(10));
@@ -250,7 +257,7 @@ fn pod(spec: &mut Value) -> Result<()> {
     default(spec, "serviceAccountName", json!("default"));
     spec["serviceAccount"] = spec["serviceAccountName"].clone();
     default(spec, "terminationGracePeriodSeconds", json!(30));
-    default(spec, "enableServiceLinks", json!(true));
+    PodRuntimeProfile.defaults(spec);
     one_of(
         &spec["restartPolicy"],
         &["Always", "OnFailure", "Never"],

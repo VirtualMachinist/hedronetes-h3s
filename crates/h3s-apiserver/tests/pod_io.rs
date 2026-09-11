@@ -47,7 +47,7 @@ async fn text(s: &Server, method: &str, path: &str) -> (u16, String) {
 }
 
 fn pod_spec(name: &str) -> Value {
-    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
+    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
 }
 
 async fn healthy(s: &Server) {

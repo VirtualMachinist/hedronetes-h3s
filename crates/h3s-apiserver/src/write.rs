@@ -227,9 +227,8 @@ impl Write<'_> {
                 }
                 rv
             }
-            None
-                if matches!(self.target.resource.kind, "ConfigMap" | "Secret")
-                    && strategy::helm_owned(value, self.target.resource.kind) =>
+            None if matches!(self.target.resource.kind, "ConfigMap" | "Secret")
+                && strategy::helm_owned(value, self.target.resource.kind) =>
             {
                 old_stored.revision
             }
@@ -290,7 +289,10 @@ impl Write<'_> {
         if target.subresource.is_none() {
             match target.resource.kind {
                 "Namespace" => admission::namespace(value)?,
-                "Pod" => admission::pod(namespace.expect("namespaced Pod"), value)?,
+                "Pod" => {
+                    admission::pod(namespace.expect("namespaced Pod"), value)?;
+                    admission::runtime(value)?;
+                }
                 "Service" => services::assign(&self.api.store, value, old).await?,
                 _ => {}
             }

@@ -30,7 +30,7 @@ async fn node(s: &Server) -> Value {
     node
 }
 async fn pod(s: &Server, name: &str, extra: Value) -> Value {
-    let mut p = json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","resources":{"limits":{"cpu":"700m","memory":"64Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}});
+    let mut p = json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","resources":{"limits":{"cpu":"700m","memory":"64Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}});
     for (k, v) in extra.as_object().unwrap() {
         p["spec"][k] = v.clone();
     }

@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use std::time::Duration;
 
 fn pod(name: &str) -> Value {
-    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
+    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
 }
 async fn account(s: &Server, name: &str, fields: Value) -> Value {
     let mut value = json!({"apiVersion":"v1","kind":"ServiceAccount","metadata":{"name":name}});
@@ -233,78 +233,78 @@ async fn account_resolution_requires_same_namespace_and_consistent_names() {
     assert_eq!(create(&s, value).await.0, 403);
 }
 #[tokio::test]
-async fn account_defaults_project_token_and_preserve_pod_overrides() {
+async fn accounts_never_project_a_token_and_pull_secrets_are_outside_the_profile() {
     let dir = tempfile::tempdir().unwrap();
     let s = Server::start(dir.path()).await;
     s.namespace("team-a").await;
+    account(&s, "mounting", json!({"automountServiceAccountToken":true})).await;
     account(
         &s,
-        "custom",
-        json!({"imagePullSecrets":[{"name":"registry"}],"automountServiceAccountToken":false}),
+        "pulling",
+        json!({"imagePullSecrets":[{"name":"registry"}]}),
     )
     .await;
-    let mut value = pod("default");
-    value["spec"]["initContainers"] = json!([value["spec"]["containers"][0].clone()]);
-    value["spec"]["initContainers"][0]["name"] = json!("init");
-    let (code, created) = create(&s, value).await;
-    assert_eq!(code, 201, "{created}");
-    let volume = &created["spec"]["volumes"][0];
-    assert_eq!(
-        volume["projected"]["sources"][0]["serviceAccountToken"]["expirationSeconds"],
-        3607
-    );
-    assert_eq!(
-        volume["projected"]["sources"][1]["configMap"]["name"],
-        "kube-root-ca.crt"
-    );
-    assert_eq!(
-        volume["projected"]["sources"][2]["downwardAPI"]["items"][0]["fieldRef"]["fieldPath"],
-        "metadata.namespace"
-    );
-    for field in ["containers", "initContainers"] {
-        let mount = &created["spec"][field][0]["volumeMounts"][0];
-        assert_eq!(mount["name"], volume["name"]);
-        assert_eq!(mount["readOnly"], true);
-    }
-    let mut update = created.clone();
-    update["spec"]["containers"][0]["image"] = json!("example.invalid/web:v2");
-    let (code, updated) = s
-        .json(
-            s.admin(),
-            "PUT",
-            "/api/v1/namespaces/team-a/pods/default",
-            update,
-        )
-        .await;
-    assert_eq!(code, 200, "{updated}");
-    assert_eq!(updated["spec"]["volumes"], created["spec"]["volumes"]);
-    for (name, override_value, wants_mount) in [
-        ("account-default", None, false),
-        ("pod-on", Some(true), true),
-        ("pod-off", Some(false), false),
-    ] {
-        let mut value = pod(name);
-        value["spec"]["serviceAccountName"] = json!("custom");
-        if let Some(v) = override_value {
-            value["spec"]["automountServiceAccountToken"] = json!(v);
-        }
+    // The API default is false even when the account asks for a token: the
+    // node would not mount it and the API could not authenticate it.
+    for name in ["default", "mounting"] {
+        let mut value = pod(&format!("via-{name}"));
+        value["spec"]["serviceAccountName"] = json!(name);
         let (code, created) = create(&s, value).await;
         assert_eq!(code, 201, "{created}");
-        assert_eq!(!created["spec"]["volumes"].is_null(), wants_mount);
-        assert_eq!(
-            created["spec"]["imagePullSecrets"],
-            json!([{"name":"registry"}])
+        assert_eq!(created["spec"]["serviceAccountName"], name);
+        assert_eq!(created["spec"]["automountServiceAccountToken"], false);
+        assert_eq!(created["spec"]["enableServiceLinks"], false);
+        assert!(created["spec"].get("volumes").is_none(), "{created}");
+        assert!(
+            created["spec"]["containers"][0]
+                .get("volumeMounts")
+                .is_none(),
+            "{created}"
         );
     }
-    let mut value = pod("pull-override");
-    value["spec"]["serviceAccountName"] = json!("custom");
-    value["spec"]["imagePullSecrets"] = json!([{"name":"own"}]);
-    assert_eq!(
-        create(&s, value).await.1["spec"]["imagePullSecrets"],
-        json!([{"name":"own"}])
+    // An explicit token request, inherited pull secrets, or the Pod's own
+    // pull secrets leave the runtime profile: refused, never persisted.
+    let mut value = pod("explicit");
+    value["spec"]["automountServiceAccountToken"] = json!(true);
+    let (code, refused) = create(&s, value).await;
+    assert_eq!(code, 422, "{refused}");
+    assert!(
+        refused["message"]
+            .as_str()
+            .unwrap()
+            .contains("token projection"),
+        "{refused}"
     );
+    let mut value = pod("pulls");
+    value["spec"]["serviceAccountName"] = json!("pulling");
+    let (code, refused) = create(&s, value).await;
+    assert_eq!(code, 422, "{refused}");
+    assert!(
+        refused["message"]
+            .as_str()
+            .unwrap()
+            .contains("image authentication"),
+        "{refused}"
+    );
+    let mut value = pod("own-pull");
+    value["spec"]["imagePullSecrets"] = json!([{"name":"own"}]);
+    assert_eq!(create(&s, value).await.0, 422);
+    for name in ["explicit", "pulls", "own-pull"] {
+        assert_eq!(
+            s.json(
+                s.admin(),
+                "GET",
+                &format!("/api/v1/namespaces/team-a/pods/{name}"),
+                json!({})
+            )
+            .await
+            .0,
+            404
+        );
+    }
+    // A Pod-declared volume at the token path is an ordinary volume.
     let mut value = pod("mount-override");
-    value["spec"]["volumes"] = json!([{"name":"own","emptyDir":{}}]);
+    value["spec"]["volumes"] = json!([{"name":"own","configMap":{"name":"own"}}]);
     value["spec"]["containers"][0]["volumeMounts"] =
         json!([{"name":"own","mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}]);
     let (code, created) = create(&s, value).await;
@@ -316,7 +316,7 @@ async fn mountable_secret_policy_covers_volumes_environment_and_pull_secrets() {
     let dir = tempfile::tempdir().unwrap();
     let s = Server::start(dir.path()).await;
     s.namespace("team-a").await;
-    account(&s,"limited",json!({"metadata":{"name":"limited","annotations":{"kubernetes.io/enforce-mountable-secrets":"true"}},"secrets":[{"name":"allowed"}],"imagePullSecrets":[{"name":"registry"}]})).await;
+    account(&s,"limited",json!({"metadata":{"name":"limited","annotations":{"kubernetes.io/enforce-mountable-secrets":"true"}},"secrets":[{"name":"allowed"}]})).await;
     for (i, spec) in [
         json!({"volumes":[{"name":"s","secret":{"secretName":"denied"}}]}),
         json!({"volumes":[{"name":"s","projected":{"sources":[{"secret":{"name":"denied"}}]}}]}),

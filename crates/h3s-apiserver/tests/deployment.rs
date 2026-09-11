@@ -332,9 +332,28 @@ async fn replicaset_claims_releases_and_reports_real_admission_failure() {
             .unwrap()["metadata"]["ownerReferences"],
         json!([])
     );
+    // A template the node cannot execute is refused at create, never
+    // persisted to fail replica by replica.
     let mut unsafe_spec = spec();
     unsafe_spec["containers"][0]["securityContext"]["privileged"] = true.into();
-    let set=request(&s,"POST","/apis/apps/v1/namespaces/default/replicasets",json!({"apiVersion":"apps/v1","kind":"ReplicaSet","metadata":{"name":"denied"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"denied"}},"template":{"metadata":{"labels":{"app":"denied"}},"spec":unsafe_spec}}})).await;
+    let (code, refused) = s.json(s.admin(),"POST","/apis/apps/v1/namespaces/default/replicasets",json!({"apiVersion":"apps/v1","kind":"ReplicaSet","metadata":{"name":"denied"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"denied"}},"template":{"metadata":{"labels":{"app":"denied"}},"spec":unsafe_spec}}})).await;
+    assert_eq!(code, 422, "{refused}");
+    assert_eq!(
+        s.json(
+            s.admin(),
+            "GET",
+            "/apis/apps/v1/namespaces/default/replicasets/denied",
+            json!({})
+        )
+        .await
+        .0,
+        404
+    );
+    // A template inside the profile that restricted Pod Security still
+    // refuses is the real admission failure the controller must report.
+    let mut denied_spec = spec();
+    denied_spec["securityContext"]["runAsNonRoot"] = Value::Null;
+    let set=request(&s,"POST","/apis/apps/v1/namespaces/default/replicasets",json!({"apiVersion":"apps/v1","kind":"ReplicaSet","metadata":{"name":"denied"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"denied"}},"template":{"metadata":{"labels":{"app":"denied"}},"spec":denied_spec}}})).await;
     assert!(
         h3s_controllers::replicaset_once(rsclient.clone(), "default", "denied")
             .await

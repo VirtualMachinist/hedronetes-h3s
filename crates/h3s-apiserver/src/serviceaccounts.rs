@@ -1,8 +1,10 @@
-//! Pod ServiceAccount admission. Token projection is desired configuration;
-//! TokenRequest issuance and kubelet refresh are separate runtime components.
+//! Pod ServiceAccount admission: the account must exist and permit what the
+//! Pod references. No token is projected: until TokenRequest and bearer
+//! authentication exist the API would only refuse it, and the runtime profile
+//! keeps `automountServiceAccountToken` false to match.
 use crate::{key, object, resources::RESOURCES, Failure, Result};
 use h3s_storage::Storage;
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::{collections::BTreeSet, sync::Arc};
 
 fn denied(message: &str) -> Failure {
@@ -46,13 +48,6 @@ pub async fn admit(store: &Arc<dyn Storage>, namespace: &str, pod: &mut Value) -
         .is_some_and(|v| v == "1" || v.eq_ignore_ascii_case("true") || v.eq_ignore_ascii_case("t"));
     if enforce {
         validate_secret_references(spec, &account)?;
-    }
-    let mount = spec["automountServiceAccountToken"]
-        .as_bool()
-        .or(account["automountServiceAccountToken"].as_bool())
-        .unwrap_or(true);
-    if mount {
-        project_token(spec);
     }
     Ok(())
 }
@@ -101,48 +96,4 @@ fn validate_secret_references(spec: &Value, account: &Value) -> Result<()> {
         ));
     }
     Ok(())
-}
-fn project_token(spec: &mut Value) {
-    const PATH: &str = "/var/run/secrets/kubernetes.io/serviceaccount";
-    let existing = items(&spec["volumes"]).find_map(|v| {
-        v["name"]
-            .as_str()
-            .filter(|n| n.starts_with("kube-api-access-"))
-            .map(str::to_owned)
-    });
-    let name = existing.clone().unwrap_or_else(|| {
-        format!(
-            "kube-api-access-{}",
-            &uuid::Uuid::new_v4().simple().to_string()[..8]
-        )
-    });
-    let mut needed = false;
-    for field in ["containers", "initContainers"] {
-        // Look up, never index-insert: a missing list must stay absent, not null.
-        if let Some(containers) = spec.get_mut(field).and_then(Value::as_array_mut) {
-            for container in containers {
-                if items(&container["volumeMounts"]).any(|m| m["mountPath"] == PATH) {
-                    continue;
-                }
-                if container["volumeMounts"].is_null() {
-                    container["volumeMounts"] = json!([]);
-                }
-                container["volumeMounts"]
-                    .as_array_mut()
-                    .expect("typed volumeMounts")
-                    .push(json!({"name":name,"readOnly":true,"mountPath":PATH}));
-                needed = true;
-            }
-        }
-    }
-    if needed && existing.is_none() {
-        if spec["volumes"].is_null() {
-            spec["volumes"] = json!([]);
-        }
-        spec["volumes"].as_array_mut().expect("typed volumes").push(json!({"name":name,"projected":{"defaultMode":420,"sources":[
-            {"serviceAccountToken":{"path":"token","expirationSeconds":3607}},
-            {"configMap":{"name":"kube-root-ca.crt","items":[{"key":"ca.crt","path":"ca.crt"}]}},
-            {"downwardAPI":{"items":[{"path":"namespace","fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}]}}
-        ]}}));
-    }
 }

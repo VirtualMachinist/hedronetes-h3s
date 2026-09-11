@@ -14,7 +14,7 @@ fn node(name: &str) -> Value {
     json!({"apiVersion":"v1","kind":"Node","metadata":{"name":name,"labels":{"kubernetes.io/hostname":name,"kubernetes.io/os":"linux","kubernetes.io/arch":"arm64"}}})
 }
 fn pod(name: &str, node: &str) -> Value {
-    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"nodeName":node,"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
+    json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":name},"spec":{"nodeName":node,"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}})
 }
 async fn broad_node_role(s: &Server) {
     for (resource, value) in [
@@ -246,13 +246,13 @@ async fn node_reads_only_assigned_pods_and_typed_namespaced_references() {
     s.namespace("team-a").await;
     s.namespace("team-b").await;
     let mut p = pod("owned", "a");
+    // Projected and CSI volumes, pull secrets and init containers are outside
+    // the runtime profile and can no longer be persisted, so the typed
+    // references a node can hold are volumes, env and envFrom.
     p["spec"]["volumes"] = json!([
         {"name":"settings","configMap":{"name":"cm-volume"}},
-        {"name":"credentials","secret":{"secretName":"secret-volume"}},
-        {"name":"projected","projected":{"sources":[{"configMap":{"name":"cm-project"}},{"secret":{"name":"secret-project"}}]}},
-        {"name":"csi","csi":{"driver":"example.org/csi","nodePublishSecretRef":{"name":"secret-csi"}}}
+        {"name":"credentials","secret":{"secretName":"secret-volume"}}
     ]);
-    p["spec"]["imagePullSecrets"] = json!([{"name":"secret-pull"}]);
     p["spec"]["containers"][0]["env"] = json!([
         {"name":"CM","valueFrom":{"configMapKeyRef":{"name":"cm-env","key":"value"}}},
         {"name":"SECRET","valueFrom":{"secretKeyRef":{"name":"secret-env","key":"value"}}},
@@ -260,7 +260,6 @@ async fn node_reads_only_assigned_pods_and_typed_namespaced_references() {
     ]);
     p["spec"]["containers"][0]["envFrom"] =
         json!([{"configMapRef":{"name":"cm-all"}},{"secretRef":{"name":"secret-all"}}]);
-    p["spec"]["initContainers"] = json!([{"name":"init","image":"example.invalid/init:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"envFrom":[{"secretRef":{"name":"secret-init"}}]}]);
     p["metadata"]["annotations"]["unrelated"] = "unrelated".into();
     let (code, owned) = s
         .json(s.admin(), "POST", "/api/v1/namespaces/team-a/pods", p)
@@ -278,20 +277,12 @@ async fn node_reads_only_assigned_pods_and_typed_namespaced_references() {
         (
             "ConfigMap",
             "configmaps",
-            vec!["cm-volume", "cm-project", "cm-env", "cm-all"],
+            vec!["cm-volume", "cm-env", "cm-all"],
         ),
         (
             "Secret",
             "secrets",
-            vec![
-                "secret-volume",
-                "secret-project",
-                "secret-pull",
-                "secret-env",
-                "secret-all",
-                "secret-init",
-                "secret-csi",
-            ],
+            vec!["secret-volume", "secret-env", "secret-all"],
         ),
     ] {
         for name in names.into_iter().chain(["unrelated"]) {
@@ -542,7 +533,7 @@ async fn secret_watch_revocation(initial: bool) {
     let s = Server::start(dir.path()).await;
     s.namespace("team-a").await;
     let mut p = pod("owned", "a");
-    p["spec"]["imagePullSecrets"] = json!([{"name":"pull"}]);
+    p["spec"]["volumes"] = json!([{"name":"pull","secret":{"secretName":"pull"}}]);
     assert_eq!(
         s.json(s.admin(), "POST", "/api/v1/namespaces/team-a/pods", p)
             .await

@@ -131,7 +131,7 @@ async fn objects_are_normalized_once_and_stored_without_nulls() {
     let s = Server::start(dir.path()).await;
     // No initContainers, ports or volumes: the strategy must not leave them
     // behind as null now that nothing re-normalizes after it.
-    let pod = json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":"web"},"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}});
+    let pod = json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":"web"},"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}});
     let (code, created) = s
         .json(s.admin(), "POST", "/api/v1/namespaces/default/pods", pod)
         .await;
@@ -157,9 +157,9 @@ async fn objects_are_normalized_once_and_stored_without_nulls() {
         updated["spec"]["containers"][0]["image"],
         "example.invalid/web:v2"
     );
-    // ServiceAccount token projection edits the spec after the strategy and
-    // must leave it canonical too.
-    let projected = json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":"projected"},"spec":{"securityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}});
+    // ServiceAccount admission runs after the strategy and must leave the
+    // spec canonical too; it never projects a token.
+    let projected = json!({"apiVersion":"v1","kind":"Pod","metadata":{"name":"projected"},"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"web","image":"example.invalid/web:v1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}});
     let (code, projected) = s
         .json(
             s.admin(),
@@ -170,7 +170,7 @@ async fn objects_are_normalized_once_and_stored_without_nulls() {
         .await;
     assert_eq!(code, 201, "{projected}");
     assert_canonical(&projected);
-    assert!(projected["spec"]["volumes"].is_array(), "{projected}");
+    assert!(projected["spec"].get("volumes").is_none(), "{projected}");
     let (code, patched) = s
         .patch(
             s.admin(),

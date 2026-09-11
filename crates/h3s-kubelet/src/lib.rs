@@ -79,6 +79,11 @@ pub struct Agent {
 fn invalid(message: &'static str) -> Error {
     Error::Configuration(message)
 }
+impl From<h3s_api::pod_profile::Unsupported> for Error {
+    fn from(e: h3s_api::pod_profile::Unsupported) -> Self {
+        Error::Configuration(e.0)
+    }
+}
 fn endpoint(server: &str) -> Result<Url> {
     let url = Url::parse(server).map_err(|_| invalid("invalid server URL"))?;
     if url.scheme() != "https"

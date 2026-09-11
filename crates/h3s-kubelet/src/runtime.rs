@@ -254,7 +254,7 @@ impl Runtime {
             .as_array()
             .expect("validated containers")
         {
-            let mut identity = json!({"container":c,"podSecurityContext":p["spec"]["securityContext"],"runtimeProfile":"restricted-v1"});
+            let mut identity = json!({"container":c,"podSecurityContext":p["spec"]["securityContext"],"runtimeProfile":h3s_api::pod_profile::PodRuntimeProfile::NAME});
             if p["spec"]["volumes"]
                 .as_array()
                 .is_some_and(|v| !v.is_empty())
@@ -283,7 +283,7 @@ impl Runtime {
                 labels,
                 linux: Some(LinuxContainerConfig {
                     resources: Some(pod::resources(c)?),
-                    security_context: Some(pod::security(p, c)),
+                    security_context: Some(pod::security(p, c)?),
                 }),
                 ..Default::default()
             };
