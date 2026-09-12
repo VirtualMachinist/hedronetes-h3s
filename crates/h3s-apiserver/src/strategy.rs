@@ -112,8 +112,9 @@ pub(crate) fn prepare(
             // persisted to fail one replica at a time.
             PodRuntimeProfile.check(&template["spec"]).map_err(|e| {
                 invalid(&format!(
-                    "template cannot run under the {} runtime profile: {e}",
-                    PodRuntimeProfile::NAME
+                    "template cannot run under the {} runtime profile ({}): {e}",
+                    PodRuntimeProfile::NAME,
+                    PodRuntimeProfile::CONTRACT_SET
                 ))
             })?;
             selector_matches(&spec["selector"], &spec["template"]["metadata"]["labels"])?;

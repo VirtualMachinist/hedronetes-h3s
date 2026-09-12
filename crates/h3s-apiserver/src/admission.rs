@@ -60,8 +60,9 @@ pub fn runtime(pod: &Value) -> Result<()> {
             422,
             "Invalid",
             format!(
-                "Pod cannot run under the {} runtime profile: {e}",
-                PodRuntimeProfile::NAME
+                "Pod cannot run under the {} runtime profile ({}): {e}",
+                PodRuntimeProfile::NAME,
+                PodRuntimeProfile::CONTRACT_SET
             ),
         )
     })
