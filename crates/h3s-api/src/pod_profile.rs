@@ -29,50 +29,13 @@ pub struct ContainerExecution {
     pub read_only_root_filesystem: bool,
 }
 
-const SPEC_FIELDS: &[&str] = &[
-    "nodeName",
-    "containers",
-    "volumes",
-    "securityContext",
-    "restartPolicy",
-    "terminationGracePeriodSeconds",
-    "dnsPolicy",
-    "dnsConfig",
-    "hostname",
-    "serviceAccount",
-    "serviceAccountName",
-    "automountServiceAccountToken",
-    "enableServiceLinks",
-    "schedulerName",
-    "nodeSelector",
-    "tolerations",
-    "affinity",
-    "priority",
-    "priorityClassName",
-    "preemptionPolicy",
-    "imagePullSecrets",
-];
-const CONTAINER_FIELDS: &[&str] = &[
-    "name",
-    "image",
-    "imagePullPolicy",
-    "command",
-    "args",
-    "workingDir",
-    "env",
-    "envFrom",
-    "ports",
-    "resources",
-    "securityContext",
-    "volumeMounts",
-    "readinessProbe",
-    "terminationMessagePath",
-    "terminationMessagePolicy",
-];
 const MAX_UID: i64 = u32::MAX as i64;
 
 impl PodRuntimeProfile {
     pub const NAME: &'static str = "restricted-v1";
+    /// The `hedron-ncl` release overlay this profile is generated from. Bumps
+    /// with the h3s minor; admission quotes it so blame can be traced back.
+    pub const CONTRACT_SET: &'static str = crate::pod_profile_gen::CONTRACT_SET;
 
     /// API-side defaults that match what the node executes. Until
     /// TokenRequest and bearer authentication exist, a projected token would
@@ -88,6 +51,7 @@ impl PodRuntimeProfile {
     }
 
     /// Whether the runtime can execute this Pod spec exactly as written.
+    /// Generated from the [`Self::CONTRACT_SET`] overlay; not handwritten here.
     pub fn check(&self, spec: &Value) -> Result<()> {
         crate::pod_profile_gen::check(self, spec)
     }
@@ -139,7 +103,6 @@ impl PodRuntimeProfile {
             read_only_root_filesystem: sc["readOnlyRootFilesystem"].as_bool().unwrap_or(false),
         })
     }
-
 }
 
 /// ConfigMap and Secret volumes only; returns the declared volume names.
